@@ -1,4 +1,5 @@
 
+
 export const dailyHabits = [
   { id: 1, name: 'Leer 10 páginas', icon: '📚', streak: 12, completed: true },
   { id: 2, name: 'Meditar 5 minutos', icon: '🧘', streak: 5, completed: true },
@@ -92,7 +93,7 @@ export const budgets = [
 
 export const shoppingLists = [
     {
-        id: 1, name: 'Supermercado Semanal', items: [
+        id: 1, name: 'Comida', items: [
             { itemId: 1, name: 'Leche', quantity: '2L', isPurchased: true, price: 8000 },
             { itemId: 2, name: 'Huevos', quantity: '12', isPurchased: true, price: 12000 },
             { itemId: 3, name: 'Pan integral', quantity: '1', isPurchased: false },
@@ -100,6 +101,20 @@ export const shoppingLists = [
             { itemId: 5, name: 'Manzanas', quantity: '6', isPurchased: false },
         ]
     },
-    { id: 2, name: 'Ferretería', items: [] },
-    { id: 3, name: 'Regalos Cumpleaños', items: [] },
+    { 
+        id: 2, 
+        name: 'Servicios y Suscripciones', 
+        items: [
+            { itemId: 6, name: 'Internet Hogar', quantity: '1', isPurchased: false },
+            { itemId: 7, name: 'Energía', quantity: '1', isPurchased: false },
+            { itemId: 8, name: 'Agua', quantity: '1', isPurchased: false },
+            { itemId: 9, name: 'Netflix', quantity: '1', isPurchased: false },
+            { itemId: 10, name: 'Spotify', quantity: '1', isPurchased: false },
+            { itemId: 11, name: 'Adobe Creative Cloud', quantity: '1', isPurchased: false },
+            { itemId: 12, name: 'Rappi Prime', quantity: '1', isPurchased: false },
+        ] 
+    },
+    { id: 3, name: 'Ocio', items: [] },
+    { id: 4, name: 'Transporte', items: [] },
 ];
+
