@@ -93,7 +93,7 @@ export default function ShoppingListsPage() {
   };
 
   const handleToggleItem = (itemId: number, isPurchased: boolean) => {
-    if (!isPurchased) {
+    if (isPurchased) {
         setItemToUpdate({ listId: selectedListId!, itemId: itemId });
     } else {
         const updatedLists = lists.map((list) => {
