@@ -50,7 +50,7 @@ const navItems = [
   { href: '/goals', icon: Target, label: 'Metas' },
   { href: '/mood-tracker', icon: Smile, label: 'Ánimo' },
   { href: '/finances', icon: CircleDollarSign, label: 'Finanzas' },
-  { href: '/shopping-lists', icon: ShoppingCart, label: 'Compras' },
+  { href: '/expenses', icon: ShoppingCart, label: 'Gastos' },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

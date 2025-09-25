@@ -1,12 +1,28 @@
+'use client';
+
+import { useState } from 'react';
 import PageHeader from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { budgets, transactions } from "@/lib/placeholder-data";
+import { budgets as initialBudgets, transactions as initialTransactions } from "@/lib/placeholder-data";
 import { ArrowDownCircle, ArrowUpCircle, PlusCircle } from "lucide-react";
 
 export default function FinancesPage() {
+  const [transactions, setTransactions] = useState(initialTransactions);
+  const [budgets, setBudgets] = useState(initialBudgets);
+
+  const monthlyIncome = transactions
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const monthlyExpenses = transactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+  
+  const balance = monthlyIncome - monthlyExpenses;
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -26,7 +42,7 @@ export default function FinancesPage() {
             <CardDescription>Total de ingresos en Junio</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-emerald-400">$5,200.00</p>
+            <p className="text-3xl font-bold text-primary">${monthlyIncome.toFixed(2)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -35,7 +51,7 @@ export default function FinancesPage() {
             <CardDescription>Total de gastos en Junio</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-rose-400">$1,850.50</p>
+            <p className="text-3xl font-bold text-destructive">${monthlyExpenses.toFixed(2)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -44,7 +60,7 @@ export default function FinancesPage() {
             <CardDescription>Balance actual de Junio</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">$3,349.50</p>
+            <p className="text-3xl font-bold">${balance.toFixed(2)}</p>
           </CardContent>
         </Card>
       </div>
@@ -68,12 +84,12 @@ export default function FinancesPage() {
                 {transactions.map(t => (
                   <TableRow key={t.id}>
                     <TableCell className="font-medium flex items-center gap-2">
-                        {t.type === 'income' ? <ArrowUpCircle className="h-5 w-5 text-emerald-400" /> : <ArrowDownCircle className="h-5 w-5 text-rose-400" />}
+                        {t.type === 'income' ? <ArrowUpCircle className="h-5 w-5 text-primary" /> : <ArrowDownCircle className="h-5 w-5 text-destructive" />}
                         {t.description}
                     </TableCell>
                     <TableCell>{t.category}</TableCell>
                     <TableCell>{t.date}</TableCell>
-                    <TableCell className={`text-right font-semibold ${t.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <TableCell className={`text-right font-semibold ${t.type === 'income' ? 'text-primary' : 'text-destructive'}`}>
                       {t.type === 'income' ? '+' : '-'}${t.amount.toFixed(2)}
                     </TableCell>
                   </TableRow>

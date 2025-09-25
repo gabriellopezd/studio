@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { shoppingLists as initialShoppingLists } from '@/lib/placeholder-data';
+import { shoppingLists as initialShoppingLists, transactions as initialTransactions } from '@/lib/placeholder-data';
 import { PlusCircle, Trash2, ShoppingCart } from 'lucide-react';
 import {
   Dialog,
@@ -38,7 +38,17 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export default function ShoppingListsPage() {
+// This is a mock function to simulate updating finances.
+// In a real app, this would be an API call or a shared state management action.
+const addTransaction = (newTransaction: any) => {
+  // This is for demonstration. In a real app, you'd have a global state.
+  console.log("Adding transaction:", newTransaction);
+  // You might want to use a global state management like Zustand or Context API
+  // to share state between /finances and /expenses
+};
+
+
+export default function ExpensesPage() {
   const [lists, setLists] = useState(initialShoppingLists);
   const [selectedListId, setSelectedListId] = useState(
     initialShoppingLists[0]?.id ?? null
@@ -47,7 +57,7 @@ export default function ShoppingListsPage() {
   const [newItemName, setNewItemName] = useState('');
   const [newItemQuantity, setNewItemQuantity] = useState('1');
   
-  const [itemToUpdate, setItemToUpdate] = useState<{listId: number, itemId: number} | null>(null);
+  const [itemToUpdate, setItemToUpdate] = useState<{listId: number, itemId: number, listName: string, itemName: string} | null>(null);
   const [itemPrice, setItemPrice] = useState('');
 
 
@@ -96,9 +106,14 @@ export default function ShoppingListsPage() {
     }
   };
 
-  const handleToggleItem = (itemId: number, isPurchased: boolean) => {
-    if (isPurchased) {
-        setItemToUpdate({ listId: selectedListId!, itemId: itemId });
+  const handleToggleItem = (itemId: number, isChecked: boolean) => {
+    const list = lists.find(l => l.id === selectedListId);
+    const item = list?.items.find(i => i.itemId === itemId);
+
+    if (!list || !item) return;
+
+    if (isChecked) {
+        setItemToUpdate({ listId: selectedListId!, itemId: itemId, listName: list.name, itemName: item.name });
     } else {
         const updatedLists = lists.map((list) => {
             if (list.id === selectedListId) {
@@ -123,6 +138,19 @@ export default function ShoppingListsPage() {
     const price = parseFloat(itemPrice);
     if (isNaN(price)) return;
 
+    const newTransaction = {
+        id: Date.now(),
+        type: 'expense' as const,
+        description: itemToUpdate.itemName,
+        category: itemToUpdate.listName,
+        date: new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, ' '),
+        amount: price,
+    };
+    
+    addTransaction(newTransaction);
+    // In a real app, update a global state here.
+    // For now, we just update the local shopping list state.
+    
     const updatedLists = lists.map((list) => {
       if (list.id === itemToUpdate.listId) {
         return {
@@ -158,27 +186,27 @@ export default function ShoppingListsPage() {
     <>
       <div className="flex flex-col gap-4 md:gap-6">
         <PageHeader
-          title="Listas de Compras"
-          description="Organiza tus compras y no olvides nada."
+          title="Registro de Gastos"
+          description="Organiza tus gastos por categorías y no olvides nada."
         >
           <Dialog>
             <DialogTrigger asChild>
               <Button>
                 <PlusCircle className="mr-2 h-4 w-4" />
-                Crear Lista
+                Crear Categoría
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Crear Nueva Lista de Compras</DialogTitle>
+                <DialogTitle>Crear Nueva Categoría de Gasto</DialogTitle>
               </DialogHeader>
               <div className="space-y-2">
-                <Label htmlFor="listName">Nombre de la lista</Label>
+                <Label htmlFor="listName">Nombre de la categoría</Label>
                 <Input
                   id="listName"
                   value={newListName}
                   onChange={(e) => setNewListName(e.target.value)}
-                  placeholder="Ej: Supermercado, Ferretería..."
+                  placeholder="Ej: Comida, Transporte, Ocio..."
                 />
               </div>
               <DialogFooter>
@@ -188,7 +216,7 @@ export default function ShoppingListsPage() {
                     onClick={handleCreateList}
                     disabled={!newListName.trim()}
                   >
-                    Crear Lista
+                    Crear Categoría
                   </Button>
                 </DialogClose>
               </DialogFooter>
@@ -210,7 +238,7 @@ export default function ShoppingListsPage() {
           <div className="hidden md:block md:col-span-1">
             <Card>
               <CardHeader>
-                <CardTitle>Mis Listas</CardTitle>
+                <CardTitle>Categorías</CardTitle>
               </CardHeader>
               <CardContent className="p-2">
                 <ul className="space-y-1">
@@ -239,7 +267,7 @@ export default function ShoppingListsPage() {
                     <CardTitle>{selectedList.name}</CardTitle>
                     <CardDescription>
                       {selectedList.items.filter((i) => i.isPurchased).length} de{' '}
-                      {selectedList.items.length} items comprados
+                      {selectedList.items.length} gastos registrados
                     </CardDescription>
                   </div>
                   <AlertDialog>
@@ -257,8 +285,8 @@ export default function ShoppingListsPage() {
                         <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                         <AlertDialogDescription>
                           Esta acción no se puede deshacer. Esto eliminará
-                          permanentemente la lista de compras "{selectedList.name}"
-                          y todos sus productos.
+                          permanentemente la categoría "{selectedList.name}"
+                          y todos sus gastos.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -277,7 +305,7 @@ export default function ShoppingListsPage() {
                   <div className="flex w-full items-center space-x-2 mb-6">
                     <Input
                       type="text"
-                      placeholder="Añadir item..."
+                      placeholder="Añadir gasto..."
                       value={newItemName}
                       onChange={(e) => setNewItemName(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleAddItem()}
@@ -326,7 +354,7 @@ export default function ShoppingListsPage() {
                   {purchasedItems.length > 0 && (
                     <>
                       <Separator className="my-6" />
-                      <h3 className="mb-4 text-lg font-medium text-muted-foreground">Comprados</h3>
+                      <h3 className="mb-4 text-lg font-medium text-muted-foreground">Gastos Registrados</h3>
                       <div className="space-y-3">
                         {purchasedItems.map((item) => (
                            <div
@@ -364,8 +392,8 @@ export default function ShoppingListsPage() {
                   {itemsToPurchase.length === 0 && purchasedItems.length === 0 && (
                      <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-10 text-center">
                         <ShoppingCart className="h-12 w-12 text-muted-foreground/50" />
-                        <h3 className="mt-4 text-lg font-semibold text-muted-foreground">Lista vacía</h3>
-                        <p className="mt-2 text-sm text-muted-foreground">Añade productos para empezar a organizar tu compra.</p>
+                        <h3 className="mt-4 text-lg font-semibold text-muted-foreground">Sin gastos</h3>
+                        <p className="mt-2 text-sm text-muted-foreground">Añade un gasto para empezar a organizar tus finanzas.</p>
                     </div>
                   )}
                 </CardContent>
@@ -374,9 +402,9 @@ export default function ShoppingListsPage() {
               <Card className="flex flex-col items-center justify-center p-10 text-center">
                 <CardHeader>
                   <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <CardTitle className="mt-4">No hay listas de compras</CardTitle>
+                  <CardTitle className="mt-4">No hay categorías de gastos</CardTitle>
                   <CardDescription>
-                    Crea o selecciona una lista para empezar a añadir productos.
+                    Crea una categoría para empezar a registrar gastos.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -387,7 +415,7 @@ export default function ShoppingListsPage() {
       <Dialog open={!!itemToUpdate} onOpenChange={(open) => !open && setItemToUpdate(null)}>
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>Añadir precio de compra</DialogTitle>
+                <DialogTitle>Registrar Gasto</DialogTitle>
             </DialogHeader>
             <div className="space-y-2">
                 <Label htmlFor="itemPrice">Precio</Label>
@@ -411,7 +439,7 @@ export default function ShoppingListsPage() {
                       onClick={handleSetItemPrice}
                       disabled={!itemPrice.trim()}
                   >
-                      Guardar
+                      Guardar Gasto
                   </Button>
                 </DialogClose>
             </DialogFooter>
