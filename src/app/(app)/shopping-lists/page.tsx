@@ -63,11 +63,18 @@ export default function ShoppingListsPage() {
                 {mainList.items.map(item => (
                   <div key={item.itemId} className="flex items-center gap-3 rounded-md p-2 hover:bg-muted/50">
                     <Checkbox id={`item-${item.itemId}`} checked={item.isPurchased} />
-                    <label htmlFor={`item-${item.itemId}`} className="flex-1 cursor-pointer">
-                      <span className={`${item.isPurchased ? 'text-muted-foreground line-through' : ''}`}>
-                        {item.name} ({item.quantity})
-                      </span>
-                    </label>
+                    <div className="flex-1">
+                      <label htmlFor={`item-${item.itemId}`} className="cursor-pointer">
+                        <span className={`${item.isPurchased ? 'text-muted-foreground line-through' : ''}`}>
+                          {item.name} ({item.quantity})
+                        </span>
+                      </label>
+                      {item.price && (
+                        <p className="text-sm text-muted-foreground">
+                          ${item.price.toFixed(2)}
+                        </p>
+                      )}
+                    </div>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
                         <Trash2 className="h-4 w-4" />
                     </Button>

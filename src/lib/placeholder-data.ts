@@ -1,3 +1,4 @@
+
 export const dailyHabits = [
   { id: 1, name: 'Leer 10 páginas', icon: '📚', streak: 12, completed: true },
   { id: 2, name: 'Meditar 5 minutos', icon: '🧘', streak: 5, completed: true },
@@ -92,11 +93,11 @@ export const budgets = [
 export const shoppingLists = [
     {
         id: 1, name: 'Supermercado Semanal', items: [
-            { itemId: 1, name: 'Leche', quantity: '2L', isPurchased: true },
-            { itemId: 2, name: 'Huevos', quantity: '12', isPurchased: true },
-            { itemId: 3, name: 'Pan integral', quantity: '1', isPurchased: false },
-            { itemId: 4, name: 'Pollo', quantity: '500g', isPurchased: false },
-            { itemId: 5, name: 'Manzanas', quantity: '6', isPurchased: false },
+            { itemId: 1, name: 'Leche', quantity: '2L', isPurchased: true, price: 2.50 },
+            { itemId: 2, name: 'Huevos', quantity: '12', isPurchased: true, price: 3.00 },
+            { itemId: 3, name: 'Pan integral', quantity: '1', isPurchased: false, price: 1.80 },
+            { itemId: 4, name: 'Pollo', quantity: '500g', isPurchased: false, price: 5.20 },
+            { itemId: 5, name: 'Manzanas', quantity: '6', isPurchased: false, price: 2.10 },
         ]
     },
     { id: 2, name: 'Ferretería', items: [] },
