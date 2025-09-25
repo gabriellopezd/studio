@@ -13,7 +13,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { shoppingLists as initialShoppingLists } from '@/lib/placeholder-data';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2, ShoppingCart } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -35,6 +35,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Separator } from '@/components/ui/separator';
 
 export default function ShoppingListsPage() {
   const [lists, setLists] = useState(initialShoppingLists);
@@ -50,6 +51,8 @@ export default function ShoppingListsPage() {
 
 
   const selectedList = lists.find((list) => list.id === selectedListId);
+  const itemsToPurchase = selectedList?.items.filter(item => !item.isPurchased) ?? [];
+  const purchasedItems = selectedList?.items.filter(item => item.isPurchased) ?? [];
 
   const handleCreateList = () => {
     if (newListName.trim()) {
@@ -192,14 +195,14 @@ export default function ShoppingListsPage() {
           </Dialog>
         </PageHeader>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
           <div className="md:col-span-1">
             <Card>
               <CardHeader>
                 <CardTitle>Mis Listas</CardTitle>
               </CardHeader>
-              <CardContent>
-                <ul>
+              <CardContent className="p-2">
+                <ul className="space-y-1">
                   {lists.map((list) => (
                     <li key={list.id}>
                       <Button
@@ -207,6 +210,7 @@ export default function ShoppingListsPage() {
                         className="w-full justify-start"
                         onClick={() => setSelectedListId(list.id)}
                       >
+                        <ShoppingCart className="mr-2 h-4 w-4" />
                         {list.name}
                       </Button>
                     </li>
@@ -216,7 +220,7 @@ export default function ShoppingListsPage() {
             </Card>
           </div>
 
-          <div className="md:col-span-2">
+          <div className="md:col-span-3">
             {selectedList ? (
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
@@ -232,7 +236,7 @@ export default function ShoppingListsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="text-muted-foreground"
+                        className="text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 className="h-5 w-5" />
                       </Button>
@@ -250,6 +254,7 @@ export default function ShoppingListsPage() {
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => handleDeleteList(selectedList.id)}
+                          className="bg-destructive hover:bg-destructive/90"
                         >
                           Eliminar
                         </AlertDialogAction>
@@ -258,7 +263,7 @@ export default function ShoppingListsPage() {
                   </AlertDialog>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex w-full items-center space-x-2 mb-4">
+                  <div className="flex w-full items-center space-x-2 mb-6">
                     <Input
                       type="text"
                       placeholder="Añadir item..."
@@ -277,52 +282,90 @@ export default function ShoppingListsPage() {
                     />
                     <Button onClick={handleAddItem} disabled={!newItemName.trim()}>Añadir</Button>
                   </div>
-                  <div className="space-y-3">
-                    {selectedList.items.map((item) => (
-                      <div
-                        key={item.itemId}
-                        className="flex items-center gap-3 rounded-md p-2 hover:bg-muted/50"
-                      >
-                        <Checkbox
-                          id={`item-${item.itemId}`}
-                          checked={item.isPurchased}
-                          onCheckedChange={(checked) => handleToggleItem(item.itemId, !!checked)}
-                        />
-                        <div className="flex-1">
-                          <label
-                            htmlFor={`item-${item.itemId}`}
-                            className="cursor-pointer"
-                          >
-                            <span
-                              className={`${
-                                item.isPurchased
-                                  ? 'text-muted-foreground line-through'
-                                  : ''
-                              }`}
+                  
+                  {itemsToPurchase.length > 0 && (
+                    <div className="space-y-3">
+                      {itemsToPurchase.map((item) => (
+                        <div
+                          key={item.itemId}
+                          className="flex items-center gap-3 rounded-lg border p-3 shadow-sm transition-all hover:shadow-md"
+                        >
+                          <Checkbox
+                            id={`item-${item.itemId}`}
+                            checked={item.isPurchased}
+                            onCheckedChange={(checked) => handleToggleItem(item.itemId, !!checked)}
+                            className="h-5 w-5"
+                          />
+                          <div className="flex-1">
+                            <label
+                              htmlFor={`item-${item.itemId}`}
+                              className="cursor-pointer text-base font-medium"
                             >
-                              {item.name} ({item.quantity})
-                            </span>
-                          </label>
-                          {item.price && (
-                            <p className="text-sm text-muted-foreground">
-                              ${item.price.toFixed(2)}
-                            </p>
-                          )}
+                                {item.name} <span className="text-sm text-muted-foreground">({item.quantity})</span>
+                            </label>
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteItem(item.itemId)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => handleDeleteItem(item.itemId)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      ))}
+                    </div>
+                  )}
+
+                  {purchasedItems.length > 0 && (
+                    <>
+                      <Separator className="my-6" />
+                      <h3 className="mb-4 text-lg font-medium text-muted-foreground">Comprados</h3>
+                      <div className="space-y-3">
+                        {purchasedItems.map((item) => (
+                           <div
+                            key={item.itemId}
+                            className="flex items-center gap-3 rounded-lg border border-dashed p-3"
+                          >
+                            <Checkbox
+                              id={`item-${item.itemId}`}
+                              checked={item.isPurchased}
+                              onCheckedChange={(checked) => handleToggleItem(item.itemId, !!checked)}
+                              className="h-5 w-5"
+                            />
+                            <div className="flex-1">
+                              <label
+                                htmlFor={`item-${item.itemId}`}
+                                className="cursor-pointer text-base text-muted-foreground line-through"
+                              >
+                                  {item.name} <span className="text-sm">({item.quantity})</span>
+                              </label>
+                               {item.price && (
+                                <p className="text-sm font-semibold text-primary">
+                                  ${item.price.toFixed(2)}
+                                </p>
+                              )}
+                            </div>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteItem(item.itemId)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </>
+                  )}
+
+                  {itemsToPurchase.length === 0 && purchasedItems.length === 0 && (
+                     <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-10 text-center">
+                        <ShoppingCart className="h-12 w-12 text-muted-foreground/50" />
+                        <h3 className="mt-4 text-lg font-semibold text-muted-foreground">Lista vacía</h3>
+                        <p className="mt-2 text-sm text-muted-foreground">Añade productos para empezar a organizar tu compra.</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ) : (
               <Card className="flex flex-col items-center justify-center p-10 text-center">
                 <CardHeader>
-                  <CardTitle>No hay listas de compras</CardTitle>
+                  <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground" />
+                  <CardTitle className="mt-4">No hay listas de compras</CardTitle>
                   <CardDescription>
-                    Crea una nueva lista para empezar a añadir productos.
+                    Crea o selecciona una lista para empezar a añadir productos.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -333,7 +376,7 @@ export default function ShoppingListsPage() {
       <Dialog open={!!itemToUpdate} onOpenChange={(open) => !open && setItemToUpdate(null)}>
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>Añadir precio</DialogTitle>
+                <DialogTitle>Añadir precio de compra</DialogTitle>
             </DialogHeader>
             <div className="space-y-2">
                 <Label htmlFor="itemPrice">Precio</Label>
@@ -351,13 +394,15 @@ export default function ShoppingListsPage() {
                         Cancelar
                     </Button>
                 </DialogClose>
-                <Button
-                    type="button"
-                    onClick={handleSetItemPrice}
-                    disabled={!itemPrice.trim()}
-                >
-                    Guardar
-                </Button>
+                <DialogClose asChild>
+                  <Button
+                      type="button"
+                      onClick={handleSetItemPrice}
+                      disabled={!itemPrice.trim()}
+                  >
+                      Guardar
+                  </Button>
+                </DialogClose>
             </DialogFooter>
         </DialogContent>
       </Dialog>
