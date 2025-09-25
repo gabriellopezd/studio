@@ -1,3 +1,5 @@
+'use client';
+
 import {
   Activity,
   CheckCircle2,
@@ -36,6 +38,7 @@ import {
   urgentTasks,
 } from '@/lib/placeholder-data';
 import PageHeader from '@/components/page-header';
+import { useState, useEffect } from 'react';
 
 const chartData = [
   { month: 'Enero', goal: 186 },
@@ -54,18 +57,26 @@ const chartConfig = {
 };
 
 export default function Dashboard() {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const completedHabits = dailyHabits.filter((h) => h.completed).length;
   const totalHabits = dailyHabits.length;
   const habitsProgress = totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
+  
+  const todayString = new Date().toLocaleDateString(
+    'es-ES',
+    { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
+  );
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Mi Día"
-        description={`Resumen de tu actividad para hoy, ${new Date().toLocaleDateString(
-          'es-ES',
-          { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
-        )}.`}
+        description={isClient ? `Resumen de tu actividad para hoy, ${todayString}.` : 'Resumen de tu actividad para hoy.'}
       />
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="lg:col-span-2">
@@ -213,6 +224,7 @@ export default function Dashboard() {
               <CardDescription>Progreso mensual de tus metas.</CardDescription>
             </CardHeader>
             <CardContent>
+              {isClient && (
                 <ChartContainer config={chartConfig} className="h-[250px] w-full">
                   <BarChart accessibilityLayer data={chartData}>
                     <XAxis
@@ -227,6 +239,7 @@ export default function Dashboard() {
                     <Bar dataKey="goal" fill="var(--color-goal)" radius={8} />
                   </BarChart>
                 </ChartContainer>
+              )}
             </CardContent>
           </Card>
       </div>

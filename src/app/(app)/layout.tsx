@@ -14,7 +14,7 @@ import {
   ShoppingCart,
   Smile,
   Target,
-  CheckSquare,
+  SquareCheckBig,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -46,7 +46,7 @@ const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Mi Día' },
   { href: '/habits', icon: Repeat, label: 'Hábitos' },
   { href: '/routines', icon: ClipboardList, label: 'Rutinas' },
-  { href: '/tasks', icon: CheckSquare, label: 'Tareas' },
+  { href: '/tasks', icon: SquareCheckBig, label: 'Tareas' },
   { href: '/goals', icon: Target, label: 'Metas' },
   { href: '/mood-tracker', icon: Smile, label: 'Ánimo' },
   { href: '/finances', icon: CircleDollarSign, label: 'Finanzas' },
