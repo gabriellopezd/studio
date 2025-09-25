@@ -30,7 +30,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-import { Separator } from '@/components/ui/separator';
 import {
   dailyHabits,
   mainGoal,

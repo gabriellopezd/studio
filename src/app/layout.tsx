@@ -2,11 +2,18 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { Inter as FontSans } from 'next/font/google';
+import { Space_Grotesk as FontHeadline } from 'next/font/google';
 import { cn } from '@/lib/utils';
 
 const fontSans = FontSans({
   subsets: ['latin'],
   variable: '--font-sans',
+});
+
+const fontHeadline = FontHeadline({
+  subsets: ['latin'],
+  variable: '--font-headline',
+  weight: '700',
 });
 
 export const metadata: Metadata = {
@@ -23,8 +30,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         className={cn(
-          'min-h-screen bg-background font-sans antialiased',
-          fontSans.variable
+          'min-h-screen bg-background font-sans antialiased dark',
+          fontSans.variable,
+          fontHeadline.variable
         )}
       >
         {children}
