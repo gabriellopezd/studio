@@ -36,6 +36,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function ShoppingListsPage() {
   const [lists, setLists] = useState(initialShoppingLists);
@@ -155,7 +156,7 @@ export default function ShoppingListsPage() {
 
   return (
     <>
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4 md:gap-6">
         <PageHeader
           title="Listas de Compras"
           description="Organiza tus compras y no olvides nada."
@@ -195,8 +196,18 @@ export default function ShoppingListsPage() {
           </Dialog>
         </PageHeader>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
-          <div className="md:col-span-1">
+        <div className="md:hidden">
+          <Tabs value={String(selectedListId)} onValueChange={(val) => setSelectedListId(Number(val))} className="w-full">
+            <TabsList>
+              {lists.map((list) => (
+                <TabsTrigger key={list.id} value={String(list.id)}>{list.name}</TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-4">
+          <div className="hidden md:block md:col-span-1">
             <Card>
               <CardHeader>
                 <CardTitle>Mis Listas</CardTitle>
