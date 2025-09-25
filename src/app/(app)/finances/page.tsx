@@ -26,7 +26,7 @@ export default function FinancesPage() {
             <CardDescription>Total de ingresos en Junio</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-green-600">$5,200.00</p>
+            <p className="text-3xl font-bold text-emerald-500">$5,200.00</p>
           </CardContent>
         </Card>
         <Card>
@@ -35,7 +35,7 @@ export default function FinancesPage() {
             <CardDescription>Total de gastos en Junio</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-red-600">$1,850.50</p>
+            <p className="text-3xl font-bold text-red-500">$1,850.50</p>
           </CardContent>
         </Card>
         <Card>
@@ -68,12 +68,12 @@ export default function FinancesPage() {
                 {transactions.map(t => (
                   <TableRow key={t.id}>
                     <TableCell className="font-medium flex items-center gap-2">
-                        {t.type === 'income' ? <ArrowUpCircle className="h-5 w-5 text-green-500" /> : <ArrowDownCircle className="h-5 w-5 text-red-500" />}
+                        {t.type === 'income' ? <ArrowUpCircle className="h-5 w-5 text-emerald-500" /> : <ArrowDownCircle className="h-5 w-5 text-red-500" />}
                         {t.description}
                     </TableCell>
                     <TableCell>{t.category}</TableCell>
                     <TableCell>{t.date}</TableCell>
-                    <TableCell className={`text-right font-semibold ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                    <TableCell className={`text-right font-semibold ${t.type === 'income' ? 'text-emerald-500' : 'text-red-500'}`}>
                       {t.type === 'income' ? '+' : '-'}${t.amount.toFixed(2)}
                     </TableCell>
                   </TableRow>
