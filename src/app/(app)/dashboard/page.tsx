@@ -24,10 +24,10 @@ import {
   ResponsiveContainer,
   XAxis,
   YAxis,
-  Tooltip,
 } from 'recharts';
 import {
   ChartContainer,
+  ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
 import { Separator } from '@/components/ui/separator';
