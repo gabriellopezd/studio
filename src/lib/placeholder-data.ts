@@ -50,7 +50,7 @@ export const mainGoal = {
 
 export const allGoals = [
     { id: 1, name: 'Aprender Next.js', description: 'Dominar el framework para desarrollo web.', targetValue: 100, currentValue: 65, unit: 'horas', progress: 65, dueDate: '31 Dic 2024' },
-    { id: 2, name: 'Ahorrar para viaje', description: 'Ahorrar para un viaje a Japón.', targetValue: 5000, currentValue: 1200, unit: 'USD', progress: 24, dueDate: '30 Jun 2025' },
+    { id: 2, name: 'Ahorrar para viaje', description: 'Ahorrar para un viaje a Japón.', targetValue: 20000000, currentValue: 5000000, unit: 'COP', progress: 25, dueDate: '30 Jun 2025' },
     { id: 3, name: 'Correr 10k', description: 'Prepararme para correr una carrera de 10 kilómetros.', targetValue: 10, currentValue: 5, unit: 'km', progress: 50, dueDate: '15 Sep 2024' },
 ];
 
@@ -77,24 +77,24 @@ export const routines = [
 ];
 
 export const transactions = [
-    { id: 1, type: 'income', description: 'Salario', category: 'Trabajo', date: '01 Jun 2024', amount: 4000 },
-    { id: 2, type: 'expense', description: 'Alquiler', category: 'Vivienda', date: '02 Jun 2024', amount: 1200 },
-    { id: 3, type: 'expense', description: 'Supermercado', category: 'Comida', date: '05 Jun 2024', amount: 150.50 },
-    { id: 4, type: 'income', description: 'Proyecto freelance', category: 'Trabajo', date: '10 Jun 2024', amount: 1200 },
-    { id: 5, type: 'expense', description: 'Restaurante', category: 'Ocio', date: '12 Jun 2024', amount: 75 },
+    { id: 1, type: 'income', description: 'Salario', category: 'Trabajo', date: '01 Jun 2024', amount: 4000000 },
+    { id: 2, type: 'expense', description: 'Arriendo', category: 'Vivienda', date: '02 Jun 2024', amount: 1200000 },
+    { id: 3, type: 'expense', description: 'Supermercado', category: 'Comida', date: '05 Jun 2024', amount: 350000 },
+    { id: 4, type: 'income', description: 'Proyecto freelance', category: 'Trabajo', date: '10 Jun 2024', amount: 1200000 },
+    { id: 5, type: 'expense', description: 'Restaurante', category: 'Ocio', date: '12 Jun 2024', amount: 75000 },
 ];
 
 export const budgets = [
-    { id: 1, categoryName: 'Comida', monthlyLimit: 500, currentSpend: 320 },
-    { id: 2, categoryName: 'Ocio', monthlyLimit: 200, currentSpend: 150 },
-    { id: 3, categoryName: 'Transporte', monthlyLimit: 100, currentSpend: 45 },
+    { id: 1, categoryName: 'Comida', monthlyLimit: 800000, currentSpend: 450000 },
+    { id: 2, categoryName: 'Ocio', monthlyLimit: 400000, currentSpend: 150000 },
+    { id: 3, categoryName: 'Transporte', monthlyLimit: 200000, currentSpend: 95000 },
 ];
 
 export const shoppingLists = [
     {
         id: 1, name: 'Supermercado Semanal', items: [
-            { itemId: 1, name: 'Leche', quantity: '2L', isPurchased: true, price: 2.50 },
-            { itemId: 2, name: 'Huevos', quantity: '12', isPurchased: true, price: 3.00 },
+            { itemId: 1, name: 'Leche', quantity: '2L', isPurchased: true, price: 8000 },
+            { itemId: 2, name: 'Huevos', quantity: '12', isPurchased: true, price: 12000 },
             { itemId: 3, name: 'Pan integral', quantity: '1', isPurchased: false },
             { itemId: 4, name: 'Pollo', quantity: '500g', isPurchased: false },
             { itemId: 5, name: 'Manzanas', quantity: '6', isPurchased: false },

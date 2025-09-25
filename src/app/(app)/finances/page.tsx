@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { budgets as initialBudgets, transactions as initialTransactions } from "@/lib/placeholder-data";
 import { ArrowDownCircle, ArrowUpCircle, PlusCircle } from "lucide-react";
+import { formatCurrency } from '@/lib/utils';
 
 export default function FinancesPage() {
   const [transactions, setTransactions] = useState(initialTransactions);
@@ -42,7 +43,7 @@ export default function FinancesPage() {
             <CardDescription>Total de ingresos en Junio</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-primary">${monthlyIncome.toFixed(2)}</p>
+            <p className="text-3xl font-bold text-primary">{formatCurrency(monthlyIncome)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -51,7 +52,7 @@ export default function FinancesPage() {
             <CardDescription>Total de gastos en Junio</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-destructive">${monthlyExpenses.toFixed(2)}</p>
+            <p className="text-3xl font-bold text-destructive">{formatCurrency(monthlyExpenses)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -60,7 +61,7 @@ export default function FinancesPage() {
             <CardDescription>Balance actual de Junio</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">${balance.toFixed(2)}</p>
+            <p className="text-3xl font-bold">{formatCurrency(balance)}</p>
           </CardContent>
         </Card>
       </div>
@@ -90,7 +91,7 @@ export default function FinancesPage() {
                     <TableCell>{t.category}</TableCell>
                     <TableCell>{t.date}</TableCell>
                     <TableCell className={`text-right font-semibold ${t.type === 'income' ? 'text-primary' : 'text-destructive'}`}>
-                      {t.type === 'income' ? '+' : '-'}${t.amount.toFixed(2)}
+                      {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -108,7 +109,7 @@ export default function FinancesPage() {
                 <div key={b.id}>
                     <div className="flex justify-between mb-1">
                         <span className="text-sm font-medium">{b.categoryName}</span>
-                        <span className="text-sm text-muted-foreground">${b.currentSpend} / ${b.monthlyLimit}</span>
+                        <span className="text-sm text-muted-foreground">{formatCurrency(b.currentSpend)} / {formatCurrency(b.monthlyLimit)}</span>
                     </div>
                     <Progress value={(b.currentSpend / b.monthlyLimit) * 100} />
                 </div>

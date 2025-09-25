@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatCurrency } from '@/lib/utils';
 
 // This is a mock function to simulate updating finances.
 // In a real app, this would be an API call or a shared state management action.
@@ -376,7 +377,7 @@ export default function ExpensesPage() {
                               </label>
                                {item.price && (
                                 <p className="text-sm font-semibold text-primary">
-                                  ${item.price.toFixed(2)}
+                                  {formatCurrency(item.price)}
                                 </p>
                               )}
                             </div>
@@ -424,7 +425,7 @@ export default function ExpensesPage() {
                     type="number"
                     value={itemPrice}
                     onChange={(e) => setItemPrice(e.target.value)}
-                    placeholder="0.00"
+                    placeholder="0"
                 />
             </div>
             <DialogFooter>
