@@ -66,12 +66,48 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-const isSameDay = (date1: Date, date2: Date) => {
-  return (
-    date1.getFullYear() === date2.getFullYear() &&
-    date1.getMonth() === date2.getMonth() &&
-    date1.getDate() === date2.getDate()
-  );
+const getStartOfWeek = (date: Date) => {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+  return new Date(d.setDate(diff));
+};
+
+const isSameDay = (d1: Date, d2: Date) => {
+  return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+};
+
+const isSameWeek = (d1: Date, d2: Date) => {
+  const startOfWeek1 = getStartOfWeek(d1);
+  const startOfWeek2 = getStartOfWeek(d2);
+  return isSameDay(startOfWeek1, startOfWeek2);
+};
+
+const isSameMonth = (d1: Date, d2: Date) => {
+  return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth();
+};
+
+
+const isPreviousDay = (d1: Date, d2: Date) => {
+  const yesterday = new Date(d1);
+  yesterday.setDate(d1.getDate() - 1);
+  return isSameDay(d2, yesterday);
+};
+
+const isPreviousWeek = (d1: Date, d2: Date) => {
+  const lastWeek = new Date(d1);
+  lastWeek.setDate(d1.getDate() - 7);
+  return isSameWeek(d2, lastWeek);
+};
+
+const isPreviousMonth = (d1: Date, d2: Date) => {
+  const lastMonth = new Date(d1);
+  lastMonth.setMonth(d1.getMonth() - 1);
+  // Handle year change
+  if (d1.getMonth() === 0 && d2.getMonth() === 11 && d2.getFullYear() === d1.getFullYear() - 1) {
+    return true;
+  }
+  return d2.getFullYear() === lastMonth.getFullYear() && d2.getMonth() === lastMonth.getMonth();
 };
 
 export default function Dashboard() {
@@ -126,7 +162,15 @@ export default function Dashboard() {
     dailyHabits?.filter((h) => {
       if (!h.lastCompletedAt) return false;
       const lastCompletedDate = (h.lastCompletedAt as Timestamp).toDate();
-      return isSameDay(lastCompletedDate, today);
+      switch (h.frequency) {
+        case 'Semanal':
+          return isSameWeek(lastCompletedDate, today);
+        case 'Mensual':
+          return isSameMonth(lastCompletedDate, today);
+        case 'Diario':
+        default:
+          return isSameDay(lastCompletedDate, today);
+      }
     }).length ?? 0;
   const totalHabits = dailyHabits?.length ?? 0;
   const habitsProgress =
@@ -139,35 +183,58 @@ export default function Dashboard() {
     if (!habit) return;
 
     const habitRef = doc(firestore, 'users', user.uid, 'habits', habitId);
-
     const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
 
     const lastCompletedDate = habit.lastCompletedAt
       ? (habit.lastCompletedAt as Timestamp).toDate()
       : null;
-    const isCompletedToday =
-      lastCompletedDate && isSameDay(lastCompletedDate, today);
 
-    if (isCompletedToday) {
-      // Reverting completion for today. Restore the previous state.
-      const previousStreak = habit.previousStreak ?? 0;
-      const previousLastCompletedAt = habit.previousLastCompletedAt ?? null;
+    let isCompletedInCurrentPeriod = false;
+    if (lastCompletedDate) {
+      switch (habit.frequency) {
+        case 'Semanal':
+          isCompletedInCurrentPeriod = isSameWeek(lastCompletedDate, today);
+          break;
+        case 'Mensual':
+          isCompletedInCurrentPeriod = isSameMonth(lastCompletedDate, today);
+          break;
+        case 'Diario':
+        default:
+          isCompletedInCurrentPeriod = isSameDay(lastCompletedDate, today);
+          break;
+      }
+    }
+    
+    if (isCompletedInCurrentPeriod) {
+      // Reverting completion. Restore the previous state.
       updateDocumentNonBlocking(habitRef, {
-        lastCompletedAt: previousLastCompletedAt,
-        currentStreak: previousStreak,
+        lastCompletedAt: habit.previousLastCompletedAt ?? null,
+        currentStreak: habit.previousStreak ?? 0,
         previousStreak: null,
         previousLastCompletedAt: null,
       });
     } else {
-      // Completing the habit for today.
+      // Completing the habit.
       const currentStreak = habit.currentStreak || 0;
-      let newStreak = 1; // Start a new streak by default
+      let newStreak = 1;
 
-      if (lastCompletedDate && isSameDay(lastCompletedDate, yesterday)) {
-        // Completed yesterday, continue streak.
-        newStreak = currentStreak + 1;
+      if (lastCompletedDate) {
+        let isConsecutive = false;
+        switch(habit.frequency) {
+          case 'Semanal':
+            isConsecutive = isPreviousWeek(today, lastCompletedDate);
+            break;
+          case 'Mensual':
+            isConsecutive = isPreviousMonth(today, lastCompletedDate);
+            break;
+          case 'Diario':
+          default:
+            isConsecutive = isPreviousDay(today, lastCompletedDate);
+            break;
+        }
+        if (isConsecutive) {
+          newStreak = currentStreak + 1;
+        }
       }
 
       // Save the current state before updating, so we can revert if needed.
@@ -219,8 +286,22 @@ export default function Dashboard() {
                 const lastCompletedDate = habit.lastCompletedAt
                   ? (habit.lastCompletedAt as Timestamp).toDate()
                   : null;
-                const isCompleted =
-                  lastCompletedDate && isSameDay(lastCompletedDate, new Date());
+
+                let isCompleted = false;
+                if (lastCompletedDate) {
+                  switch (habit.frequency) {
+                    case 'Semanal':
+                      isCompleted = isSameWeek(lastCompletedDate, new Date());
+                      break;
+                    case 'Mensual':
+                      isCompleted = isSameMonth(lastCompletedDate, new Date());
+                      break;
+                    case 'Diario':
+                    default:
+                      isCompleted = isSameDay(lastCompletedDate, new Date());
+                      break;
+                  }
+                }
 
                 return (
                   <div
@@ -232,7 +313,7 @@ export default function Dashboard() {
                       <div>
                         <p className="font-medium">{habit.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          Racha: {habit.currentStreak} días
+                          Racha: {habit.currentStreak} {habit.frequency === 'Diario' ? 'días' : (habit.frequency === 'Semanal' ? 'semanas' : 'meses')}
                         </p>
                       </div>
                     </div>
