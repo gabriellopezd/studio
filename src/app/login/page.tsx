@@ -14,10 +14,9 @@ import { Label } from '@/components/ui/label';
 import { Logo, GoogleIcon } from '@/components/icons';
 import { useState } from 'react';
 import { useAuth } from '@/firebase';
-import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword } from 'firebase/auth';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -27,8 +26,9 @@ export default function LoginPage() {
   const { toast } = useToast();
 
   const handleLogin = async () => {
+    if (!auth) return;
     try {
-      await initiateEmailSignIn(auth, email, password);
+      await signInWithEmailAndPassword(auth, email, password);
       toast({
         title: 'Inicio de sesión exitoso',
         description: 'Redirigiendo al dashboard...',
@@ -45,6 +45,7 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!auth) return;
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);

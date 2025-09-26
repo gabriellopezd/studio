@@ -14,10 +14,9 @@ import { Label } from '@/components/ui/label';
 import { Logo, GoogleIcon } from '@/components/icons';
 import { useState } from 'react';
 import { useAuth } from '@/firebase';
-import { initiateEmailSignUp } from '@/firebase/non-blocking-login';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword } from 'firebase/auth';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -28,6 +27,7 @@ export default function SignupPage() {
   const { toast } = useToast();
 
   const handleSignUp = async () => {
+    if (!auth) return;
     if (password !== confirmPassword) {
       toast({
         variant: 'destructive',
@@ -37,7 +37,7 @@ export default function SignupPage() {
       return;
     }
     try {
-      await initiateEmailSignUp(auth, email, password);
+      await createUserWithEmailAndPassword(auth, email, password);
       toast({
         title: '¡Cuenta creada!',
         description: 'Redirigiendo a tu dashboard...',
@@ -54,6 +54,7 @@ export default function SignupPage() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!auth) return;
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
