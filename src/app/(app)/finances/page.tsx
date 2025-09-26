@@ -78,10 +78,12 @@ import {
   query,
   where,
   getDocs,
+  Timestamp,
 } from 'firebase/firestore';
 
 export default function FinancesPage() {
   const { firestore, user } = useFirebase();
+  const [currentMonthName, setCurrentMonthName] = useState('');
 
   const [newTransactionType, setNewTransactionType] = useState<
     'income' | 'expense'
@@ -99,11 +101,25 @@ export default function FinancesPage() {
     null
   );
 
-  const transactionsQuery = useMemoFirebase(
-    () =>
-      user ? collection(firestore, 'users', user.uid, 'transactions') : null,
-    [firestore, user]
-  );
+  useEffect(() => {
+    const now = new Date();
+    const monthName = now.toLocaleDateString('es-ES', { month: 'long' });
+    setCurrentMonthName(monthName.charAt(0).toUpperCase() + monthName.slice(1));
+  }, []);
+
+  const transactionsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    return query(
+        collection(firestore, 'users', user.uid, 'transactions'),
+        where('date', '>=', startOfMonth.toISOString()),
+        where('date', '<=', endOfMonth.toISOString())
+    );
+  }, [firestore, user]);
+
   const { data: transactions, isLoading: transactionsLoading } =
     useCollection(transactionsQuery);
 
@@ -444,7 +460,7 @@ export default function FinancesPage() {
           <Card>
             <CardHeader>
               <CardTitle>Ingresos del Mes</CardTitle>
-              <CardDescription>Total de ingresos en Junio</CardDescription>
+              <CardDescription>Total de ingresos en {currentMonthName}</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold text-emerald-500">
@@ -455,7 +471,7 @@ export default function FinancesPage() {
           <Card>
             <CardHeader>
               <CardTitle>Gastos del Mes</CardTitle>
-              <CardDescription>Total de gastos en Junio</CardDescription>
+              <CardDescription>Total de gastos en {currentMonthName}</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold text-red-500">
@@ -466,7 +482,7 @@ export default function FinancesPage() {
           <Card>
             <CardHeader>
               <CardTitle>Balance</CardTitle>
-              <CardDescription>Balance actual de Junio</CardDescription>
+              <CardDescription>Balance actual de {currentMonthName}</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">{formatCurrency(balance)}</p>
