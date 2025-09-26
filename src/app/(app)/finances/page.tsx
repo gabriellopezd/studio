@@ -588,7 +588,7 @@ export default function FinancesPage() {
             <CardContent className="space-y-4">
               {budgetsLoading && <p>Cargando presupuestos...</p>}
               {budgets?.map((b) => {
-                const currentSpend = 0; // Visual reset
+                const currentSpend = b.currentSpend || 0;
                 const progress = (currentSpend / b.monthlyLimit) * 100;
 
                 return (
