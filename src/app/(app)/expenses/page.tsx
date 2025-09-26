@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { PlusCircle, Trash2, ShoppingCart } from 'lucide-react';
+import { PlusCircle, Trash2, ShoppingCart, GripVertical } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -51,17 +51,63 @@ import {
   doc,
   serverTimestamp,
   query,
-  where,
-  getDocs,
+  orderBy,
   writeBatch,
 } from 'firebase/firestore';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+function SortableListItem({ list, selectedListId, setSelectedListId, children }: any) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: list.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <li ref={setNodeRef} style={style} className="flex items-center">
+      <Button
+        variant={
+          list.id === selectedListId ? 'secondary' : 'ghost'
+        }
+        className="w-full justify-start"
+        onClick={() => setSelectedListId(list.id)}
+      >
+        {children}
+      </Button>
+      <div {...attributes} {...listeners} className="p-2 cursor-grab touch-none">
+        <GripVertical className="h-5 w-5 text-muted-foreground" />
+      </div>
+    </li>
+  );
+}
 
 export default function ExpensesPage() {
   const { firestore, user } = useFirebase();
 
   const shoppingListsQuery = useMemoFirebase(
     () =>
-      user ? collection(firestore, 'users', user.uid, 'shoppingLists') : null,
+      user ? query(collection(firestore, 'users', user.uid, 'shoppingLists'), orderBy('order')) : null,
     [firestore, user]
   );
   const { data: lists, isLoading: listsLoading } =
@@ -80,6 +126,34 @@ export default function ExpensesPage() {
   } | null>(null);
   const [itemPrice, setItemPrice] = useState('');
   const { toast } = useToast();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor)
+  );
+
+  const sortedLists = useMemo(() => {
+    return lists ? [...lists].sort((a, b) => a.order - b.order) : [];
+  }, [lists]);
+  
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (active.id !== over?.id && user) {
+      const oldIndex = sortedLists.findIndex((list) => list.id === active.id);
+      const newIndex = sortedLists.findIndex((list) => list.id === over!.id);
+      
+      const newOrder = arrayMove(sortedLists, oldIndex, newIndex);
+
+      const batch = writeBatch(firestore);
+      newOrder.forEach((list, index) => {
+        const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', list.id);
+        batch.update(listRef, { order: index });
+      });
+
+      await batch.commit();
+    }
+  };
+
 
   const selectedList = lists?.find((list) => list.id === selectedListId);
 
@@ -117,6 +191,7 @@ export default function ExpensesPage() {
         createdAt: serverTimestamp(),
         items: [],
         userId: user.uid,
+        order: lists?.length || 0,
       };
       const listsColRef = collection(
         firestore,
@@ -320,7 +395,7 @@ export default function ExpensesPage() {
             className="w-full"
           >
             <TabsList className="grid w-full grid-cols-3">
-              {lists?.map((list) => (
+              {sortedLists?.map((list) => (
                 <TabsTrigger key={list.id} value={String(list.id)}>
                   {list.name}
                 </TabsTrigger>
@@ -336,22 +411,25 @@ export default function ExpensesPage() {
                 <CardTitle>Categorías</CardTitle>
               </CardHeader>
               <CardContent className="p-2">
-                <ul className="space-y-1">
-                  {lists?.map((list) => (
-                    <li key={list.id}>
-                      <Button
-                        variant={
-                          list.id === selectedListId ? 'secondary' : 'ghost'
-                        }
-                        className="w-full justify-start"
-                        onClick={() => setSelectedListId(list.id)}
-                      >
-                        <ShoppingCart className="mr-2 h-4 w-4" />
-                        {list.name}
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={sortedLists.map(list => list.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <ul className="space-y-1">
+                      {sortedLists.map((list) => (
+                         <SortableListItem key={list.id} list={list} selectedListId={selectedListId} setSelectedListId={setSelectedListId}>
+                           <ShoppingCart className="mr-2 h-4 w-4" />
+                           {list.name}
+                         </SortableListItem>
+                      ))}
+                    </ul>
+                  </SortableContext>
+                </DndContext>
               </CardContent>
             </Card>
           </div>
@@ -594,5 +672,3 @@ export default function ExpensesPage() {
     </>
   );
 }
-
-    

@@ -430,13 +430,18 @@
           "items": {
             "type": "string"
           }
+        },
+        "order": {
+          "type": "number",
+          "description": "The order of the shopping list in the user's list."
         }
       },
       "required": [
         "id",
         "userId",
         "name",
-        "createdAt"
+        "createdAt",
+        "order"
       ]
     },
     "PurchaseHistory": {
