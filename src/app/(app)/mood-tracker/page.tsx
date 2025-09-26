@@ -260,7 +260,7 @@ export default function MoodTrackerPage() {
                 </Button>
              )}
              {step < 3 && (
-                <Button onClick={() => setStep(s => s + 1)} disabled={step === 2 && selectedFeelings.length === 0}>
+                <Button onClick={() => setStep(s => s + 1)} disabled={step === 1 && !selectedMood || step === 2 && selectedFeelings.length === 0}>
                     Siguiente
                 </Button>
              )}
@@ -275,5 +275,3 @@ export default function MoodTrackerPage() {
     </>
   );
 }
-
-    
