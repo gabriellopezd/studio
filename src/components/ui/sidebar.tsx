@@ -146,7 +146,9 @@ const SidebarProvider = React.forwardRef<
           ref={ref}
           {...props}
         >
-          {children}
+          <SidebarContext.Provider value={contextValue}>
+            {children}
+          </SidebarContext.Provider>
         </div>
       </TooltipProvider>
     )
