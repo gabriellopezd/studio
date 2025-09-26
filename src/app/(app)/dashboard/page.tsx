@@ -8,6 +8,9 @@ import {
   Target,
   TrendingUp,
   CalendarDays,
+  Calendar,
+  CalendarClock,
+  CalendarCheck,
 } from 'lucide-react';
 import {
   Card,
@@ -65,6 +68,27 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
+const getStartOfWeek = (date: Date) => {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+  return new Date(d.setDate(diff));
+};
+
+const isSameDay = (d1: Date, d2: Date) => {
+  return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+};
+
+const isSameWeek = (d1: Date, d2: Date) => {
+  const startOfWeek1 = getStartOfWeek(d1);
+  const startOfWeek2 = getStartOfWeek(d2);
+  return isSameDay(startOfWeek1, startOfWeek2);
+};
+
+const isSameMonth = (d1: Date, d2: Date) => {
+  return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth();
+};
+
 const calendarDays = Array.from({ length: 31 }, (_, i) => i + 1);
 
 export default function DashboardPage() {
@@ -78,7 +102,7 @@ export default function DashboardPage() {
         : null,
     [firestore, user]
   );
-  const { data: dailyHabits, isLoading: habitsLoading } =
+  const { data: allHabits, isLoading: habitsLoading } =
     useCollection(habitsQuery);
 
   const tasksQuery = useMemoFirebase(
@@ -123,11 +147,20 @@ export default function DashboardPage() {
     setIsClient(true);
   }, []);
 
-  const totalHabits = dailyHabits?.length ?? 0;
   const completedTasks = allTasks?.filter(t => t.isCompleted).length ?? 0;
   const totalTasks = allTasks?.length ?? 0;
   const completedGoals = allGoals?.filter(g => g.isCompleted).length ?? 0;
   const totalGoals = allGoals?.length ?? 0;
+  
+  const today = new Date();
+
+  const dailyHabits = allHabits?.filter(h => h.frequency === 'Diario') ?? [];
+  const weeklyHabits = allHabits?.filter(h => h.frequency === 'Semanal') ?? [];
+  const monthlyHabits = allHabits?.filter(h => h.frequency === 'Mensual') ?? [];
+
+  const completedDailyHabits = dailyHabits.filter(h => h.lastCompletedAt && isSameDay((h.lastCompletedAt as Timestamp).toDate(), today)).length;
+  const completedWeeklyHabits = weeklyHabits.filter(h => h.lastCompletedAt && isSameWeek((h.lastCompletedAt as Timestamp).toDate(), today)).length;
+  const completedMonthlyHabits = monthlyHabits.filter(h => h.lastCompletedAt && isSameMonth((h.lastCompletedAt as Timestamp).toDate(), today)).length;
 
 
   const todayString = new Date().toLocaleDateString('es-ES', {
@@ -151,32 +184,32 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Hábitos Totales</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Hábitos Diarios</CardTitle>
+                <CalendarCheck className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">{totalHabits}</div>
-                <p className="text-xs text-muted-foreground">Actualmente en seguimiento</p>
+                <div className="text-2xl font-bold">{completedDailyHabits} de {dailyHabits.length}</div>
+                <p className="text-xs text-muted-foreground">Completados hoy</p>
             </CardContent>
         </Card>
         <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Tareas Completadas</CardTitle>
-                <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Hábitos Semanales</CardTitle>
+                <CalendarClock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">{completedTasks} de {totalTasks}</div>
-                <p className="text-xs text-muted-foreground">En total</p>
+                <div className="text-2xl font-bold">{completedWeeklyHabits} de {weeklyHabits.length}</div>
+                <p className="text-xs text-muted-foreground">Completados esta semana</p>
             </CardContent>
         </Card>
         <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Metas Alcanzadas</CardTitle>
-                <Target className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Hábitos Mensuales</CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">{completedGoals} de {totalGoals}</div>
-                <p className="text-xs text-muted-foreground">Historial completo</p>
+                <div className="text-2xl font-bold">{completedMonthlyHabits} de {monthlyHabits.length}</div>
+                <p className="text-xs text-muted-foreground">Completados este mes</p>
             </CardContent>
         </Card>
         <Card>
@@ -185,7 +218,7 @@ export default function DashboardPage() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">+{dailyHabits?.reduce((max, h) => Math.max(max, h.longestStreak || 0), 0) ?? 0} días</div>
+                <div className="text-2xl font-bold">+{allHabits?.reduce((max, h) => Math.max(max, h.longestStreak || 0), 0) ?? 0} días</div>
                 <p className="text-xs text-muted-foreground">Mejor racha de hábitos</p>
             </CardContent>
         </Card>
