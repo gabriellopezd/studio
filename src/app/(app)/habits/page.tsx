@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +20,22 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -29,13 +45,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Check, Flame, PlusCircle } from 'lucide-react';
+import { Check, Flame, MoreHorizontal, Pencil, PlusCircle, Trash2 } from 'lucide-react';
 import {
   useFirebase,
   useCollection,
   useMemoFirebase,
   updateDocumentNonBlocking,
   addDocumentNonBlocking,
+  deleteDocumentNonBlocking,
 } from '@/firebase';
 import { collection, doc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
@@ -90,6 +107,11 @@ const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "
 export default function HabitsPage() {
   const { firestore, user } = useFirebase();
 
+  const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setEditDialogOpen] = useState(false);
+  const [habitToEdit, setHabitToEdit] = useState<any>(null);
+  const [habitToDelete, setHabitToDelete] = useState<any>(null);
+
   const [newHabitName, setNewHabitName] = useState('');
   const [newHabitIcon, setNewHabitIcon] = useState('');
   const [newHabitFrequency, setNewHabitFrequency] = useState('Diario');
@@ -101,6 +123,23 @@ export default function HabitsPage() {
   );
   const { data: allHabits, isLoading: habitsLoading } =
     useCollection(habitsQuery);
+
+  useEffect(() => {
+    if (habitToEdit) {
+      setNewHabitName(habitToEdit.name);
+      setNewHabitIcon(habitToEdit.icon);
+      setNewHabitFrequency(habitToEdit.frequency);
+      setNewHabitCategory(habitToEdit.category);
+      setEditDialogOpen(true);
+    }
+  }, [habitToEdit]);
+
+  const resetForm = () => {
+    setNewHabitName('');
+    setNewHabitIcon('');
+    setNewHabitFrequency('Diario');
+    setNewHabitCategory('');
+  };
 
   const handleToggleHabit = (habitId: string) => {
     if (!user || !allHabits) return;
@@ -173,175 +212,335 @@ export default function HabitsPage() {
     }
   };
 
-  const handleCreateHabit = async () => {
+  const handleCreateOrUpdateHabit = async () => {
     if (!newHabitName.trim() || !newHabitIcon.trim() || !user || !newHabitCategory) return;
 
-    const habitsColRef = collection(firestore, 'users', user.uid, 'habits');
-    await addDocumentNonBlocking(habitsColRef, {
-      name: newHabitName,
-      icon: newHabitIcon,
-      frequency: newHabitFrequency,
-      category: newHabitCategory,
-      currentStreak: 0,
-      createdAt: serverTimestamp(),
-      lastCompletedAt: null,
-      userId: user.uid,
-    });
+    if (habitToEdit) {
+      // Update existing habit
+      const habitRef = doc(firestore, 'users', user.uid, 'habits', habitToEdit.id);
+      await updateDocumentNonBlocking(habitRef, {
+        name: newHabitName,
+        icon: newHabitIcon,
+        frequency: newHabitFrequency,
+        category: newHabitCategory,
+      });
+      setEditDialogOpen(false);
+      setHabitToEdit(null);
+    } else {
+      // Create new habit
+      const habitsColRef = collection(firestore, 'users', user.uid, 'habits');
+      await addDocumentNonBlocking(habitsColRef, {
+        name: newHabitName,
+        icon: newHabitIcon,
+        frequency: newHabitFrequency,
+        category: newHabitCategory,
+        currentStreak: 0,
+        createdAt: serverTimestamp(),
+        lastCompletedAt: null,
+        userId: user.uid,
+      });
+      setCreateDialogOpen(false);
+    }
+    resetForm();
+  };
 
-    setNewHabitName('');
-    setNewHabitIcon('');
-    setNewHabitFrequency('Diario');
-    setNewHabitCategory('');
+  const handleDeleteHabit = async () => {
+    if (!habitToDelete || !user) return;
+    const habitRef = doc(firestore, 'users', user.uid, 'habits', habitToDelete.id);
+    await deleteDocumentNonBlocking(habitRef);
+    setHabitToDelete(null);
+  };
+  
+  const handleOpenEditDialog = (habit: any) => {
+    setHabitToEdit(habit);
+    setNewHabitName(habit.name);
+    setNewHabitIcon(habit.icon);
+    setNewHabitFrequency(habit.frequency);
+    setNewHabitCategory(habit.category);
+    setEditDialogOpen(true);
+  };
+
+  const handleOpenCreateDialog = () => {
+    resetForm();
+    setHabitToEdit(null);
+    setCreateDialogOpen(true);
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title="HÁBITOS"
-        description="Gestiona tus hábitos y sigue tu progreso."
-      >
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Crear Hábito
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Crear Nuevo Hábito</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="habit-name" className="text-right">
-                  Nombre
-                </Label>
-                <Input
-                  id="habit-name"
-                  value={newHabitName}
-                  onChange={(e) => setNewHabitName(e.target.value)}
-                  className="col-span-3"
-                  placeholder="Ej: Leer 30 minutos"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="habit-icon" className="text-right">
-                  Ícono
-                </Label>
-                <Input
-                  id="habit-icon"
-                  value={newHabitIcon}
-                  onChange={(e) => setNewHabitIcon(e.target.value)}
-                  className="col-span-3"
-                  placeholder="Ej: 📚"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="habit-frequency" className="text-right">
-                  Frecuencia
-                </Label>
-                <Select
-                  value={newHabitFrequency}
-                  onValueChange={setNewHabitFrequency}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecciona una frecuencia" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Diario">Diario</SelectItem>
-                    <SelectItem value="Semanal">Semanal</SelectItem>
-                    <SelectItem value="Mensual">Mensual</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="habit-category" className="text-right">
-                  Categoría
-                </Label>
-                <Select
-                  value={newHabitCategory}
-                  onValueChange={setNewHabitCategory}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecciona una categoría" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {habitCategories.map(category => (
-                       <SelectItem key={category} value={category}>{category}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="submit" onClick={handleCreateHabit}>
-                  Guardar Hábito
-                </Button>
-              </DialogClose>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </PageHeader>
+    <>
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          title="HÁBITOS"
+          description="Gestiona tus hábitos y sigue tu progreso."
+        >
+          <Button onClick={handleOpenCreateDialog}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Crear Hábito
+          </Button>
+        </PageHeader>
 
-      {habitsLoading && <p>Cargando hábitos...</p>}
+        {habitsLoading && <p>Cargando hábitos...</p>}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {allHabits?.map((habit) => {
-          const lastCompletedDate = habit.lastCompletedAt
-            ? (habit.lastCompletedAt as Timestamp).toDate()
-            : null;
-            
-          let isCompleted = false;
-          if (lastCompletedDate) {
-            switch (habit.frequency) {
-              case 'Semanal':
-                isCompleted = isSameWeek(lastCompletedDate, new Date());
-                break;
-              case 'Mensual':
-                isCompleted = isSameMonth(lastCompletedDate, new Date());
-                break;
-              case 'Diario':
-              default:
-                isCompleted = isSameDay(lastCompletedDate, new Date());
-                break;
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {allHabits?.map((habit) => {
+            const lastCompletedDate = habit.lastCompletedAt
+              ? (habit.lastCompletedAt as Timestamp).toDate()
+              : null;
+              
+            let isCompleted = false;
+            if (lastCompletedDate) {
+              switch (habit.frequency) {
+                case 'Semanal':
+                  isCompleted = isSameWeek(lastCompletedDate, new Date());
+                  break;
+                case 'Mensual':
+                  isCompleted = isSameMonth(lastCompletedDate, new Date());
+                  break;
+                case 'Diario':
+                default:
+                  isCompleted = isSameDay(lastCompletedDate, new Date());
+                  break;
+              }
             }
-          }
 
-          return (
-            <Card key={habit.id} className="flex flex-col">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="text-4xl">{habit.icon}</div>
-                    <div>
-                      <CardTitle>{habit.name}</CardTitle>
-                      <CardDescription>{habit.frequency}</CardDescription>
+            return (
+              <Card key={habit.id} className="flex flex-col">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="text-4xl">{habit.icon}</div>
+                      <div>
+                        <CardTitle>{habit.name}</CardTitle>
+                        <CardDescription>{habit.frequency}</CardDescription>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 text-orange-500">
+                      <Flame className="h-5 w-5" />
+                      <span className="font-bold">{habit.currentStreak}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 text-orange-500">
-                    <Flame className="h-5 w-5" />
-                    <span className="font-bold">{habit.currentStreak}</span>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                  <div className="flex items-center justify-between">
+                    {habit.category && <Badge variant="secondary">{habit.category}</Badge>}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleOpenEditDialog(habit)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setHabitToDelete(habit)}
+                          className="text-red-500"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                 {habit.category && <Badge variant="secondary">{habit.category}</Badge>}
-              </CardContent>
-              <CardFooter>
-                <Button
-                  variant={isCompleted ? 'secondary' : 'outline'}
-                  className="w-full"
-                  onClick={() => handleToggleHabit(habit.id)}
-                >
-                  <Check className="mr-2 h-4 w-4" />
-                  {isCompleted ? 'Completado Hoy' : 'Marcar como completado'}
-                </Button>
-              </CardFooter>
-            </Card>
-          );
-        })}
+                </CardContent>
+                <CardFooter>
+                  <Button
+                    variant={isCompleted ? 'secondary' : 'outline'}
+                    className="w-full"
+                    onClick={() => handleToggleHabit(habit.id)}
+                  >
+                    <Check className="mr-2 h-4 w-4" />
+                    {isCompleted ? 'Completado Hoy' : 'Marcar como completado'}
+                  </Button>
+                </CardFooter>
+              </Card>
+            );
+          })}
+        </div>
       </div>
-    </div>
+      
+      {/* Create Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
+          if (!open) {
+            resetForm();
+            setCreateDialogOpen(false);
+          }
+        }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Crear Nuevo Hábito</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="habit-name" className="text-right">
+                Nombre
+              </Label>
+              <Input
+                id="habit-name"
+                value={newHabitName}
+                onChange={(e) => setNewHabitName(e.target.value)}
+                className="col-span-3"
+                placeholder="Ej: Leer 30 minutos"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="habit-icon" className="text-right">
+                Ícono
+              </Label>
+              <Input
+                id="habit-icon"
+                value={newHabitIcon}
+                onChange={(e) => setNewHabitIcon(e.target.value)}
+                className="col-span-3"
+                placeholder="Ej: 📚"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="habit-frequency" className="text-right">
+                Frecuencia
+              </Label>
+              <Select
+                value={newHabitFrequency}
+                onValueChange={setNewHabitFrequency}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Selecciona una frecuencia" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Diario">Diario</SelectItem>
+                  <SelectItem value="Semanal">Semanal</SelectItem>
+                  <SelectItem value="Mensual">Mensual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="habit-category" className="text-right">
+                Categoría
+              </Label>
+              <Select
+                value={newHabitCategory}
+                onValueChange={setNewHabitCategory}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Selecciona una categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  {habitCategories.map(category => (
+                     <SelectItem key={category} value={category}>{category}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="submit" onClick={handleCreateOrUpdateHabit}>
+              Guardar Hábito
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+          if (!open) {
+            setHabitToEdit(null);
+            setEditDialogOpen(false);
+            resetForm();
+          }
+        }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Hábito</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-habit-name" className="text-right">
+                Nombre
+              </Label>
+              <Input
+                id="edit-habit-name"
+                value={newHabitName}
+                onChange={(e) => setNewHabitName(e.target.value)}
+                className="col-span-3"
+                placeholder="Ej: Leer 30 minutos"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-habit-icon" className="text-right">
+                Ícono
+              </Label>
+              <Input
+                id="edit-habit-icon"
+                value={newHabitIcon}
+                onChange={(e) => setNewHabitIcon(e.target.value)}
+                className="col-span-3"
+                placeholder="Ej: 📚"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-habit-frequency" className="text-right">
+                Frecuencia
+              </Label>
+              <Select
+                value={newHabitFrequency}
+                onValueChange={setNewHabitFrequency}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Selecciona una frecuencia" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Diario">Diario</SelectItem>
+                  <SelectItem value="Semanal">Semanal</SelectItem>
+                  <SelectItem value="Mensual">Mensual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-habit-category" className="text-right">
+                Categoría
+              </Label>
+              <Select
+                value={newHabitCategory}
+                onValueChange={setNewHabitCategory}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Selecciona una categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  {habitCategories.map(category => (
+                     <SelectItem key={category} value={category}>{category}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="submit" onClick={handleCreateOrUpdateHabit}>
+              Guardar Cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!habitToDelete} onOpenChange={(open) => !open && setHabitToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará el hábito "{habitToDelete?.name}" permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteHabit} className="bg-destructive hover:bg-destructive/90">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
