@@ -18,8 +18,8 @@ const fontHeadline = FontHeadline({
 });
 
 export const metadata: Metadata = {
-  title: 'Momentum',
-  description: 'Build positive routines and achieve your goals.',
+  title: 'Inngenia',
+  description: 'Construye rutinas positivas y alcanza tus metas.',
 };
 
 export default function RootLayout({

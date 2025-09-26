@@ -71,7 +71,7 @@ export default function LoginPage() {
           <div className="mb-4 flex justify-center">
             <Logo className="h-12 w-12 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Bienvenido a Momentum</CardTitle>
+          <CardTitle className="text-2xl">Bienvenido a Inngenia</CardTitle>
           <CardDescription>
             Inicia sesión para continuar con tus metas.
           </CardDescription>
