@@ -32,7 +32,7 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart';
 import PageHeader from '@/components/page-header';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   useCollection,
   useMemoFirebase,
@@ -74,7 +74,11 @@ const getStartOfWeek = (date: Date) => {
 };
 
 const isSameDay = (d1: Date, d2: Date) => {
-  return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+  );
 };
 
 const isSameWeek = (d1: Date, d2: Date) => {
@@ -86,7 +90,6 @@ const isSameWeek = (d1: Date, d2: Date) => {
 const isSameMonth = (d1: Date, d2: Date) => {
   return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth();
 };
-
 
 const isPreviousDay = (d1: Date, d2: Date) => {
   const yesterday = new Date(d1);
@@ -104,11 +107,20 @@ const isPreviousMonth = (d1: Date, d2: Date) => {
   const lastMonth = new Date(d1);
   lastMonth.setMonth(d1.getMonth() - 1);
   // Handle year change
-  if (d1.getMonth() === 0 && d2.getMonth() === 11 && d2.getFullYear() === d1.getFullYear() - 1) {
+  if (
+    d1.getMonth() === 0 &&
+    d2.getMonth() === 11 &&
+    d2.getFullYear() === d1.getFullYear() - 1
+  ) {
     return true;
   }
-  return d2.getFullYear() === lastMonth.getFullYear() && d2.getMonth() === lastMonth.getMonth();
+  return (
+    d2.getFullYear() === lastMonth.getFullYear() &&
+    d2.getMonth() === lastMonth.getMonth()
+  );
 };
+
+const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual"];
 
 export default function Dashboard() {
   const [isClient, setIsClient] = useState(false);
@@ -123,6 +135,18 @@ export default function Dashboard() {
   );
   const { data: dailyHabits, isLoading: habitsLoading } =
     useCollection(habitsQuery);
+    
+  const groupedHabits = useMemo(() => {
+    if (!dailyHabits) return {};
+    return dailyHabits.reduce((acc, habit) => {
+      const category = habit.category || 'Sin Categoría';
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(habit);
+      return acc;
+    }, {} as { [key: string]: any[] });
+  }, [dailyHabits]);
 
   const tasksQuery = useMemoFirebase(
     () =>
@@ -204,7 +228,7 @@ export default function Dashboard() {
           break;
       }
     }
-    
+
     if (isCompletedInCurrentPeriod) {
       // Reverting completion. Restore the previous state.
       updateDocumentNonBlocking(habitRef, {
@@ -220,7 +244,7 @@ export default function Dashboard() {
 
       if (lastCompletedDate) {
         let isConsecutive = false;
-        switch(habit.frequency) {
+        switch (habit.frequency) {
           case 'Semanal':
             isConsecutive = isPreviousWeek(today, lastCompletedDate);
             break;
@@ -280,54 +304,81 @@ export default function Dashboard() {
               value={habitsProgress}
               aria-label={`${habitsProgress}% de hábitos completados`}
             />
-            <div className="space-y-2">
+            <div className="space-y-6">
               {habitsLoading && <p>Cargando hábitos...</p>}
-              {dailyHabits?.map((habit) => {
-                const lastCompletedDate = habit.lastCompletedAt
-                  ? (habit.lastCompletedAt as Timestamp).toDate()
-                  : null;
-
-                let isCompleted = false;
-                if (lastCompletedDate) {
-                  switch (habit.frequency) {
-                    case 'Semanal':
-                      isCompleted = isSameWeek(lastCompletedDate, new Date());
-                      break;
-                    case 'Mensual':
-                      isCompleted = isSameMonth(lastCompletedDate, new Date());
-                      break;
-                    case 'Diario':
-                    default:
-                      isCompleted = isSameDay(lastCompletedDate, new Date());
-                      break;
-                  }
-                }
-
-                return (
-                  <div
-                    key={habit.id}
-                    className="flex items-center justify-between rounded-md bg-muted/50 p-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{habit.icon}</span>
-                      <div>
-                        <p className="font-medium">{habit.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Racha: {habit.currentStreak} {habit.frequency === 'Diario' ? 'días' : (habit.frequency === 'Semanal' ? 'semanas' : 'meses')}
-                        </p>
+              {Object.keys(groupedHabits).length > 0 ? (
+                habitCategories.map(category => (
+                    groupedHabits[category] && groupedHabits[category].length > 0 && (
+                      <div key={category}>
+                         <h3 className="text-lg font-semibold tracking-tight font-headline mb-2">{category}</h3>
+                         <div className="space-y-2">
+                          {groupedHabits[category].map((habit) => {
+                            const lastCompletedDate = habit.lastCompletedAt
+                              ? (habit.lastCompletedAt as Timestamp).toDate()
+                              : null;
+        
+                            let isCompleted = false;
+                            if (lastCompletedDate) {
+                              switch (habit.frequency) {
+                                case 'Semanal':
+                                  isCompleted = isSameWeek(
+                                    lastCompletedDate,
+                                    new Date()
+                                  );
+                                  break;
+                                case 'Mensual':
+                                  isCompleted = isSameMonth(
+                                    lastCompletedDate,
+                                    new Date()
+                                  );
+                                  break;
+                                case 'Diario':
+                                default:
+                                  isCompleted = isSameDay(
+                                    lastCompletedDate,
+                                    new Date()
+                                  );
+                                  break;
+                              }
+                            }
+        
+                            return (
+                              <div
+                                key={habit.id}
+                                className="flex items-center justify-between rounded-md bg-muted/50 p-3"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <span className="text-2xl">{habit.icon}</span>
+                                  <div>
+                                    <p className="font-medium">{habit.name}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                      Racha: {habit.currentStreak}{' '}
+                                      {habit.frequency === 'Diario'
+                                        ? 'días'
+                                        : habit.frequency === 'Semanal'
+                                        ? 'semanas'
+                                        : 'meses'}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button
+                                  variant={isCompleted ? 'secondary' : 'outline'}
+                                  size="sm"
+                                  onClick={() => handleToggleHabit(habit.id)}
+                                >
+                                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                                  {isCompleted ? 'Completado' : 'Marcar'}
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                    <Button
-                      variant={isCompleted ? 'secondary' : 'outline'}
-                      size="sm"
-                      onClick={() => handleToggleHabit(habit.id)}
-                    >
-                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                      {isCompleted ? 'Completado' : 'Marcar'}
-                    </Button>
-                  </div>
-                );
-              })}
+                    )
+                ))
+              ) : (
+                !habitsLoading && <p>No tienes hábitos configurados para hoy.</p>
+              )}
             </div>
           </CardContent>
         </Card>
