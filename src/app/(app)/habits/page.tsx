@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,18 +11,40 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Check, Flame, PlusCircle } from 'lucide-react';
 import {
   useFirebase,
   useCollection,
   useMemoFirebase,
   updateDocumentNonBlocking,
+  addDocumentNonBlocking,
 } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, serverTimestamp } from 'firebase/firestore';
 
 export default function HabitsPage() {
   const { firestore, user } = useFirebase();
+
+  const [newHabitName, setNewHabitName] = useState('');
+  const [newHabitIcon, setNewHabitIcon] = useState('');
+  const [newHabitFrequency, setNewHabitFrequency] = useState('Diario');
 
   const habitsQuery = useMemoFirebase(
     () => (user ? collection(firestore, 'users', user.uid, 'habits') : null),
@@ -36,16 +59,95 @@ export default function HabitsPage() {
     updateDocumentNonBlocking(habitRef, { completed: !currentStatus });
   };
 
+  const handleCreateHabit = async () => {
+    if (!newHabitName.trim() || !newHabitIcon.trim() || !user) return;
+
+    const habitsColRef = collection(firestore, 'users', user.uid, 'habits');
+    await addDocumentNonBlocking(habitsColRef, {
+      name: newHabitName,
+      icon: newHabitIcon,
+      frequency: newHabitFrequency,
+      completed: false,
+      currentStreak: 0,
+      createdAt: serverTimestamp(),
+      userId: user.uid,
+    });
+
+    setNewHabitName('');
+    setNewHabitIcon('');
+    setNewHabitFrequency('Diario');
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Hábitos"
         description="Gestiona tus hábitos y sigue tu progreso."
       >
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Crear Hábito
-        </Button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Crear Hábito
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Crear Nuevo Hábito</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="habit-name" className="text-right">
+                  Nombre
+                </Label>
+                <Input
+                  id="habit-name"
+                  value={newHabitName}
+                  onChange={(e) => setNewHabitName(e.target.value)}
+                  className="col-span-3"
+                  placeholder="Ej: Leer 30 minutos"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="habit-icon" className="text-right">
+                  Ícono
+                </Label>
+                <Input
+                  id="habit-icon"
+                  value={newHabitIcon}
+                  onChange={(e) => setNewHabitIcon(e.target.value)}
+                  className="col-span-3"
+                  placeholder="Ej: 📚"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="habit-frequency" className="text-right">
+                  Frecuencia
+                </Label>
+                <Select
+                  value={newHabitFrequency}
+                  onValueChange={setNewHabitFrequency}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Selecciona una frecuencia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Diario">Diario</SelectItem>
+                    <SelectItem value="Semanal">Semanal</SelectItem>
+                    <SelectItem value="Mensual">Mensual</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="submit" onClick={handleCreateHabit}>
+                  Guardar Hábito
+                </Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </PageHeader>
 
       {habitsLoading && <p>Cargando hábitos...</p>}
@@ -68,12 +170,7 @@ export default function HabitsPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="flex-grow">
-              <div className="text-sm text-muted-foreground mb-2">
-                Progreso semanal
-              </div>
-              <Progress value={habit.weeklyProgress} />
-            </CardContent>
+            <CardContent className="flex-grow"></CardContent>
             <CardFooter>
               <Button
                 variant={habit.completed ? 'secondary' : 'outline'}
