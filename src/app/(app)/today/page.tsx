@@ -195,11 +195,11 @@ export default function TodayPage() {
     } else {
       // Completing the habit.
       const currentStreak = habit.currentStreak || 0;
-      const longestStreak = habit.longestStreak || 0;
+      let longestStreak = habit.longestStreak || 0;
       let newStreak = 1;
+      let isConsecutive = false;
 
       if (lastCompletedDate) {
-        let isConsecutive = false;
         switch (habit.frequency) {
           case 'Semanal':
             isConsecutive = isPreviousWeek(today, lastCompletedDate);
@@ -212,18 +212,22 @@ export default function TodayPage() {
             isConsecutive = isPreviousDay(today, lastCompletedDate);
             break;
         }
+        
         if (isConsecutive) {
           newStreak = currentStreak + 1;
         }
+
+        // Update longest streak based on the *previous* streak before this completion
+        if (currentStreak > longestStreak) {
+          longestStreak = currentStreak;
+        }
       }
       
-      const newLongestStreak = Math.max(longestStreak, newStreak);
-
       // Save the current state before updating, so we can revert if needed.
       updateDocumentNonBlocking(habitRef, {
         lastCompletedAt: Timestamp.fromDate(today),
         currentStreak: newStreak,
-        longestStreak: newLongestStreak,
+        longestStreak: longestStreak, // Update longest streak
         previousStreak: currentStreak,
         previousLastCompletedAt: habit.lastCompletedAt,
       });
