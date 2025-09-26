@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { Inter as FontSans } from 'next/font/google';
-import { Space_Grotesk as FontHeadline } from 'next/font/google';
+import { Outfit as FontHeadline } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/theme-provider';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
@@ -15,7 +15,6 @@ const fontSans = FontSans({
 const fontHeadline = FontHeadline({
   subsets: ['latin'],
   variable: '--font-headline',
-  weight: '700',
 });
 
 export const metadata: Metadata = {

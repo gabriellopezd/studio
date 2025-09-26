@@ -13,7 +13,7 @@ export default {
       fontFamily: {
         sans: ['var(--font-sans)', ...fontFamily.sans],
         body: ['Inter', 'sans-serif'],
-        headline: ['"Space Grotesk"', 'sans-serif'],
+        headline: ['Outfit', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {
