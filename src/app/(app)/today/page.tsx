@@ -23,6 +23,7 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   useCollection,
   updateDocumentNonBlocking,
+  addDocumentNonBlocking,
   useFirebase,
 } from '@/firebase';
 import {
@@ -32,9 +33,18 @@ import {
   where,
   limit,
   Timestamp,
+  serverTimestamp,
+  getDocs,
 } from 'firebase/firestore';
-import { moodLevels as moodOptions } from '@/lib/moods';
+import { moodLevels, feelings, influences } from '@/lib/moods';
 import Link from 'next/link';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 const getStartOfWeek = (date: Date) => {
   const d = new Date(date);
@@ -93,6 +103,224 @@ const isPreviousMonth = (d1: Date, d2: Date) => {
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual"];
 
+function TodaysMoodCard() {
+  const { firestore, user } = useFirebase();
+
+  const [isDialogOpen, setDialogOpen] = useState(false);
+  const [step, setStep] = useState(1);
+
+  const [selectedMood, setSelectedMood] = useState<{
+    level: number;
+    emoji: string;
+    label: string;
+  } | null>(null);
+  const [selectedFeelings, setSelectedFeelings] = useState<string[]>([]);
+  const [selectedInfluences, setSelectedInfluences] = useState<string[]>([]);
+  
+  const todayISO = useMemo(() => new Date().toISOString().split('T')[0], []);
+
+  const moodsQuery = useMemo(() => {
+    if (!user) return null;
+    return query(
+      collection(firestore, 'users', user.uid, 'moods'),
+      where('date', '>=', `${todayISO}T00:00:00.000Z`),
+      where('date', '<=', `${todayISO}T23:59:59.999Z`),
+      limit(1)
+    );
+  }, [firestore, user, todayISO]);
+  
+  const { data: moods } = useCollection(moodsQuery);
+  const todayEntry = moods?.[0];
+
+  const resetForm = () => {
+    setStep(1);
+    setSelectedMood(null);
+    setSelectedFeelings([]);
+    setSelectedInfluences([]);
+    setDialogOpen(false);
+  };
+
+  const handleStartMoodRegistration = () => {
+    resetForm();
+    setDialogOpen(true);
+  };
+
+  const handleMoodSelect = (mood: {
+    level: number;
+    emoji: string;
+    label: string;
+  }) => {
+    setSelectedMood(mood);
+    setStep(2);
+  };
+
+  const handleToggleSelection = (
+    item: string,
+    selection: string[],
+    setSelection: React.Dispatch<React.SetStateAction<string[]>>
+  ) => {
+    setSelection((prev) =>
+      prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]
+    );
+  };
+
+  const handleSaveMood = async () => {
+    if (!user || !selectedMood) return;
+
+    const moodData = {
+      moodLevel: selectedMood.level,
+      moodLabel: selectedMood.label,
+      emoji: selectedMood.emoji,
+      feelings: selectedFeelings,
+      influences: selectedInfluences,
+      date: new Date().toISOString(),
+      userId: user.uid,
+    };
+    
+    if (todayEntry) {
+        const existingDocRef = doc(firestore, 'users', user.uid, 'moods', todayEntry.id);
+        await updateDocumentNonBlocking(existingDocRef, moodData);
+    } else {
+        const newDocRef = doc(collection(firestore, 'users', user.uid, 'moods'));
+        await addDocumentNonBlocking(newDocRef, {
+            ...moodData,
+            id: newDocRef.id,
+            createdAt: serverTimestamp(),
+        });
+    }
+    
+    resetForm();
+  };
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Smile className="size-5" />
+            <span>¿Cómo te sientes?</span>
+          </CardTitle>
+          <CardDescription>Registra tu estado de ánimo de hoy.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={handleStartMoodRegistration} className="w-full">
+            {todayEntry ? (
+              <>
+                <span className="mr-2 text-lg">{todayEntry.emoji}</span>
+                Actualizar mi día
+              </>
+            ) : (
+              'Registrar mi día'
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => !open && resetForm()}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {step === 1 && '¿Cómo te sientes hoy?'}
+              {step === 2 && '¿Qué características describen mejor lo que sientes?'}
+              {step === 3 && '¿Qué es lo que más está influyendo en tu ánimo?'}
+            </DialogTitle>
+          </DialogHeader>
+
+          {step === 1 && (
+            <div className="flex justify-around py-6">
+              {moodLevels.map((mood) => (
+                <Button
+                  key={mood.level}
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleMoodSelect(mood)}
+                  className="h-20 w-20 rounded-full"
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="text-4xl">{mood.emoji}</span>
+                    <span className="text-xs text-muted-foreground text-center">
+                      {mood.label}
+                    </span>
+                  </div>
+                </Button>
+              ))}
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="flex flex-wrap gap-2 justify-center py-4">
+              {feelings.map((feeling) => (
+                <Button
+                  key={feeling}
+                  variant={
+                    selectedFeelings.includes(feeling) ? 'secondary' : 'outline'
+                  }
+                  onClick={() =>
+                    handleToggleSelection(
+                      feeling,
+                      selectedFeelings,
+                      setSelectedFeelings
+                    )
+                  }
+                >
+                  {feeling}
+                </Button>
+              ))}
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="flex flex-wrap gap-2 justify-center py-4">
+              {influences.map((influence) => (
+                <Button
+                  key={influence}
+                  variant={
+                    selectedInfluences.includes(influence)
+                      ? 'secondary'
+                      : 'outline'
+                  }
+                  onClick={() =>
+                    handleToggleSelection(
+                      influence,
+                      selectedInfluences,
+                      setSelectedInfluences
+                    )
+                  }
+                >
+                  {influence}
+                </Button>
+              ))}
+            </div>
+          )}
+
+          <DialogFooter>
+            {step > 1 && (
+              <Button variant="outline" onClick={() => setStep((s) => s - 1)}>
+                Atrás
+              </Button>
+            )}
+            {step < 3 && (
+              <Button
+                onClick={() => setStep((s) => s + 1)}
+                disabled={step === 2 && selectedFeelings.length === 0}
+              >
+                Siguiente
+              </Button>
+            )}
+            {step === 3 && (
+              <Button
+                onClick={handleSaveMood}
+                disabled={selectedInfluences.length === 0}
+              >
+                Guardar Registro
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 export default function TodayPage() {
   const [isClient, setIsClient] = useState(false);
   const { firestore, user } = useFirebase();
@@ -113,15 +341,14 @@ export default function TodayPage() {
     if (!allHabits) return [];
     return allHabits.filter(habit => {
       const lastCompletedDate = habit.lastCompletedAt ? (habit.lastCompletedAt as Timestamp).toDate() : null;
-      if (!lastCompletedDate) return true; // Always show if never completed
-
+      
       switch (habit.frequency) {
         case 'Diario':
-          return !isSameDay(lastCompletedDate, today);
+          return !lastCompletedDate || !isSameDay(lastCompletedDate, today);
         case 'Semanal':
-          return !isSameWeek(lastCompletedDate, today);
+          return !lastCompletedDate || !isSameWeek(lastCompletedDate, today);
         case 'Mensual':
-          return !isSameMonth(lastCompletedDate, today);
+          return !lastCompletedDate || !isSameMonth(lastCompletedDate, today);
         default:
           return true;
       }
@@ -408,30 +635,7 @@ export default function TodayPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Smile className="size-5" />
-                <span>¿Cómo te sientes?</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex justify-around">
-              {moodOptions.map((mood) => (
-                <Button
-                  key={mood.level}
-                  variant="ghost"
-                  size="icon"
-                  className="h-14 w-14 rounded-full"
-                  asChild
-                >
-                  <Link href="/mood-tracker">
-                    <span className="text-3xl">{mood.emoji}</span>
-                    <span className="sr-only">{mood.label}</span>
-                  </Link>
-                </Button>
-              ))}
-            </CardContent>
-          </Card>
+          <TodaysMoodCard />
         </div>
       </div>
     </div>
