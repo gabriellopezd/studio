@@ -128,22 +128,17 @@ export default function TasksPage() {
   
   const handleSaveTask = async () => {
     if (!user || !name) return;
-
-    let dueDateTimestamp = null;
-    if (dueDate) {
-        const date = new Date(dueDate);
-        // Adjust for timezone offset by setting time to UTC midnight
-        const utcDate = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
-        dueDateTimestamp = Timestamp.fromDate(utcDate);
-    }
-
+  
     const taskData = {
       name,
-      dueDate: dueDateTimestamp,
+      // The `dueDate` is a string in "YYYY-MM-DD" format.
+      // `new Date(dueDate)` will parse it as UTC midnight.
+      // To correctly represent the user's intended date, we must account for the timezone offset.
+      dueDate: dueDate ? Timestamp.fromDate(new Date(dueDate + 'T00:00:00')) : null,
       priority,
       userId: user.uid,
     };
-
+  
     if (taskToEdit) {
       const taskRef = doc(firestore, 'users', user.uid, 'tasks', taskToEdit.id);
       await updateDocumentNonBlocking(taskRef, taskData);
@@ -170,7 +165,10 @@ export default function TasksPage() {
   const getTaskDueDate = (task: any) => {
     if (task.dueDate && task.dueDate.toDate) {
       const date = task.dueDate.toDate();
-      return `Vence: ${date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}`;
+      // Adjust for timezone when displaying
+      const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+      const localDate = new Date(date.getTime() + userTimezoneOffset);
+      return `Vence: ${localDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}`;
     }
     return 'Sin fecha de vencimiento';
   }
