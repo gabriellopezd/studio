@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -123,6 +123,19 @@ export default function HabitsPage() {
   );
   const { data: allHabits, isLoading: habitsLoading } =
     useCollection(habitsQuery);
+    
+  const groupedHabits = useMemo(() => {
+    if (!allHabits) return {};
+    return allHabits.reduce((acc, habit) => {
+      const category = habit.category || 'Sin Categoría';
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(habit);
+      return acc;
+    }, {} as { [key: string]: any[] });
+  }, [allHabits]);
+
 
   useEffect(() => {
     if (habitToEdit) {
@@ -281,83 +294,94 @@ export default function HabitsPage() {
 
         {habitsLoading && <p>Cargando hábitos...</p>}
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {allHabits?.map((habit) => {
-            const lastCompletedDate = habit.lastCompletedAt
-              ? (habit.lastCompletedAt as Timestamp).toDate()
-              : null;
-              
-            let isCompleted = false;
-            if (lastCompletedDate) {
-              switch (habit.frequency) {
-                case 'Semanal':
-                  isCompleted = isSameWeek(lastCompletedDate, new Date());
-                  break;
-                case 'Mensual':
-                  isCompleted = isSameMonth(lastCompletedDate, new Date());
-                  break;
-                case 'Diario':
-                default:
-                  isCompleted = isSameDay(lastCompletedDate, new Date());
-                  break;
-              }
-            }
+        <div className="space-y-8">
+          {habitCategories.map((category) => (
+            groupedHabits[category] && groupedHabits[category].length > 0 && (
+              <div key={category}>
+                <h2 className="text-xl font-bold tracking-tight font-headline mb-4">
+                  {category}
+                </h2>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {groupedHabits[category].map((habit: any) => {
+                    const lastCompletedDate = habit.lastCompletedAt
+                      ? (habit.lastCompletedAt as Timestamp).toDate()
+                      : null;
+                      
+                    let isCompleted = false;
+                    if (lastCompletedDate) {
+                      switch (habit.frequency) {
+                        case 'Semanal':
+                          isCompleted = isSameWeek(lastCompletedDate, new Date());
+                          break;
+                        case 'Mensual':
+                          isCompleted = isSameMonth(lastCompletedDate, new Date());
+                          break;
+                        case 'Diario':
+                        default:
+                          isCompleted = isSameDay(lastCompletedDate, new Date());
+                          break;
+                      }
+                    }
 
-            return (
-              <Card key={habit.id} className="flex flex-col">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="text-4xl">{habit.icon}</div>
-                      <div>
-                        <CardTitle>{habit.name}</CardTitle>
-                        <CardDescription>{habit.frequency}</CardDescription>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 text-orange-500">
-                      <Flame className="h-5 w-5" />
-                      <span className="font-bold">{habit.currentStreak}</span>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  <div className="flex items-center justify-between">
-                    {habit.category && <Badge variant="secondary">{habit.category}</Badge>}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleOpenEditDialog(habit)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setHabitToDelete(habit)}
-                          className="text-red-500"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Eliminar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button
-                    variant={isCompleted ? 'secondary' : 'outline'}
-                    className="w-full"
-                    onClick={() => handleToggleHabit(habit.id)}
-                  >
-                    <Check className="mr-2 h-4 w-4" />
-                    {isCompleted ? 'Completado Hoy' : 'Marcar como completado'}
-                  </Button>
-                </CardFooter>
-              </Card>
-            );
-          })}
+                    return (
+                      <Card key={habit.id} className="flex flex-col">
+                        <CardHeader>
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="text-4xl">{habit.icon}</div>
+                              <div>
+                                <CardTitle>{habit.name}</CardTitle>
+                                <CardDescription>{habit.frequency}</CardDescription>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 text-orange-500">
+                              <Flame className="h-5 w-5" />
+                              <span className="font-bold">{habit.currentStreak}</span>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="flex-grow">
+                          <div className="flex items-center justify-between">
+                            {habit.category && <Badge variant="secondary">{habit.category}</Badge>}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleOpenEditDialog(habit)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => setHabitToDelete(habit)}
+                                  className="text-red-500"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Eliminar
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </CardContent>
+                        <CardFooter>
+                          <Button
+                            variant={isCompleted ? 'secondary' : 'outline'}
+                            className="w-full"
+                            onClick={() => handleToggleHabit(habit.id)}
+                          >
+                            <Check className="mr-2 h-4 w-4" />
+                            {isCompleted ? 'Completado Hoy' : 'Marcar como completado'}
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            )
+          ))}
         </div>
       </div>
       
