@@ -65,9 +65,16 @@ export default function TasksPage() {
 
   const tasksQuery = useMemo(() => {
     if (!user) return null;
-    const tasksColRef = collection(firestore, 'users', user.uid, 'tasks');
+    return query(collection(firestore, 'users', user.uid, 'tasks'));
+  }, [firestore, user]);
+
+  const { data: allTasks, isLoading: tasksLoading } = useCollection(tasksQuery);
+
+  const filteredTasks = useMemo(() => {
+    if (!allTasks) return null;
+
     const today = new Date();
-    today.setHours(0,0,0,0);
+    today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
     const nextWeek = new Date(today);
@@ -75,18 +82,26 @@ export default function TasksPage() {
 
     switch (activeTab) {
       case 'today':
-        return query(tasksColRef, where('isCompleted', '==', false), where('dueDate', '>=', Timestamp.fromDate(today)), where('dueDate', '<', Timestamp.fromDate(tomorrow)));
+        return allTasks.filter(task => 
+          !task.isCompleted && 
+          task.dueDate && 
+          task.dueDate.toDate() >= today && 
+          task.dueDate.toDate() < tomorrow
+        );
       case 'upcoming':
-         return query(tasksColRef, where('isCompleted', '==', false), where('dueDate', '>=', Timestamp.fromDate(today)), where('dueDate', '<=', Timestamp.fromDate(nextWeek)));
+        return allTasks.filter(task => 
+          !task.isCompleted && 
+          task.dueDate && 
+          task.dueDate.toDate() >= today && 
+          task.dueDate.toDate() <= nextWeek
+        );
       case 'completed':
-        return query(tasksColRef, where('isCompleted', '==', true));
+        return allTasks.filter(task => task.isCompleted);
       case 'all':
       default:
-        return query(tasksColRef, where('isCompleted', '==', false));
+        return allTasks.filter(task => !task.isCompleted);
     }
-  }, [firestore, user, activeTab]);
-
-  const { data: allTasks, isLoading: tasksLoading } = useCollection(tasksQuery);
+  }, [allTasks, activeTab]);
 
   const handleToggleTask = (taskId: string, currentStatus: boolean) => {
     if (!user) return;
@@ -243,10 +258,10 @@ export default function TasksPage() {
             <TabsTrigger value="upcoming">Próximos 7 días</TabsTrigger>
             <TabsTrigger value="completed">Completadas</TabsTrigger>
           </TabsList>
-          <TabsContent value="all">{renderTaskList(allTasks)}</TabsContent>
-          <TabsContent value="today">{renderTaskList(allTasks)}</TabsContent>
-          <TabsContent value="upcoming">{renderTaskList(allTasks)}</TabsContent>
-          <TabsContent value="completed">{renderTaskList(allTasks)}</TabsContent>
+          <TabsContent value="all">{renderTaskList(filteredTasks)}</TabsContent>
+          <TabsContent value="today">{renderTaskList(filteredTasks)}</TabsContent>
+          <TabsContent value="upcoming">{renderTaskList(filteredTasks)}</TabsContent>
+          <TabsContent value="completed">{renderTaskList(filteredTasks)}</TabsContent>
         </Tabs>
       </div>
       
@@ -308,5 +323,3 @@ export default function TasksPage() {
     </>
   );
 }
-
-    
