@@ -9,7 +9,6 @@ import {
   ClipboardList,
   LayoutDashboard,
   Repeat,
-  Search,
   Settings,
   ShoppingCart,
   Smile,
@@ -31,7 +30,6 @@ import {
   SidebarInset,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -125,58 +123,52 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <SidebarInset>
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
           <SidebarTrigger className="sm:hidden" />
-          <div className="relative ml-auto flex-1 md:grow-0">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Buscar..."
-              className="w-full rounded-lg bg-card pl-8 md:w-[200px] lg:w-[320px]"
-            />
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <Bell className="h-5 w-5" />
+              <span className="sr-only">Toggle notifications</span>
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="relative h-10 w-10 rounded-full"
+                >
+                  <Avatar>
+                    {user.photoURL ? (
+                      <AvatarImage src={user.photoURL} alt={user.displayName || 'User Avatar'} />
+                    ) : userAvatar ? (
+                      <AvatarImage
+                        src={userAvatar.imageUrl}
+                        alt={userAvatar.description}
+                        data-ai-hint={userAvatar.imageHint}
+                      />
+                    ) : null }
+                    <AvatarFallback>
+                      {user.displayName
+                        ? user.displayName.charAt(0)
+                        : user.email
+                        ? user.email.charAt(0).toUpperCase()
+                        : 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{user.displayName || user.email}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/settings">Configuración</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem>Soporte</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Cerrar sesión
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-          <Button variant="ghost" size="icon" className="rounded-full">
-            <Bell className="h-5 w-5" />
-            <span className="sr-only">Toggle notifications</span>
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="relative h-10 w-10 rounded-full"
-              >
-                <Avatar>
-                  {user.photoURL ? (
-                    <AvatarImage src={user.photoURL} alt={user.displayName || 'User Avatar'} />
-                  ) : userAvatar ? (
-                    <AvatarImage
-                      src={userAvatar.imageUrl}
-                      alt={userAvatar.description}
-                      data-ai-hint={userAvatar.imageHint}
-                    />
-                  ) : null }
-                  <AvatarFallback>
-                    {user.displayName
-                      ? user.displayName.charAt(0)
-                      : user.email
-                      ? user.email.charAt(0).toUpperCase()
-                      : 'U'}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{user.displayName || user.email}</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/settings">Configuración</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem>Soporte</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Cerrar sesión
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </header>
         <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
       </SidebarInset>
