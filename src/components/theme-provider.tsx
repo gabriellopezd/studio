@@ -13,7 +13,7 @@ const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undef
 
 export function ThemeProvider({
   children,
-  defaultTheme = 'system',
+  defaultTheme = 'light',
   storageKey = 'vite-ui-theme',
   ...props
 }: {
@@ -23,39 +23,16 @@ export function ThemeProvider({
 }) {
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
-      return (localStorage.getItem(storageKey) as Theme) || 'light';
+      return (localStorage.getItem(storageKey) as Theme) || defaultTheme;
     }
-    return 'light';
+    return defaultTheme as Theme;
   });
 
   useEffect(() => {
     const root = window.document.documentElement;
-    const isClient = typeof window !== 'undefined';
-    
-    if (!isClient) return;
-
-    const checkTime = () => {
-      const currentHour = new Date().getHours();
-      // Dark mode between 6 PM (18) and 6 AM (6)
-      if (currentHour >= 18 || currentHour < 6) {
-        if (theme !== 'dark') setTheme('dark');
-      } else {
-        if (theme !== 'light') setTheme('light');
-      }
-    };
-    
-    checkTime();
-
     root.classList.remove('light', 'dark');
     root.classList.add(theme);
-
-    localStorage.setItem(storageKey, theme);
-    
-    const interval = setInterval(checkTime, 1000 * 60 * 5); // Check every 5 minutes
-    
-    return () => clearInterval(interval);
-
-  }, [theme, storageKey]);
+  }, [theme]);
 
   const value = {
     theme,

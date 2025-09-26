@@ -20,10 +20,12 @@ import { doc } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
 import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { useTheme } from '@/components/theme-provider';
 
 export default function SettingsPage() {
   const { firestore, auth } = useFirebase();
   const { user } = useUser();
+  const { theme, setTheme } = useTheme();
   const userAvatar = PlaceHolderImages.find((img) => img.id === 'user-avatar-1');
   const { toast } = useToast();
 
@@ -168,7 +170,11 @@ export default function SettingsPage() {
                     por la noche.
                   </p>
                 </div>
-                <Switch id="theme" />
+                <Switch 
+                  id="theme" 
+                  checked={theme === 'dark'}
+                  onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                />
               </div>
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div>
