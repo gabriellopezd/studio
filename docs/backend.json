@@ -594,13 +594,21 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profile information.  All user-owned data is stored under this document to simplify security rules and ensure data isolation.",
+          "description": "Stores user profile information. All user-owned data is stored under this document to simplify security rules and ensure data isolation.",
           "params": [
             {
               "name": "userId",
               "description": "The unique identifier for the user, corresponding to the Firebase Auth UID."
             }
-          ]
+          ],
+           "rules": {
+            "allow": {
+              "create": "if request.auth != null && request.auth.uid == userId;",
+              "read": "if request.auth != null && request.auth.uid == userId;",
+              "update": "if request.auth != null && request.auth.uid == userId;",
+              "delete": "if request.auth != null && request.auth.uid == userId;"
+            }
+          }
         }
       },
       {

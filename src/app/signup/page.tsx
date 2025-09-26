@@ -13,18 +13,37 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo, GoogleIcon } from '@/components/icons';
 import { useState } from 'react';
-import { useAuth } from '@/firebase';
+import { useFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword } from 'firebase/auth';
+import {
+  signInWithPopup,
+  GoogleAuthProvider,
+  createUserWithEmailAndPassword,
+  User,
+} from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const auth = useAuth();
+  const { auth, firestore } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
+
+  const createUserProfileDocument = async (user: User) => {
+    if (!user) return;
+    const userRef = doc(firestore, 'users', user.uid);
+    const userProfileData = {
+      displayName: user.displayName || user.email,
+      email: user.email,
+      photoURL: user.photoURL,
+      createdAt: serverTimestamp(),
+      lastLoginAt: serverTimestamp(),
+    };
+    await setDoc(userRef, userProfileData, { merge: true });
+  };
 
   const handleSignUp = async () => {
     if (!auth) return;
@@ -37,7 +56,12 @@ export default function SignupPage() {
       return;
     }
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      await createUserProfileDocument(userCredential.user);
       toast({
         title: '¡Cuenta creada!',
         description: 'Redirigiendo a tu dashboard...',
@@ -57,7 +81,8 @@ export default function SignupPage() {
     if (!auth) return;
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      const userCredential = await signInWithPopup(auth, provider);
+      await createUserProfileDocument(userCredential.user);
       toast({
         title: 'Inicio de sesión con Google exitoso',
         description: 'Redirigiendo al dashboard...',

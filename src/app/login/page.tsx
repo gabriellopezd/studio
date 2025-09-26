@@ -13,27 +13,56 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo, GoogleIcon } from '@/components/icons';
 import { useState } from 'react';
-import { useAuth } from '@/firebase';
+import { useFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword } from 'firebase/auth';
+import {
+  signInWithPopup,
+  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  User,
+} from 'firebase/auth';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const auth = useAuth();
+  const { auth, firestore } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
+
+  const handleUserLogin = async (user: User) => {
+    if (!user) return;
+    const userRef = doc(firestore, 'users', user.uid);
+    
+    // Check if user document exists, if not create it (for users who signed up before this logic was added)
+    const userDoc = await getDoc(userRef);
+    if (!userDoc.exists()) {
+        const userProfileData = {
+            displayName: user.displayName || user.email,
+            email: user.email,
+            photoURL: user.photoURL,
+            createdAt: serverTimestamp(),
+            lastLoginAt: serverTimestamp(),
+        };
+        await setDoc(userRef, userProfileData);
+    } else {
+        await setDoc(userRef, { lastLoginAt: serverTimestamp() }, { merge: true });
+    }
+
+    toast({
+      title: 'Inicio de sesión exitoso',
+      description: 'Redirigiendo al dashboard...',
+    });
+    router.push('/dashboard');
+  };
+
 
   const handleLogin = async () => {
     if (!auth) return;
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      toast({
-        title: 'Inicio de sesión exitoso',
-        description: 'Redirigiendo al dashboard...',
-      });
-      router.push('/dashboard');
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await handleUserLogin(userCredential.user);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -48,12 +77,8 @@ export default function LoginPage() {
     if (!auth) return;
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      toast({
-        title: 'Inicio de sesión con Google exitoso',
-        description: 'Redirigiendo al dashboard...',
-      });
-      router.push('/dashboard');
+      const userCredential = await signInWithPopup(auth, provider);
+      await handleUserLogin(userCredential.user);
     } catch (error: any) {
       toast({
         variant: 'destructive',
