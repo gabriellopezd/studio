@@ -37,7 +37,15 @@ import {
   updateDocumentNonBlocking,
   addDocumentNonBlocking,
 } from '@/firebase';
-import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, Timestamp } from 'firebase/firestore';
+
+const isSameDay = (date1: Date, date2: Date) => {
+  return (
+    date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getDate() === date2.getDate()
+  );
+};
 
 export default function HabitsPage() {
   const { firestore, user } = useFirebase();
@@ -53,19 +61,38 @@ export default function HabitsPage() {
   const { data: allHabits, isLoading: habitsLoading } =
     useCollection(habitsQuery);
 
-  const handleToggleHabit = (habitId: string, currentStatus: boolean) => {
+  const handleToggleHabit = (habitId: string) => {
     if (!user || !allHabits) return;
-    
-    const habit = allHabits.find(h => h.id === habitId);
+
+    const habit = allHabits.find((h) => h.id === habitId);
     if (!habit) return;
-
+    
     const habitRef = doc(firestore, 'users', user.uid, 'habits', habitId);
-    const newCompletedStatus = !currentStatus;
-    const currentStreak = habit.currentStreak || 0;
-    const newStreak = newCompletedStatus ? currentStreak + 1 : Math.max(0, currentStreak - 1);
 
-    updateDocumentNonBlocking(habitRef, { 
-      completed: newCompletedStatus,
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    const lastCompletedDate = habit.lastCompletedAt ? (habit.lastCompletedAt as Timestamp).toDate() : null;
+    const isCompletedToday = lastCompletedDate && isSameDay(lastCompletedDate, today);
+
+    if (isCompletedToday) {
+      // Habit already completed today, do nothing.
+      // Or, add logic to "un-complete", which might complicate streak logic.
+      // For now, we prevent un-completing to keep streaks simple.
+      return;
+    }
+
+    const currentStreak = habit.currentStreak || 0;
+    let newStreak = 1; // Default to starting a new streak
+
+    if (lastCompletedDate && isSameDay(lastCompletedDate, yesterday)) {
+      // It was completed yesterday, so we increment the streak.
+      newStreak = currentStreak + 1;
+    }
+    
+    updateDocumentNonBlocking(habitRef, {
+      lastCompletedAt: Timestamp.fromDate(today),
       currentStreak: newStreak,
     });
   };
@@ -78,9 +105,9 @@ export default function HabitsPage() {
       name: newHabitName,
       icon: newHabitIcon,
       frequency: newHabitFrequency,
-      completed: false,
       currentStreak: 0,
       createdAt: serverTimestamp(),
+      lastCompletedAt: null,
       userId: user.uid,
     });
 
@@ -164,37 +191,48 @@ export default function HabitsPage() {
       {habitsLoading && <p>Cargando hábitos...</p>}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {allHabits?.map((habit) => (
-          <Card key={habit.id} className="flex flex-col">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="text-4xl">{habit.icon}</div>
-                  <div>
-                    <CardTitle>{habit.name}</CardTitle>
-                    <CardDescription>{habit.frequency}</CardDescription>
+        {allHabits?.map((habit) => {
+          const lastCompletedDate = habit.lastCompletedAt
+            ? (habit.lastCompletedAt as Timestamp).toDate()
+            : null;
+          const isCompleted =
+            lastCompletedDate && isSameDay(lastCompletedDate, new Date());
+
+          return (
+            <Card key={habit.id} className="flex flex-col">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="text-4xl">{habit.icon}</div>
+                    <div>
+                      <CardTitle>{habit.name}</CardTitle>
+                      <CardDescription>{habit.frequency}</CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-orange-500">
+                    <Flame className="h-5 w-5" />
+                    <span className="font-bold">{habit.currentStreak}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 text-orange-500">
-                  <Flame className="h-5 w-5" />
-                  <span className="font-bold">{habit.currentStreak}</span>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="flex-grow"></CardContent>
-            <CardFooter>
-              <Button
-                variant={habit.completed ? 'secondary' : 'outline'}
-                className="w-full"
-                onClick={() => handleToggleHabit(habit.id, habit.completed)}
-              >
-                <Check className="mr-2 h-4 w-4" />
-                {habit.completed ? 'Completado' : 'Marcar como completado'}
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
+              </CardHeader>
+              <CardContent className="flex-grow"></CardContent>
+              <CardFooter>
+                <Button
+                  variant={isCompleted ? 'secondary' : 'outline'}
+                  className="w-full"
+                  onClick={() => handleToggleHabit(habit.id)}
+                  disabled={isCompleted}
+                >
+                  <Check className="mr-2 h-4 w-4" />
+                  {isCompleted ? 'Completado Hoy' : 'Marcar como completado'}
+                </Button>
+              </CardFooter>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
 }
+
+    

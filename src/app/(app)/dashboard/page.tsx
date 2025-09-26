@@ -37,9 +37,16 @@ import {
   useCollection,
   useMemoFirebase,
   updateDocumentNonBlocking,
-  useFirebase
+  useFirebase,
 } from '@/firebase';
-import { collection, doc, query, where, limit } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  query,
+  where,
+  limit,
+  Timestamp,
+} from 'firebase/firestore';
 import { moods as moodOptions } from '@/lib/moods';
 import type { ChartConfig } from '@/components/ui/chart';
 
@@ -59,12 +66,17 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
+const isSameDay = (date1: Date, date2: Date) => {
+  return (
+    date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getDate() === date2.getDate()
+  );
+};
+
 export default function Dashboard() {
   const [isClient, setIsClient] = useState(false);
   const { firestore, user } = useFirebase();
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
 
   const habitsQuery = useMemoFirebase(
     () =>
@@ -101,24 +113,64 @@ export default function Dashboard() {
         : null,
     [firestore, user]
   );
-  const { data: mainGoals, isLoading: goalsLoading } = useCollection(goalsQuery);
+  const { data: mainGoals, isLoading: goalsLoading } =
+    useCollection(goalsQuery);
   const mainGoal = mainGoals?.[0];
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const completedHabits = dailyHabits?.filter((h) => h.completed).length ?? 0;
+  const today = new Date();
+  const completedHabits =
+    dailyHabits?.filter((h) => {
+      if (!h.lastCompletedAt) return false;
+      const lastCompletedDate = (h.lastCompletedAt as Timestamp).toDate();
+      return isSameDay(lastCompletedDate, today);
+    }).length ?? 0;
   const totalHabits = dailyHabits?.length ?? 0;
   const habitsProgress =
     totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
 
-  const handleToggleHabit = (habitId: string, currentStatus: boolean) => {
-    if (!user) return;
+  const handleToggleHabit = (habitId: string) => {
+    if (!user || !dailyHabits) return;
+
+    const habit = dailyHabits.find((h) => h.id === habitId);
+    if (!habit) return;
+
     const habitRef = doc(firestore, 'users', user.uid, 'habits', habitId);
-    updateDocumentNonBlocking(habitRef, { completed: !currentStatus });
+
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    const lastCompletedDate = habit.lastCompletedAt
+      ? (habit.lastCompletedAt as Timestamp).toDate()
+      : null;
+    const isCompletedToday = lastCompletedDate && isSameDay(lastCompletedDate, today);
+
+    if (isCompletedToday) {
+      // Undoing completion for today
+      // This logic can be complex: revert streak? Disallow? For now, we'll just un-complete.
+      // A simple approach is to set lastCompletedAt to null or a past date.
+      // For this implementation, we will not allow "un-completing" to simplify streak logic.
+      return;
+    }
+
+    const currentStreak = habit.currentStreak || 0;
+    let newStreak = 1; // Start a new streak by default
+
+    if (lastCompletedDate && isSameDay(lastCompletedDate, yesterday)) {
+      // Completed yesterday, continue streak
+      newStreak = currentStreak + 1;
+    }
+
+    updateDocumentNonBlocking(habitRef, {
+      lastCompletedAt: Timestamp.fromDate(today),
+      currentStreak: newStreak,
+    });
   };
-  
+
   const todayString = new Date().toLocaleDateString('es-ES', {
     weekday: 'long',
     year: 'numeric',
@@ -154,30 +206,39 @@ export default function Dashboard() {
             />
             <div className="space-y-2">
               {habitsLoading && <p>Cargando hábitos...</p>}
-              {dailyHabits?.map((habit) => (
-                <div
-                  key={habit.id}
-                  className="flex items-center justify-between rounded-md bg-muted/50 p-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{habit.icon}</span>
-                    <div>
-                      <p className="font-medium">{habit.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Racha: {habit.currentStreak} días
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant={habit.completed ? 'secondary' : 'outline'}
-                    size="sm"
-                    onClick={() => handleToggleHabit(habit.id, habit.completed)}
+              {dailyHabits?.map((habit) => {
+                const lastCompletedDate = habit.lastCompletedAt
+                  ? (habit.lastCompletedAt as Timestamp).toDate()
+                  : null;
+                const isCompleted =
+                  lastCompletedDate && isSameDay(lastCompletedDate, new Date());
+
+                return (
+                  <div
+                    key={habit.id}
+                    className="flex items-center justify-between rounded-md bg-muted/50 p-3"
                   >
-                    <CheckCircle2 className="mr-2 h-4 w-4" />
-                    {habit.completed ? 'Completado' : 'Marcar'}
-                  </Button>
-                </div>
-              ))}
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{habit.icon}</span>
+                      <div>
+                        <p className="font-medium">{habit.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Racha: {habit.currentStreak} días
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant={isCompleted ? 'secondary' : 'outline'}
+                      size="sm"
+                      onClick={() => handleToggleHabit(habit.id)}
+                      disabled={isCompleted}
+                    >
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      {isCompleted ? 'Completado' : 'Marcar'}
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -201,7 +262,9 @@ export default function Dashboard() {
                       <p className="font-medium">{task.name}</p>
                       <p className="text-sm text-muted-foreground">
                         Vence:{' '}
-                        {task.dueDate?.toDate ? task.dueDate.toDate().toLocaleDateString() : 'Sin fecha'}
+                        {task.dueDate?.toDate
+                          ? task.dueDate.toDate().toLocaleDateString()
+                          : 'Sin fecha'}
                       </p>
                     </div>
                   </li>
@@ -241,9 +304,7 @@ export default function Dashboard() {
               <span>Meta Principal</span>
             </CardTitle>
             {goalsLoading && <CardDescription>Cargando meta...</CardDescription>}
-            {mainGoal && (
-              <CardDescription>{mainGoal.name}</CardDescription>
-            )}
+            {mainGoal && <CardDescription>{mainGoal.name}</CardDescription>}
           </CardHeader>
           <CardContent className="flex flex-col items-center text-center">
             {mainGoal && (
@@ -251,7 +312,9 @@ export default function Dashboard() {
                 <div
                   className="relative flex h-40 w-40 items-center justify-center rounded-full bg-muted"
                   role="progressbar"
-                  aria-valuenow={(mainGoal.currentValue / mainGoal.targetValue) * 100}
+                  aria-valuenow={
+                    (mainGoal.currentValue / mainGoal.targetValue) * 100
+                  }
                   aria-valuemin={0}
                   aria-valuemax={100}
                 >
@@ -273,14 +336,21 @@ export default function Dashboard() {
                       fill="transparent"
                       strokeDasharray="251.2"
                       strokeDashoffset={
-                        251.2 - (251.2 * (mainGoal.currentValue / mainGoal.targetValue * 100)) / 100
+                        251.2 -
+                        (251.2 *
+                          ((mainGoal.currentValue / mainGoal.targetValue) *
+                            100)) /
+                          100
                       }
                       strokeLinecap="round"
                     />
                   </svg>
                   <div className="flex flex-col">
                     <span className="text-4xl font-bold text-foreground">
-                      {Math.round((mainGoal.currentValue / mainGoal.targetValue) * 100)}%
+                      {Math.round(
+                        (mainGoal.currentValue / mainGoal.targetValue) * 100
+                      )}
+                      %
                     </span>
                     <span className="text-sm text-muted-foreground">
                       Completado
@@ -293,7 +363,9 @@ export default function Dashboard() {
                 </p>
               </>
             )}
-            {!mainGoal && !goalsLoading && <p>No hay metas principales definidas.</p>}
+            {!mainGoal && !goalsLoading && (
+              <p>No hay metas principales definidas.</p>
+            )}
           </CardContent>
           <CardFooter>
             <Button className="w-full">
@@ -310,7 +382,10 @@ export default function Dashboard() {
             <CardDescription>Progreso mensual de tus metas.</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+            <ChartContainer
+              config={chartConfig}
+              className="min-h-[200px] w-full"
+            >
               <BarChart accessibilityLayer data={goalProgressData}>
                 <XAxis
                   dataKey="month"
@@ -342,5 +417,6 @@ export default function Dashboard() {
       </div>
     </div>
   );
+}
 
     
