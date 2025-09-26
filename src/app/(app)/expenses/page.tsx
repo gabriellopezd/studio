@@ -50,7 +50,10 @@ import {
   collection,
   doc,
   serverTimestamp,
-  addDoc,
+  query,
+  where,
+  getDocs,
+  writeBatch,
 } from 'firebase/firestore';
 
 export default function ExpensesPage() {
@@ -86,14 +89,14 @@ export default function ExpensesPage() {
     selectedList?.items?.filter((item: any) => item.isPurchased) ?? [];
 
   const addTransaction = async (newTransaction: any) => {
-    if (!user) return;
+    if (!user) return null;
     const transactionsColRef = collection(
       firestore,
       'users',
       user.uid,
       'transactions'
     );
-    await addDocumentNonBlocking(transactionsColRef, {
+    const docRef = await addDocumentNonBlocking(transactionsColRef, {
       ...newTransaction,
       userId: user.uid,
       createdAt: serverTimestamp(),
@@ -104,6 +107,7 @@ export default function ExpensesPage() {
         newTransaction.description
       } por ${formatCurrency(newTransaction.amount)} ha sido añadido a tus finanzas.`,
     });
+    return docRef;
   };
 
   const handleCreateList = async () => {
@@ -160,7 +164,7 @@ export default function ExpensesPage() {
     }
   };
 
-  const handleToggleItem = (itemId: string, isChecked: boolean) => {
+  const handleToggleItem = async (itemId: string, isChecked: boolean) => {
     const list = lists?.find((l) => l.id === selectedListId);
     const item = list?.items.find((i: any) => i.itemId === itemId);
 
@@ -174,10 +178,16 @@ export default function ExpensesPage() {
         itemName: item.name,
       });
     } else {
+       if (item.transactionId) {
+        const transactionRef = doc(firestore, 'users', user.uid, 'transactions', item.transactionId);
+        await deleteDocumentNonBlocking(transactionRef);
+      }
+
       const updatedItems = list.items.map((i: any) => {
         if (i.itemId === itemId) {
           const newItem = { ...i, isPurchased: false };
-          delete newItem.price; // Remove price when un-checking
+          delete newItem.price;
+          delete newItem.transactionId;
           return newItem;
         }
         return i;
@@ -193,7 +203,7 @@ export default function ExpensesPage() {
     }
   };
 
-  const handleSetItemPrice = () => {
+  const handleSetItemPrice = async () => {
     if (!itemToUpdate || !itemPrice || !user) return;
 
     const price = parseFloat(itemPrice);
@@ -207,13 +217,14 @@ export default function ExpensesPage() {
       amount: price,
     };
 
-    addTransaction(newTransaction);
+    const transactionDoc = await addTransaction(newTransaction);
+    if (!transactionDoc) return;
 
     const list = lists?.find((l) => l.id === itemToUpdate.listId);
     if (list) {
       const updatedItems = list.items.map((item: any) =>
         item.itemId === itemToUpdate.itemId
-          ? { ...item, isPurchased: true, price: price }
+          ? { ...item, isPurchased: true, price: price, transactionId: transactionDoc.id }
           : item
       );
       const listRef = doc(
@@ -232,6 +243,13 @@ export default function ExpensesPage() {
 
   const handleDeleteItem = (itemId: string) => {
     if (!selectedList || !user) return;
+    const itemToDelete = selectedList.items.find((item: any) => item.itemId === itemId);
+    
+    if (itemToDelete && itemToDelete.transactionId) {
+      const transactionRef = doc(firestore, 'users', user.uid, 'transactions', itemToDelete.transactionId);
+      deleteDocumentNonBlocking(transactionRef);
+    }
+    
     const updatedItems = selectedList.items.filter(
       (item: any) => item.itemId !== itemId
     );
@@ -576,3 +594,5 @@ export default function ExpensesPage() {
     </>
   );
 }
+
+    
