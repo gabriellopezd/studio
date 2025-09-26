@@ -5,6 +5,8 @@ import {
   CheckCircle2,
   ListTodo,
   Smile,
+  Flame,
+  Trophy,
 } from 'lucide-react';
 import {
   Card,
@@ -308,14 +310,16 @@ export default function TodayPage() {
                                   <span className="text-2xl">{habit.icon}</span>
                                   <div>
                                     <p className="font-medium">{habit.name}</p>
-                                    <p className="text-sm text-muted-foreground">
-                                      Racha: {habit.currentStreak || 0}{' '}
-                                      {habit.frequency === 'Diario'
-                                        ? 'días'
-                                        : habit.frequency === 'Semanal'
-                                        ? 'semanas'
-                                        : 'meses'}
-                                    </p>
+                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                      <span className="flex items-center gap-1">
+                                        <Flame className="h-4 w-4 text-orange-500"/> 
+                                        {habit.currentStreak || 0}
+                                      </span>
+                                      <span className="flex items-center gap-1">
+                                        <Trophy className="h-4 w-4 text-yellow-500"/>
+                                        {habit.longestStreak || 0}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
                                 <Button
@@ -397,5 +401,3 @@ export default function TodayPage() {
     </div>
   );
 }
-
-    
