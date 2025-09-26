@@ -226,7 +226,7 @@ export default function TodayPage() {
       updateDocumentNonBlocking(habitRef, {
         lastCompletedAt: Timestamp.fromDate(today),
         currentStreak: newStreak,
-        longestStreak: longestStreak, // Update longest streak
+        longestStreak: Math.max(longestStreak, newStreak),
         previousStreak: currentStreak,
         previousLastCompletedAt: habit.lastCompletedAt,
       });
@@ -241,16 +241,16 @@ export default function TodayPage() {
   });
 
   return (
-    <div className="flex flex-col gap-4 md:gap-6">
+    <div className="flex flex-col gap-6">
       <PageHeader
-        title="MI DÍA"
+        title="Mi Día"
         description={
           isClient
             ? `Resumen de tu actividad para hoy, ${todayString}.`
             : 'Resumen de tu actividad para hoy.'
         }
       />
-      <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -272,7 +272,7 @@ export default function TodayPage() {
                 habitCategories.map(category => (
                     groupedHabits[category] && groupedHabits[category].length > 0 && (
                       <div key={category}>
-                         <h3 className="text-lg font-semibold tracking-tight font-headline mb-2">{category}</h3>
+                         <h3 className="text-lg font-semibold tracking-tight mb-2">{category}</h3>
                          <div className="space-y-2">
                           {groupedHabits[category].map((habit) => {
                             const lastCompletedDate = habit.lastCompletedAt
@@ -307,7 +307,7 @@ export default function TodayPage() {
                             return (
                               <div
                                 key={habit.id}
-                                className="flex items-center justify-between rounded-md bg-muted/50 p-3"
+                                className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50"
                               >
                                 <div className="flex items-center gap-3">
                                   <span className="text-2xl">{habit.icon}</span>
@@ -347,7 +347,7 @@ export default function TodayPage() {
           </CardContent>
         </Card>
 
-        <div className="space-y-4 md:space-y-6">
+        <div className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -361,7 +361,7 @@ export default function TodayPage() {
               <ul className="space-y-3">
                 {urgentTasks?.map((task) => (
                   <li key={task.id} className="flex items-start gap-3">
-                    <div className="mt-1 h-4 w-4 rounded-full border border-primary" />
+                    <div className="mt-1 h-4 w-4 rounded-full border border-primary bg-primary" />
                     <div>
                       <p className="font-medium">{task.name}</p>
                       <p className="text-sm text-muted-foreground">
@@ -404,5 +404,3 @@ export default function TodayPage() {
     </div>
   );
 }
-
-    

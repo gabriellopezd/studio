@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { Inter as FontSans } from 'next/font/google';
-import { Outfit as FontHeadline } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/theme-provider';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
@@ -10,11 +9,6 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 const fontSans = FontSans({
   subsets: ['latin'],
   variable: '--font-sans',
-});
-
-const fontHeadline = FontHeadline({
-  subsets: ['latin'],
-  variable: '--font-headline',
 });
 
 export const metadata: Metadata = {
@@ -32,8 +26,7 @@ export default function RootLayout({
       <body
         className={cn(
           'min-h-screen bg-background font-sans antialiased',
-          fontSans.variable,
-          fontHeadline.variable
+          fontSans.variable
         )}
       >
         <ThemeProvider>

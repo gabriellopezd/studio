@@ -225,7 +225,7 @@ export default function HabitsPage() {
       updateDocumentNonBlocking(habitRef, {
         lastCompletedAt: Timestamp.fromDate(today),
         currentStreak: newStreak,
-        longestStreak: longestStreak, // Update longest streak
+        longestStreak: Math.max(longestStreak, newStreak),
         previousStreak: currentStreak,
         previousLastCompletedAt: habit.lastCompletedAt,
       });
@@ -291,7 +291,7 @@ export default function HabitsPage() {
     <>
       <div className="flex flex-col gap-6">
         <PageHeader
-          title="HÁBITOS"
+          title="Hábitos"
           description="Gestiona tus hábitos y sigue tu progreso."
         >
           <Button onClick={handleOpenCreateDialog}>
@@ -306,10 +306,10 @@ export default function HabitsPage() {
           {habitCategories.map((category) => (
             groupedHabits[category] && groupedHabits[category].length > 0 && (
               <div key={category}>
-                <h2 className="text-xl font-bold tracking-tight font-headline mb-4">
+                <h2 className="text-xl font-bold tracking-tight mb-4">
                   {category}
                 </h2>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {groupedHabits[category].map((habit: any) => {
                     const lastCompletedDate = habit.lastCompletedAt
                       ? (habit.lastCompletedAt as Timestamp).toDate()
@@ -342,7 +342,7 @@ export default function HabitsPage() {
                                 <CardDescription>{habit.frequency}</CardDescription>
                               </div>
                             </div>
-                             <div className="flex flex-col items-end gap-1">
+                             <div className="flex flex-col items-end gap-1 text-right">
                               <div className="flex items-center gap-1 text-orange-500">
                                 <Flame className="h-5 w-5" />
                                 <span className="font-bold">{habit.currentStreak || 0}</span>
@@ -582,5 +582,3 @@ export default function HabitsPage() {
     </>
   );
 }
-
-    

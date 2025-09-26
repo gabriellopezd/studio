@@ -198,9 +198,9 @@ export default function DashboardPage() {
   });
 
   return (
-    <div className="flex flex-col gap-4 md:gap-6">
+    <div className="flex flex-col gap-6">
       <PageHeader
-        title="DASHBOARD"
+        title="Dashboard"
         description={
           isClient
             ? `Tu centro de mando para el éxito. Hoy es ${todayString}.`
@@ -208,7 +208,7 @@ export default function DashboardPage() {
         }
       />
       
-      <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">Hábitos Diarios</CardTitle>
@@ -255,7 +255,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
