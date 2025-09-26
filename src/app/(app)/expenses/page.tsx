@@ -38,19 +38,12 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency } from '@/lib/utils';
-
-// This is a mock function to simulate updating finances.
-// In a real app, this would be an API call or a shared state management action.
-const addTransaction = (newTransaction: any) => {
-  // This is for demonstration. In a real app, you'd have a global state.
-  console.log("Adding transaction:", newTransaction);
-  // You might want to use a global state management like Zustand or Context API
-  // to share state between /finances and /expenses
-};
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function ExpensesPage() {
   const [lists, setLists] = useState(initialShoppingLists);
+  const [transactions, setTransactions] = useState(initialTransactions);
   const [selectedListId, setSelectedListId] = useState(
     initialShoppingLists[0]?.id ?? null
   );
@@ -60,11 +53,23 @@ export default function ExpensesPage() {
   
   const [itemToUpdate, setItemToUpdate] = useState<{listId: number, itemId: number, listName: string, itemName: string} | null>(null);
   const [itemPrice, setItemPrice] = useState('');
+  const { toast } = useToast();
 
 
   const selectedList = lists.find((list) => list.id === selectedListId);
   const itemsToPurchase = selectedList?.items.filter(item => !item.isPurchased) ?? [];
   const purchasedItems = selectedList?.items.filter(item => item.isPurchased) ?? [];
+
+  const addTransaction = (newTransaction: any) => {
+    // In a real app with a backend/global state, you'd update a shared state.
+    // For now, we'll add it to our local transactions and log it.
+    setTransactions(currentTransactions => [newTransaction, ...currentTransactions]);
+    console.log("New transaction added:", newTransaction);
+    toast({
+      title: "Gasto Registrado",
+      description: `${newTransaction.description} por ${formatCurrency(newTransaction.amount)} ha sido añadido a tus finanzas.`,
+    });
+  };
 
   const handleCreateList = () => {
     if (newListName.trim()) {
@@ -149,8 +154,6 @@ export default function ExpensesPage() {
     };
     
     addTransaction(newTransaction);
-    // In a real app, update a global state here.
-    // For now, we just update the local shopping list state.
     
     const updatedLists = lists.map((list) => {
       if (list.id === itemToUpdate.listId) {
@@ -227,7 +230,7 @@ export default function ExpensesPage() {
 
         <div className="md:hidden">
           <Tabs value={String(selectedListId)} onValueChange={(val) => setSelectedListId(Number(val))} className="w-full">
-            <TabsList>
+            <TabsList className="grid w-full grid-cols-3">
               {lists.map((list) => (
                 <TabsTrigger key={list.id} value={String(list.id)}>{list.name}</TabsTrigger>
               ))}
@@ -400,7 +403,7 @@ export default function ExpensesPage() {
                 </CardContent>
               </Card>
             ) : (
-              <Card className="flex flex-col items-center justify-center p-10 text-center">
+              <Card className="flex flex-col items-center justify-center p-10 text-center md:h-full">
                 <CardHeader>
                   <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground" />
                   <CardTitle className="mt-4">No hay categorías de gastos</CardTitle>
@@ -430,7 +433,10 @@ export default function ExpensesPage() {
             </div>
             <DialogFooter>
                 <DialogClose asChild>
-                    <Button type="button" onClick={() => setItemToUpdate(null)} variant="outline">
+                    <Button type="button" onClick={() => {
+                        handleToggleItem(itemToUpdate!.itemId, false);
+                        setItemToUpdate(null);
+                    }} variant="outline">
                         Cancelar
                     </Button>
                 </DialogClose>
