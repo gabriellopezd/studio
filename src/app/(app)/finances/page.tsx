@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -89,6 +89,9 @@ export default function FinancesPage() {
   const [newTransactionDesc, setNewTransactionDesc] = useState('');
   const [newTransactionAmount, setNewTransactionAmount] = useState('');
   const [newTransactionCategory, setNewTransactionCategory] = useState('');
+  
+  const [newBudgetCategory, setNewBudgetCategory] = useState('');
+  const [newBudgetLimit, setNewBudgetLimit] = useState('');
 
   const [transactionToEdit, setTransactionToEdit] = useState<any | null>(null);
   const [transactionToDelete, setTransactionToDelete] = useState<any | null>(
@@ -122,7 +125,7 @@ export default function FinancesPage() {
 
   const balance = monthlyIncome - monthlyExpenses;
 
-  const handleAddTransaction = () => {
+  const handleAddTransaction = async () => {
     if (
       !newTransactionDesc ||
       !newTransactionAmount ||
@@ -149,17 +152,60 @@ export default function FinancesPage() {
       user.uid,
       'transactions'
     );
-    addDocumentNonBlocking(transactionsColRef, newTransaction);
+    await addDocumentNonBlocking(transactionsColRef, newTransaction);
+    
+    // Update budget if it's an expense and a budget for that category exists
+    if (newTransaction.type === 'expense') {
+      const budget = budgets?.find(b => b.categoryName === newTransaction.category);
+      if (budget) {
+        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+        const newSpend = (budget.currentSpend || 0) + newTransaction.amount;
+        updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
+      }
+    }
+
 
     setNewTransactionDesc('');
     setNewTransactionAmount('');
     setNewTransactionCategory('');
   };
+  
+  const handleAddBudget = () => {
+    if (!newBudgetCategory || !newBudgetLimit || !user) return;
+    const limit = parseFloat(newBudgetLimit);
+    if (isNaN(limit)) return;
+    
+    const existingBudget = budgets?.find(b => b.categoryName === newBudgetCategory);
+    if(existingBudget) {
+      // Logic to update existing budget
+       const budgetRef = doc(firestore, 'users', user.uid, 'budgets', existingBudget.id);
+       updateDocumentNonBlocking(budgetRef, { monthlyLimit: limit });
+    } else {
+      // Logic to add new budget
+      const newBudget = {
+        categoryName: newBudgetCategory,
+        monthlyLimit: limit,
+        currentSpend: 0, // Initialize currentSpend
+        userId: user.uid,
+      };
+      const budgetsColRef = collection(firestore, 'users', user.uid, 'budgets');
+      addDocumentNonBlocking(budgetsColRef, newBudget);
+    }
+    
+    setNewBudgetCategory('');
+    setNewBudgetLimit('');
+  };
 
-  const handleUpdateTransaction = () => {
+  const handleUpdateTransaction = async () => {
     if (!transactionToEdit || !user) return;
     const amount = parseFloat(transactionToEdit.amount);
     if (isNaN(amount)) return;
+
+    // Fetch original transaction to calculate spend difference
+    const originalTransaction = transactions?.find(t => t.id === transactionToEdit.id);
+    if (!originalTransaction) return;
+    
+    const amountDifference = amount - originalTransaction.amount;
 
     const transactionRef = doc(
       firestore,
@@ -168,12 +214,21 @@ export default function FinancesPage() {
       'transactions',
       transactionToEdit.id
     );
-    updateDocumentNonBlocking(transactionRef, {
+    await updateDocumentNonBlocking(transactionRef, {
       description: transactionToEdit.description,
       amount: amount,
       category: transactionToEdit.category,
       type: transactionToEdit.type,
     });
+    
+    // Update budget if category has a budget
+    const budget = budgets?.find(b => b.categoryName === transactionToEdit.category);
+    if (budget) {
+        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+        const newSpend = (budget.currentSpend || 0) + amountDifference;
+        updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
+    }
+
     setTransactionToEdit(null);
   };
 
@@ -214,6 +269,15 @@ export default function FinancesPage() {
         await updateDocumentNonBlocking(listRef, { items: updatedItems });
       }
     }
+    
+     // Update budget on delete
+    const budget = budgets?.find(b => b.categoryName === transactionToDelete.category);
+    if (budget) {
+        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+        const newSpend = (budget.currentSpend || 0) - transactionToDelete.amount;
+        updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend < 0 ? 0 : newSpend });
+    }
+
 
     setTransactionToDelete(null);
   };
@@ -224,11 +288,16 @@ export default function FinancesPage() {
 
   const expenseCategories = [
     ...new Set(
+      budgets?.map(b => b.categoryName) ?? []
+    ),
+    ...new Set(
       transactions
         ?.filter((t) => t.type === 'expense')
         .map((t) => t.category) ?? []
     ),
   ];
+  
+  const uniqueExpenseCategories = [...new Set(expenseCategories)];
 
   return (
     <>
@@ -303,11 +372,11 @@ export default function FinancesPage() {
                       <SelectValue placeholder="Selecciona una categoría" />
                     </SelectTrigger>
                     <SelectContent>
-                      {expenseCategories.map((cat) => (
+                      {newTransactionType === 'expense' ? uniqueExpenseCategories.map((cat) => (
                         <SelectItem key={cat} value={cat}>
                           {cat}
                         </SelectItem>
-                      ))}
+                      )) : null}
                       <SelectItem value="Salario">Salario</SelectItem>
                       <SelectItem value="Otro">Otro</SelectItem>
                     </SelectContent>
@@ -430,11 +499,67 @@ export default function FinancesPage() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader>
-              <CardTitle>Presupuestos</CardTitle>
-              <CardDescription>
-                Seguimiento de tus límites mensuales.
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Presupuestos</CardTitle>
+                <CardDescription>
+                  Seguimiento de tus límites mensuales.
+                </CardDescription>
+              </div>
+               <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Presupuesto
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Crear o Actualizar Presupuesto</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="budget-category" className="text-right">
+                        Categoría
+                      </Label>
+                       <Select
+                        value={newBudgetCategory}
+                        onValueChange={setNewBudgetCategory}
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Selecciona una categoría" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {uniqueExpenseCategories.map((cat) => (
+                            <SelectItem key={cat} value={cat}>
+                              {cat}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="budget-limit" className="text-right">
+                        Límite Mensual
+                      </Label>
+                      <Input
+                        id="budget-limit"
+                        type="number"
+                        value={newBudgetLimit}
+                        onChange={(e) => setNewBudgetLimit(e.target.value)}
+                        className="col-span-3"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button type="submit" onClick={handleAddBudget}>
+                        Guardar Presupuesto
+                      </Button>
+                    </DialogClose>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardHeader>
             <CardContent className="space-y-4">
               {budgetsLoading && <p>Cargando presupuestos...</p>}
@@ -454,6 +579,11 @@ export default function FinancesPage() {
                   />
                 </div>
               ))}
+               {budgets?.length === 0 && !budgetsLoading && (
+                  <p className="text-sm text-muted-foreground text-center pt-4">
+                    No has creado ningún presupuesto.
+                  </p>
+                )}
             </CardContent>
           </Card>
         </div>
@@ -528,17 +658,28 @@ export default function FinancesPage() {
                 <Label htmlFor="edit-category" className="text-right">
                   Categoría
                 </Label>
-                <Input
-                  id="edit-category"
+                <Select
                   value={transactionToEdit.category}
-                  onChange={(e) =>
+                  onValueChange={(value) =>
                     setTransactionToEdit({
                       ...transactionToEdit,
-                      category: e.target.value,
+                      category: value,
                     })
                   }
-                  className="col-span-3"
-                />
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Selecciona una categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                      {transactionToEdit.type === 'expense' ? uniqueExpenseCategories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      )) : null}
+                      <SelectItem value="Salario">Salario</SelectItem>
+                      <SelectItem value="Otro">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}
@@ -589,5 +730,3 @@ export default function FinancesPage() {
     </>
   );
 }
-
-    
