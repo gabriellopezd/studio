@@ -109,8 +109,7 @@ export default function DashboardPage() {
     () =>
       user
         ? query(
-            collection(firestore, 'users', user.uid, 'tasks'),
-            where('isCompleted', '==', false)
+            collection(firestore, 'users', user.uid, 'tasks')
           )
         : null,
     [firestore, user]
@@ -149,6 +148,8 @@ export default function DashboardPage() {
 
   const completedTasks = allTasks?.filter(t => t.isCompleted).length ?? 0;
   const totalTasks = allTasks?.length ?? 0;
+  const pendingTasks = totalTasks - completedTasks;
+
   const completedGoals = allGoals?.filter(g => g.isCompleted).length ?? 0;
   const totalGoals = allGoals?.length ?? 0;
   
@@ -213,14 +214,18 @@ export default function DashboardPage() {
             </CardContent>
         </Card>
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Racha más larga</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">+{allHabits?.reduce((max, h) => Math.max(max, h.longestStreak || 0), 0) ?? 0} días</div>
-                <p className="text-xs text-muted-foreground">Mejor racha de hábitos</p>
-            </CardContent>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Tareas</CardTitle>
+            <ListTodo className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {completedTasks} de {totalTasks}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {pendingTasks} tareas pendientes
+            </p>
+          </CardContent>
         </Card>
       </div>
 
