@@ -174,9 +174,14 @@ export default function ExpensesPage() {
         itemName: item.name,
       });
     } else {
-      const updatedItems = list.items.map((i: any) =>
-        i.itemId === itemId ? { ...i, isPurchased: false, price: undefined } : i
-      );
+      const updatedItems = list.items.map((i: any) => {
+        if (i.itemId === itemId) {
+          const newItem = { ...i, isPurchased: false };
+          delete newItem.price; // Remove price when un-checking
+          return newItem;
+        }
+        return i;
+      });
       const listRef = doc(
         firestore,
         'users',
@@ -546,7 +551,9 @@ export default function ExpensesPage() {
               <Button
                 type="button"
                 onClick={() => {
-                  handleToggleItem(itemToUpdate!.itemId, false);
+                  if (itemToUpdate) {
+                    handleToggleItem(itemToUpdate.itemId, false);
+                  }
                   setItemToUpdate(null);
                 }}
                 variant="outline"
