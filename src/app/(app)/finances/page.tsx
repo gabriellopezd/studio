@@ -238,12 +238,15 @@ export default function FinancesPage() {
     });
     
     // Update budget if category has a budget
-    const budget = budgets?.find(b => b.categoryName === transactionToEdit.category);
-    if (budget) {
-        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-        const newSpend = (budget.currentSpend || 0) + amountDifference;
-        updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
+    if (transactionToEdit.type === 'expense') {
+        const budget = budgets?.find(b => b.categoryName === transactionToEdit.category);
+        if (budget) {
+            const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+            const newSpend = (budget.currentSpend || 0) + amountDifference;
+            updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
+        }
     }
+
 
     setTransactionToEdit(null);
   };
@@ -287,11 +290,13 @@ export default function FinancesPage() {
     }
     
      // Update budget on delete
-    const budget = budgets?.find(b => b.categoryName === transactionToDelete.category);
-    if (budget) {
-        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-        const newSpend = (budget.currentSpend || 0) - transactionToDelete.amount;
-        updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend < 0 ? 0 : newSpend });
+    if (transactionToDelete.type === 'expense') {
+      const budget = budgets?.find(b => b.categoryName === transactionToDelete.category);
+      if (budget) {
+          const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+          const newSpend = (budget.currentSpend || 0) - transactionToDelete.amount;
+          updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend < 0 ? 0 : newSpend });
+      }
     }
 
 
@@ -582,68 +587,71 @@ export default function FinancesPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {budgetsLoading && <p>Cargando presupuestos...</p>}
-              {budgets?.map((b) => (
-                <div key={b.id}>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm font-medium">
-                      {b.categoryName}
-                    </span>
-                    <div className="flex items-center gap-2">
-                       <span className="text-sm text-muted-foreground">
-                        {formatCurrency(b.currentSpend)} /{' '}
-                        {formatCurrency(b.monthlyLimit)}
+              {budgets?.map((b) => {
+                const currentSpend = 0; // Visual reset
+                const progress = (currentSpend / b.monthlyLimit) * 100;
+
+                return (
+                  <div key={b.id}>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm font-medium">
+                        {b.categoryName}
                       </span>
-                      <Dialog onOpenChange={(open) => !open && openBudgetDialog()}>
-                        <DialogTrigger asChild>
-                           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openBudgetDialog(b)}>
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Editar Presupuesto</DialogTitle>
-                          </DialogHeader>
-                          <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <Label htmlFor="budget-category-edit" className="text-right">
-                                Categoría
-                              </Label>
-                              <Input
-                                id="budget-category-edit"
-                                value={b.categoryName}
-                                className="col-span-3"
-                                disabled
-                              />
+                      <div className="flex items-center gap-2">
+                         <span className="text-sm text-muted-foreground">
+                          {formatCurrency(currentSpend)} /{' '}
+                          {formatCurrency(b.monthlyLimit)}
+                        </span>
+                        <Dialog onOpenChange={(open) => !open && openBudgetDialog()}>
+                          <DialogTrigger asChild>
+                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openBudgetDialog(b)}>
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Editar Presupuesto</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                              <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="budget-category-edit" className="text-right">
+                                  Categoría
+                                </Label>
+                                <Input
+                                  id="budget-category-edit"
+                                  value={b.categoryName}
+                                  className="col-span-3"
+                                  disabled
+                                />
+                              </div>
+                              <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="budget-limit-edit" className="text-right">
+                                  Límite Mensual
+                                </Label>
+                                <Input
+                                  id="budget-limit-edit"
+                                  type="number"
+                                  value={newBudgetLimit}
+                                  onChange={(e) => setNewBudgetLimit(e.target.value)}
+                                  className="col-span-3"
+                                />
+                              </div>
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <Label htmlFor="budget-limit-edit" className="text-right">
-                                Límite Mensual
-                              </Label>
-                              <Input
-                                id="budget-limit-edit"
-                                type="number"
-                                value={newBudgetLimit}
-                                onChange={(e) => setNewBudgetLimit(e.target.value)}
-                                className="col-span-3"
-                              />
-                            </div>
-                          </div>
-                           <DialogFooter>
-                            <DialogClose asChild>
-                              <Button type="submit" onClick={handleSaveBudget}>
-                                Actualizar Límite
-                              </Button>
-                            </DialogClose>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
+                             <DialogFooter>
+                              <DialogClose asChild>
+                                <Button type="submit" onClick={handleSaveBudget}>
+                                  Actualizar Límite
+                                </Button>
+                              </DialogClose>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                     </div>
+                    <Progress value={progress} />
                   </div>
-                  <Progress
-                    value={(b.currentSpend / b.monthlyLimit) * 100}
-                  />
-                </div>
-              ))}
+                );
+              })}
                {budgets?.length === 0 && !budgetsLoading && (
                   <p className="text-sm text-muted-foreground text-center pt-4">
                     No has creado ningún presupuesto.
