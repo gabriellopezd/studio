@@ -8,7 +8,6 @@ import {
   CircleDollarSign,
   ClipboardList,
   LayoutDashboard,
-  Menu,
   Repeat,
   Search,
   Settings,
@@ -17,6 +16,7 @@ import {
   Target,
   SquareCheckBig,
   LogOut,
+  Sun,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -47,7 +47,8 @@ import { useUser, useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 
 const navItems = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Mi Día' },
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/today', icon: Sun, label: 'Mi Día' },
   { href: '/habits', icon: Repeat, label: 'Hábitos' },
   { href: '/routines', icon: ClipboardList, label: 'Rutinas' },
   { href: '/tasks', icon: SquareCheckBig, label: 'Tareas' },
