@@ -19,7 +19,24 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ArrowDownCircle, ArrowUpCircle, PlusCircle } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  ArrowDownCircle,
+  ArrowUpCircle,
+  PlusCircle,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import {
   Dialog,
@@ -30,6 +47,12 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import {
@@ -44,11 +67,33 @@ import {
   useCollection,
   useMemoFirebase,
   addDocumentNonBlocking,
+  updateDocumentNonBlocking,
+  deleteDocumentNonBlocking,
 } from '@/firebase';
-import { collection, serverTimestamp } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  serverTimestamp,
+  writeBatch,
+  query,
+  where,
+  getDocs,
+} from 'firebase/firestore';
 
 export default function FinancesPage() {
   const { firestore, user } = useFirebase();
+
+  const [newTransactionType, setNewTransactionType] = useState<
+    'income' | 'expense'
+  >('expense');
+  const [newTransactionDesc, setNewTransactionDesc] = useState('');
+  const [newTransactionAmount, setNewTransactionAmount] = useState('');
+  const [newTransactionCategory, setNewTransactionCategory] = useState('');
+
+  const [transactionToEdit, setTransactionToEdit] = useState<any | null>(null);
+  const [transactionToDelete, setTransactionToDelete] = useState<any | null>(
+    null
+  );
 
   const transactionsQuery = useMemoFirebase(
     () =>
@@ -64,13 +109,6 @@ export default function FinancesPage() {
   );
   const { data: budgets, isLoading: budgetsLoading } =
     useCollection(budgetsQuery);
-
-  const [newTransactionType, setNewTransactionType] = useState<
-    'income' | 'expense'
-  >('expense');
-  const [newTransactionDesc, setNewTransactionDesc] = useState('');
-  const [newTransactionAmount, setNewTransactionAmount] = useState('');
-  const [newTransactionCategory, setNewTransactionCategory] = useState('');
 
   const monthlyIncome =
     transactions
@@ -113,10 +151,75 @@ export default function FinancesPage() {
     );
     addDocumentNonBlocking(transactionsColRef, newTransaction);
 
-    // Reset form
     setNewTransactionDesc('');
     setNewTransactionAmount('');
     setNewTransactionCategory('');
+  };
+
+  const handleUpdateTransaction = () => {
+    if (!transactionToEdit || !user) return;
+    const amount = parseFloat(transactionToEdit.amount);
+    if (isNaN(amount)) return;
+
+    const transactionRef = doc(
+      firestore,
+      'users',
+      user.uid,
+      'transactions',
+      transactionToEdit.id
+    );
+    updateDocumentNonBlocking(transactionRef, {
+      description: transactionToEdit.description,
+      amount: amount,
+      category: transactionToEdit.category,
+      type: transactionToEdit.type,
+    });
+    setTransactionToEdit(null);
+  };
+
+  const handleDeleteTransaction = async () => {
+    if (!transactionToDelete || !user) return;
+
+    // Delete the transaction
+    const transactionRef = doc(
+      firestore,
+      'users',
+      user.uid,
+      'transactions',
+      transactionToDelete.id
+    );
+    await deleteDocumentNonBlocking(transactionRef);
+
+    // If linked to a shopping item, update it
+    if (transactionToDelete.category !== 'Salario' && transactionToDelete.category !== 'Otro') {
+      const shoppingListsQuery = query(
+        collection(firestore, 'users', user.uid, 'shoppingLists'),
+        where('name', '==', transactionToDelete.category)
+      );
+      const querySnapshot = await getDocs(shoppingListsQuery);
+      
+      if (!querySnapshot.empty) {
+        const listDoc = querySnapshot.docs[0];
+        const listRef = listDoc.ref;
+        const listData = listDoc.data();
+        
+        const updatedItems = listData.items.map((item: any) => {
+          if (item.transactionId === transactionToDelete.id) {
+            const { price, transactionId, isPurchased, ...rest } = item;
+            return { ...rest, isPurchased: false };
+          }
+          return item;
+        });
+
+        await updateDocumentNonBlocking(listRef, { items: updatedItems });
+      }
+    }
+
+    setTransactionToDelete(null);
+  };
+
+  const openEditDialog = (transaction: any) => {
+    setTransactionToEdit({ ...transaction });
   };
 
   const expenseCategories = [
@@ -270,6 +373,7 @@ export default function FinancesPage() {
                     <TableHead>Categoría</TableHead>
                     <TableHead>Fecha</TableHead>
                     <TableHead className="text-right">Monto</TableHead>
+                    <TableHead className="w-[50px] text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -294,7 +398,30 @@ export default function FinancesPage() {
                             : 'text-red-500'
                         }`}
                       >
-                        {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
+                        {t.type === 'income' ? '+' : '-'}
+                        {formatCurrency(t.amount)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem onClick={() => openEditDialog(t)}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setTransactionToDelete(t)}
+                              className="text-red-500 focus:text-red-500"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -331,6 +458,136 @@ export default function FinancesPage() {
           </Card>
         </div>
       </div>
+      {/* Edit Transaction Dialog */}
+      <Dialog
+        open={!!transactionToEdit}
+        onOpenChange={(open) => !open && setTransactionToEdit(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Transacción</DialogTitle>
+          </DialogHeader>
+          {transactionToEdit && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-type" className="text-right">
+                  Tipo
+                </Label>
+                <Select
+                  value={transactionToEdit.type}
+                  onValueChange={(value) =>
+                    setTransactionToEdit({
+                      ...transactionToEdit,
+                      type: value,
+                    })
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="expense">Gasto</SelectItem>
+                    <SelectItem value="income">Ingreso</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-description" className="text-right">
+                  Descripción
+                </Label>
+                <Input
+                  id="edit-description"
+                  value={transactionToEdit.description}
+                  onChange={(e) =>
+                    setTransactionToEdit({
+                      ...transactionToEdit,
+                      description: e.target.value,
+                    })
+                  }
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-amount" className="text-right">
+                  Monto
+                </Label>
+                <Input
+                  id="edit-amount"
+                  type="number"
+                  value={transactionToEdit.amount}
+                  onChange={(e) =>
+                    setTransactionToEdit({
+                      ...transactionToEdit,
+                      amount: e.target.value,
+                    })
+                  }
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-category" className="text-right">
+                  Categoría
+                </Label>
+                <Input
+                  id="edit-category"
+                  value={transactionToEdit.category}
+                  onChange={(e) =>
+                    setTransactionToEdit({
+                      ...transactionToEdit,
+                      category: e.target.value,
+                    })
+                  }
+                  className="col-span-3"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setTransactionToEdit(null)}
+              >
+                Cancelar
+              </Button>
+            </DialogClose>
+            <DialogClose asChild>
+              <Button type="submit" onClick={handleUpdateTransaction}>
+                Guardar Cambios
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!transactionToDelete}
+        onOpenChange={(open) => !open && setTransactionToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Esto eliminará permanentemente
+              la transacción.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setTransactionToDelete(null)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteTransaction}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
+
+    
