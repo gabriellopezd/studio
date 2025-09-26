@@ -147,6 +147,7 @@ function TodaysMoodCard() {
       setSelectedFeelings(todayEntry.feelings || []);
       setSelectedInfluences(todayEntry.influences || []);
     } else {
+      // Clear selections when starting a new entry
       setSelectedMood(null);
       setSelectedFeelings([]);
       setSelectedInfluences([]);
@@ -225,7 +226,7 @@ function TodaysMoodCard() {
           </Button>
         </CardContent>
       </Card>
-      <Dialog open={isDialogOpen} onOpenChange={(open) => !open && resetForm()}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => { if (!open) resetForm() }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
@@ -240,7 +241,7 @@ function TodaysMoodCard() {
               {moodLevels.map((mood) => (
                 <Button
                   key={mood.level}
-                  variant={selectedMood?.level === mood.level ? "secondary" : "ghost"}
+                  variant={selectedMood?.level === mood.level ? 'secondary' : 'ghost'}
                   size="icon"
                   onClick={() => handleMoodSelect(mood)}
                   className="h-20 w-20 rounded-full"
@@ -311,7 +312,7 @@ function TodaysMoodCard() {
             {step < 3 && (
               <Button
                 onClick={() => setStep((s) => s + 1)}
-                disabled={step === 2 && selectedFeelings.length === 0}
+                disabled={step === 1 && !selectedMood || step === 2 && selectedFeelings.length === 0}
               >
                 Siguiente
               </Button>
@@ -351,18 +352,24 @@ export default function TodayPage() {
     if (!allHabits) return [];
     return allHabits.filter(habit => {
       const lastCompletedDate = habit.lastCompletedAt ? (habit.lastCompletedAt as Timestamp).toDate() : null;
-      if (!lastCompletedDate) return true; // Always show if never completed
       
-      switch (habit.frequency) {
-        case 'Diario':
-          return !isSameDay(lastCompletedDate, today);
-        case 'Semanal':
-          return !isSameWeek(lastCompletedDate, today);
-        case 'Mensual':
-          return !isSameMonth(lastCompletedDate, today);
-        default:
-          return true; // Should not happen, but good to have a default
+      let isCompletedInCurrentPeriod = false;
+      if (lastCompletedDate) {
+        switch (habit.frequency) {
+          case 'Diario':
+            isCompletedInCurrentPeriod = isSameDay(lastCompletedDate, today);
+            break;
+          case 'Semanal':
+            isCompletedInCurrentPeriod = isSameWeek(lastCompletedDate, today);
+            break;
+          case 'Mensual':
+            isCompletedInCurrentPeriod = isSameMonth(lastCompletedDate, today);
+            break;
+          default:
+            break;
+        }
       }
+      return !isCompletedInCurrentPeriod;
     });
   }, [allHabits, today]);
     
