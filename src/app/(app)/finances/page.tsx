@@ -90,6 +90,7 @@ export default function FinancesPage() {
   const [newTransactionAmount, setNewTransactionAmount] = useState('');
   const [newTransactionCategory, setNewTransactionCategory] = useState('');
   
+  const [budgetToEdit, setBudgetToEdit] = useState<any | null>(null);
   const [newBudgetCategory, setNewBudgetCategory] = useState('');
   const [newBudgetLimit, setNewBudgetLimit] = useState('');
 
@@ -170,30 +171,45 @@ export default function FinancesPage() {
     setNewTransactionCategory('');
   };
   
-  const handleAddBudget = () => {
-    if (!newBudgetCategory || !newBudgetLimit || !user) return;
+  const handleSaveBudget = () => {
+    if (!user) return;
+  
+    const category = budgetToEdit ? budgetToEdit.categoryName : newBudgetCategory;
     const limit = parseFloat(newBudgetLimit);
-    if (isNaN(limit)) return;
-    
-    const existingBudget = budgets?.find(b => b.categoryName === newBudgetCategory);
-    if(existingBudget) {
+  
+    if (!category || !newBudgetLimit || isNaN(limit)) return;
+  
+    if (budgetToEdit) {
       // Logic to update existing budget
-       const budgetRef = doc(firestore, 'users', user.uid, 'budgets', existingBudget.id);
-       updateDocumentNonBlocking(budgetRef, { monthlyLimit: limit });
+      const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budgetToEdit.id);
+      updateDocumentNonBlocking(budgetRef, { monthlyLimit: limit });
     } else {
       // Logic to add new budget
       const newBudget = {
-        categoryName: newBudgetCategory,
+        categoryName: category,
         monthlyLimit: limit,
-        currentSpend: 0, // Initialize currentSpend
+        currentSpend: 0, // Initialize currentSpend for new budgets
         userId: user.uid,
       };
       const budgetsColRef = collection(firestore, 'users', user.uid, 'budgets');
       addDocumentNonBlocking(budgetsColRef, newBudget);
     }
-    
+  
+    setBudgetToEdit(null);
     setNewBudgetCategory('');
     setNewBudgetLimit('');
+  };
+
+  const openBudgetDialog = (budget?: any) => {
+    if (budget) {
+      setBudgetToEdit(budget);
+      setNewBudgetCategory(budget.categoryName);
+      setNewBudgetLimit(budget.monthlyLimit.toString());
+    } else {
+      setBudgetToEdit(null);
+      setNewBudgetCategory('');
+      setNewBudgetLimit('');
+    }
   };
 
   const handleUpdateTransaction = async () => {
@@ -298,6 +314,10 @@ export default function FinancesPage() {
   ];
   
   const uniqueExpenseCategories = [...new Set(expenseCategories)];
+
+  const categoriesWithoutBudget = uniqueExpenseCategories.filter(
+    (cat) => !budgets?.some((b) => b.categoryName === cat)
+  );
 
   return (
     <>
@@ -506,16 +526,15 @@ export default function FinancesPage() {
                   Seguimiento de tus límites mensuales.
                 </CardDescription>
               </div>
-               <Dialog>
+               <Dialog onOpenChange={(open) => !open && openBudgetDialog()}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Presupuesto
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openBudgetDialog()}>
+                    <PlusCircle className="h-4 w-4" />
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Crear o Actualizar Presupuesto</DialogTitle>
+                    <DialogTitle>Añadir Presupuesto</DialogTitle>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
@@ -530,7 +549,7 @@ export default function FinancesPage() {
                           <SelectValue placeholder="Selecciona una categoría" />
                         </SelectTrigger>
                         <SelectContent>
-                          {uniqueExpenseCategories.map((cat) => (
+                          {categoriesWithoutBudget.map((cat) => (
                             <SelectItem key={cat} value={cat}>
                               {cat}
                             </SelectItem>
@@ -553,7 +572,7 @@ export default function FinancesPage() {
                   </div>
                   <DialogFooter>
                     <DialogClose asChild>
-                      <Button type="submit" onClick={handleAddBudget}>
+                      <Button type="submit" onClick={handleSaveBudget}>
                         Guardar Presupuesto
                       </Button>
                     </DialogClose>
@@ -565,14 +584,60 @@ export default function FinancesPage() {
               {budgetsLoading && <p>Cargando presupuestos...</p>}
               {budgets?.map((b) => (
                 <div key={b.id}>
-                  <div className="flex justify-between mb-1">
+                  <div className="flex justify-between items-center mb-1">
                     <span className="text-sm font-medium">
                       {b.categoryName}
                     </span>
-                    <span className="text-sm text-muted-foreground">
-                      {formatCurrency(b.currentSpend)} /{' '}
-                      {formatCurrency(b.monthlyLimit)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                       <span className="text-sm text-muted-foreground">
+                        {formatCurrency(b.currentSpend)} /{' '}
+                        {formatCurrency(b.monthlyLimit)}
+                      </span>
+                      <Dialog onOpenChange={(open) => !open && openBudgetDialog()}>
+                        <DialogTrigger asChild>
+                           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openBudgetDialog(b)}>
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Editar Presupuesto</DialogTitle>
+                          </DialogHeader>
+                          <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <Label htmlFor="budget-category-edit" className="text-right">
+                                Categoría
+                              </Label>
+                              <Input
+                                id="budget-category-edit"
+                                value={b.categoryName}
+                                className="col-span-3"
+                                disabled
+                              />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <Label htmlFor="budget-limit-edit" className="text-right">
+                                Límite Mensual
+                              </Label>
+                              <Input
+                                id="budget-limit-edit"
+                                type="number"
+                                value={newBudgetLimit}
+                                onChange={(e) => setNewBudgetLimit(e.target.value)}
+                                className="col-span-3"
+                              />
+                            </div>
+                          </div>
+                           <DialogFooter>
+                            <DialogClose asChild>
+                              <Button type="submit" onClick={handleSaveBudget}>
+                                Actualizar Límite
+                              </Button>
+                            </DialogClose>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
                   </div>
                   <Progress
                     value={(b.currentSpend / b.monthlyLimit) * 100}
