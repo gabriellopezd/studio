@@ -30,52 +30,107 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-import {
-  dailyHabits,
-  mainGoal,
-  moods,
-  urgentTasks,
-} from '@/lib/placeholder-data';
 import PageHeader from '@/components/page-header';
 import { useState, useEffect } from 'react';
-
-const chartData = [
-  { month: 'Enero', goal: 186 },
-  { month: 'Febrero', goal: 305 },
-  { month: 'Marzo', goal: 237 },
-  { month: 'Abril', goal: 73 },
-  { month: 'Mayo', goal: 209 },
-  { month: 'Junio', goal: 214 },
-];
+import {
+  useCollection,
+  useDoc,
+  useFirebase,
+  useMemoFirebase,
+  updateDocumentNonBlocking,
+} from '@/firebase';
+import { collection, doc, query, where, limit } from 'firebase/firestore';
+import { moods as moodOptions } from '@/lib/moods';
 
 const chartConfig = {
   goal: {
-    label: "Progreso",
-    color: "hsl(var(--primary))",
+    label: 'Progreso',
+    color: 'hsl(var(--primary))',
   },
 };
 
 export default function Dashboard() {
   const [isClient, setIsClient] = useState(false);
+  const { firestore, user } = useFirebase();
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const habitsQuery = useMemoFirebase(
+    () =>
+      user
+        ? query(collection(firestore, 'users', user.uid, 'habits'))
+        : null,
+    [firestore, user]
+  );
+  const { data: dailyHabits, isLoading: habitsLoading } =
+    useCollection(habitsQuery);
+
+  const tasksQuery = useMemoFirebase(
+    () =>
+      user
+        ? query(
+            collection(firestore, 'users', user.uid, 'tasks'),
+            where('isCompleted', '==', false),
+            limit(3)
+          )
+        : null,
+    [firestore, user]
+  );
+  const { data: urgentTasks, isLoading: tasksLoading } =
+    useCollection(tasksQuery);
+
+  const goalsQuery = useMemoFirebase(
+    () =>
+      user
+        ? query(
+            collection(firestore, 'users', user.uid, 'goals'),
+            where('isCompleted', '==', false),
+            limit(1)
+          )
+        : null,
+    [firestore, user]
+  );
+  const { data: mainGoals, isLoading: goalsLoading } = useCollection(goalsQuery);
+  const mainGoal = mainGoals?.[0];
+
+  const chartDataQuery = useMemoFirebase(() => 
+    user ? query(collection(firestore, 'users', user.uid, 'progressHistory')) : null
+  , [firestore, user]);
+  const { data: chartData, isLoading: chartLoading } = useCollection(chartDataQuery);
+
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const completedHabits = dailyHabits.filter((h) => h.completed).length;
-  const totalHabits = dailyHabits.length;
-  const habitsProgress = totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
+  const completedHabits = dailyHabits?.filter((h) => h.completed).length ?? 0;
+  const totalHabits = dailyHabits?.length ?? 0;
+  const habitsProgress =
+    totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
+
+  const handleToggleHabit = (habitId: string, currentStatus: boolean) => {
+    if (!user) return;
+    const habitRef = doc(firestore, 'users', user.uid, 'habits', habitId);
+    updateDocumentNonBlocking(habitRef, { completed: !currentStatus });
+  };
   
-  const todayString = new Date().toLocaleDateString(
-    'es-ES',
-    { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
-  );
+  const todayString = new Date().toLocaleDateString('es-ES', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 
   return (
     <div className="flex flex-col gap-4 md:gap-6">
       <PageHeader
         title="Mi Día"
-        description={isClient ? `Resumen de tu actividad para hoy, ${todayString}.` : 'Resumen de tu actividad para hoy.'}
+        description={
+          isClient
+            ? `Resumen de tu actividad para hoy, ${todayString}.`
+            : 'Resumen de tu actividad para hoy.'
+        }
       />
       <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="lg:col-span-2">
@@ -89,9 +144,13 @@ export default function Dashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Progress value={habitsProgress} aria-label={`${habitsProgress}% de hábitos completados`} />
+            <Progress
+              value={habitsProgress}
+              aria-label={`${habitsProgress}% de hábitos completados`}
+            />
             <div className="space-y-2">
-              {dailyHabits.map((habit) => (
+              {habitsLoading && <p>Cargando hábitos...</p>}
+              {dailyHabits?.map((habit) => (
                 <div
                   key={habit.id}
                   className="flex items-center justify-between rounded-md bg-muted/50 p-3"
@@ -101,11 +160,15 @@ export default function Dashboard() {
                     <div>
                       <p className="font-medium">{habit.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        Racha: {habit.streak} días
+                        Racha: {habit.currentStreak} días
                       </p>
                     </div>
                   </div>
-                  <Button variant={habit.completed ? 'secondary' : 'outline'} size="sm">
+                  <Button
+                    variant={habit.completed ? 'secondary' : 'outline'}
+                    size="sm"
+                    onClick={() => handleToggleHabit(habit.id, habit.completed)}
+                  >
                     <CheckCircle2 className="mr-2 h-4 w-4" />
                     {habit.completed ? 'Completado' : 'Marcar'}
                   </Button>
@@ -125,14 +188,16 @@ export default function Dashboard() {
               <CardDescription>Tus tareas más urgentes.</CardDescription>
             </CardHeader>
             <CardContent>
+              {tasksLoading && <p>Cargando tareas...</p>}
               <ul className="space-y-3">
-                {urgentTasks.map((task) => (
+                {urgentTasks?.map((task) => (
                   <li key={task.id} className="flex items-start gap-3">
                     <div className="mt-1 h-4 w-4 rounded-full border border-primary" />
                     <div>
                       <p className="font-medium">{task.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        Vence: {task.dueDate}
+                        Vence:{' '}
+                        {new Date(task.dueDate?.toDate()).toLocaleDateString()}
                       </p>
                     </div>
                   </li>
@@ -149,8 +214,13 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="flex justify-around">
-              {moods.map((mood) => (
-                <Button key={mood.level} variant="ghost" size="icon" className="h-14 w-14 rounded-full">
+              {moodOptions.map((mood) => (
+                <Button
+                  key={mood.level}
+                  variant="ghost"
+                  size="icon"
+                  className="h-14 w-14 rounded-full"
+                >
                   <span className="text-3xl">{mood.emoji}</span>
                   <span className="sr-only">{mood.label}</span>
                 </Button>
@@ -166,47 +236,60 @@ export default function Dashboard() {
               <Target className="size-5" />
               <span>Meta Principal</span>
             </CardTitle>
-            <CardDescription>{mainGoal.name}</CardDescription>
+            {goalsLoading && <CardDescription>Cargando meta...</CardDescription>}
+            {mainGoal && (
+              <CardDescription>{mainGoal.name}</CardDescription>
+            )}
           </CardHeader>
           <CardContent className="flex flex-col items-center text-center">
-            <div
-              className="relative flex h-40 w-40 items-center justify-center rounded-full bg-muted"
-              role="progressbar"
-              aria-valuenow={mainGoal.progress}
-              aria-valuemin={0}
-              aria-valuemax={100}
-            >
-              <svg className="absolute inset-0 h-full w-full -rotate-90">
-                <circle
-                  cx="50%"
-                  cy="50%"
-                  r="calc(50% - 10px)"
-                  stroke="hsl(var(--border))"
-                  strokeWidth="10"
-                  fill="transparent"
-                />
-                <circle
-                  cx="50%"
-                  cy="50%"
-                  r="calc(50% - 10px)"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth="10"
-                  fill="transparent"
-                  strokeDasharray="251.2"
-                  strokeDashoffset={251.2 - (251.2 * mainGoal.progress) / 100}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="flex flex-col">
-                <span className="text-4xl font-bold text-foreground">
-                  {mainGoal.progress}%
-                </span>
-                <span className="text-sm text-muted-foreground">Completado</span>
-              </div>
-            </div>
-            <p className="mt-4 text-sm text-muted-foreground">
-              {mainGoal.currentValue} / {mainGoal.targetValue} {mainGoal.unit}
-            </p>
+            {mainGoal && (
+              <>
+                <div
+                  className="relative flex h-40 w-40 items-center justify-center rounded-full bg-muted"
+                  role="progressbar"
+                  aria-valuenow={mainGoal.progress}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
+                  <svg className="absolute inset-0 h-full w-full -rotate-90">
+                    <circle
+                      cx="50%"
+                      cy="50%"
+                      r="calc(50% - 10px)"
+                      stroke="hsl(var(--border))"
+                      strokeWidth="10"
+                      fill="transparent"
+                    />
+                    <circle
+                      cx="50%"
+                      cy="50%"
+                      r="calc(50% - 10px)"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth="10"
+                      fill="transparent"
+                      strokeDasharray="251.2"
+                      strokeDashoffset={
+                        251.2 - (251.2 * (mainGoal.currentValue / mainGoal.targetValue * 100)) / 100
+                      }
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="flex flex-col">
+                    <span className="text-4xl font-bold text-foreground">
+                      {Math.round(mainGoal.currentValue / mainGoal.targetValue * 100)}%
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      Completado
+                    </span>
+                  </div>
+                </div>
+                <p className="mt-4 text-sm text-muted-foreground">
+                  {mainGoal.currentValue} / {mainGoal.targetValue}{' '}
+                  {mainGoal.unit}
+                </p>
+              </>
+            )}
+            {!mainGoal && !goalsLoading && <p>No hay metas principales definidas.</p>}
           </CardContent>
           <CardFooter>
             <Button className="w-full">
@@ -214,33 +297,40 @@ export default function Dashboard() {
             </Button>
           </CardFooter>
         </Card>
-         <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="size-5" />
-                <span>Progreso de Metas</span>
-              </CardTitle>
-              <CardDescription>Progreso mensual de tus metas.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isClient && (
-                <ChartContainer config={chartConfig} className="h-[250px] w-full">
-                  <BarChart accessibilityLayer data={chartData}>
-                    <XAxis
-                      dataKey="month"
-                      tickLine={false}
-                      tickMargin={10}
-                      axisLine={false}
-                      tickFormatter={(value) => value.slice(0, 3)}
-                    />
-                    <YAxis tickLine={false} axisLine={false} tickMargin={10} />
-                    <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                    <Bar dataKey="goal" fill="var(--color-goal)" radius={8} />
-                  </BarChart>
-                </ChartContainer>
-              )}
-            </CardContent>
-          </Card>
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="size-5" />
+              <span>Progreso de Metas</span>
+            </CardTitle>
+            <CardDescription>Progreso mensual de tus metas.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isClient && !chartLoading && chartData && (
+              <ChartContainer
+                config={chartConfig}
+                className="h-[250px] w-full"
+              >
+                <BarChart accessibilityLayer data={chartData}>
+                  <XAxis
+                    dataKey="month"
+                    tickLine={false}
+                    tickMargin={10}
+                    axisLine={false}
+                    tickFormatter={(value) => value.slice(0, 3)}
+                  />
+                  <YAxis tickLine={false} axisLine={false} tickMargin={10} />
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent hideLabel />}
+                  />
+                  <Bar dataKey="goal" fill="var(--color-goal)" radius={8} />
+                </BarChart>
+              </ChartContainer>
+            )}
+             {isClient && chartLoading && <p>Cargando datos del gráfico...</p>}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

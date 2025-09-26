@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { shoppingLists as initialShoppingLists, transactions as initialTransactions } from '@/lib/placeholder-data';
 import { PlusCircle, Trash2, ShoppingCart } from 'lucide-react';
 import {
   Dialog,
@@ -36,155 +35,216 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-
+import {
+  useFirebase,
+  useCollection,
+  useMemoFirebase,
+  addDocumentNonBlocking,
+  updateDocumentNonBlocking,
+  deleteDocumentNonBlocking,
+} from '@/firebase';
+import {
+  collection,
+  doc,
+  serverTimestamp,
+  addDoc,
+} from 'firebase/firestore';
 
 export default function ExpensesPage() {
-  const [lists, setLists] = useState(initialShoppingLists);
-  const [transactions, setTransactions] = useState(initialTransactions);
-  const [selectedListId, setSelectedListId] = useState(
-    initialShoppingLists[0]?.id ?? null
+  const { firestore, user } = useFirebase();
+
+  const shoppingListsQuery = useMemoFirebase(
+    () =>
+      user ? collection(firestore, 'users', user.uid, 'shoppingLists') : null,
+    [firestore, user]
   );
+  const { data: lists, isLoading: listsLoading } =
+    useCollection(shoppingListsQuery);
+
+  const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [newListName, setNewListName] = useState('');
   const [newItemName, setNewItemName] = useState('');
   const [newItemQuantity, setNewItemQuantity] = useState('1');
-  
-  const [itemToUpdate, setItemToUpdate] = useState<{listId: number, itemId: number, listName: string, itemName: string} | null>(null);
+
+  const [itemToUpdate, setItemToUpdate] = useState<{
+    listId: string;
+    itemId: string;
+    listName: string;
+    itemName: string;
+  } | null>(null);
   const [itemPrice, setItemPrice] = useState('');
   const { toast } = useToast();
 
+  const selectedList = lists?.find((list) => list.id === selectedListId);
 
-  const selectedList = lists.find((list) => list.id === selectedListId);
-  const itemsToPurchase = selectedList?.items.filter(item => !item.isPurchased) ?? [];
-  const purchasedItems = selectedList?.items.filter(item => item.isPurchased) ?? [];
+  const itemsToPurchase =
+    selectedList?.items?.filter((item: any) => !item.isPurchased) ?? [];
+  const purchasedItems =
+    selectedList?.items?.filter((item: any) => item.isPurchased) ?? [];
 
-  const addTransaction = (newTransaction: any) => {
-    // In a real app with a backend/global state, you'd update a shared state.
-    // For now, we'll add it to our local transactions and log it.
-    setTransactions(currentTransactions => [newTransaction, ...currentTransactions]);
-    console.log("New transaction added:", newTransaction);
+  const addTransaction = async (newTransaction: any) => {
+    if (!user) return;
+    const transactionsColRef = collection(
+      firestore,
+      'users',
+      user.uid,
+      'transactions'
+    );
+    await addDocumentNonBlocking(transactionsColRef, {
+      ...newTransaction,
+      createdAt: serverTimestamp(),
+    });
     toast({
-      title: "Gasto Registrado",
-      description: `${newTransaction.description} por ${formatCurrency(newTransaction.amount)} ha sido añadido a tus finanzas.`,
+      title: 'Gasto Registrado',
+      description: `${
+        newTransaction.description
+      } por ${formatCurrency(newTransaction.amount)} ha sido añadido a tus finanzas.`,
     });
   };
 
-  const handleCreateList = () => {
-    if (newListName.trim()) {
+  const handleCreateList = async () => {
+    if (newListName.trim() && user) {
       const newList = {
-        id: Date.now(),
         name: newListName.trim(),
+        createdAt: serverTimestamp(),
         items: [],
       };
-      setLists([...lists, newList]);
-      setSelectedListId(newList.id);
+      const listsColRef = collection(
+        firestore,
+        'users',
+        user.uid,
+        'shoppingLists'
+      );
+      const docRef = await addDocumentNonBlocking(listsColRef, newList);
+      if (docRef) {
+        setSelectedListId(docRef.id);
+      }
       setNewListName('');
     }
   };
 
-  const handleDeleteList = (listId: number) => {
-    const newLists = lists.filter((list) => list.id !== listId);
-    setLists(newLists);
+  const handleDeleteList = (listId: string) => {
+    if (!user) return;
+    const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
+    deleteDocumentNonBlocking(listRef);
     if (selectedListId === listId) {
-      setSelectedListId(newLists[0]?.id ?? null);
+      setSelectedListId(lists?.[0]?.id ?? null);
     }
   };
 
   const handleAddItem = () => {
-    if (newItemName.trim() && selectedList) {
+    if (newItemName.trim() && selectedList && user) {
       const newItem = {
-        itemId: Date.now(),
+        itemId: doc(collection(firestore, 'temp')).id, // temporary unique id
         name: newItemName.trim(),
         quantity: newItemQuantity.trim() || '1',
         isPurchased: false,
       };
-      const updatedLists = lists.map((list) => {
-        if (list.id === selectedListId) {
-          return { ...list, items: [...list.items, newItem] };
-        }
-        return list;
+      const listRef = doc(
+        firestore,
+        'users',
+        user.uid,
+        'shoppingLists',
+        selectedListId!
+      );
+      updateDocumentNonBlocking(listRef, {
+        items: [...(selectedList.items || []), newItem],
       });
-      setLists(updatedLists);
       setNewItemName('');
       setNewItemQuantity('1');
     }
   };
 
-  const handleToggleItem = (itemId: number, isChecked: boolean) => {
-    const list = lists.find(l => l.id === selectedListId);
-    const item = list?.items.find(i => i.itemId === itemId);
+  const handleToggleItem = (itemId: string, isChecked: boolean) => {
+    const list = lists?.find((l) => l.id === selectedListId);
+    const item = list?.items.find((i: any) => i.itemId === itemId);
 
-    if (!list || !item) return;
+    if (!list || !item || !user) return;
 
     if (isChecked) {
-        setItemToUpdate({ listId: selectedListId!, itemId: itemId, listName: list.name, itemName: item.name });
+      setItemToUpdate({
+        listId: selectedListId!,
+        itemId: itemId,
+        listName: list.name,
+        itemName: item.name,
+      });
     } else {
-        const updatedLists = lists.map((list) => {
-            if (list.id === selectedListId) {
-                return {
-                    ...list,
-                    items: list.items.map((item) =>
-                        item.itemId === itemId
-                            ? { ...item, isPurchased: false, price: undefined }
-                            : item
-                    ),
-                };
-            }
-            return list;
-        });
-        setLists(updatedLists);
+      const updatedItems = list.items.map((i: any) =>
+        i.itemId === itemId ? { ...i, isPurchased: false, price: undefined } : i
+      );
+      const listRef = doc(
+        firestore,
+        'users',
+        user.uid,
+        'shoppingLists',
+        selectedListId!
+      );
+      updateDocumentNonBlocking(listRef, { items: updatedItems });
     }
   };
 
   const handleSetItemPrice = () => {
-    if (!itemToUpdate || !itemPrice) return;
-    
+    if (!itemToUpdate || !itemPrice || !user) return;
+
     const price = parseFloat(itemPrice);
     if (isNaN(price)) return;
 
     const newTransaction = {
-        id: Date.now(),
-        type: 'expense' as const,
-        description: itemToUpdate.itemName,
-        category: itemToUpdate.listName,
-        date: new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, ' '),
-        amount: price,
+      type: 'expense' as const,
+      description: itemToUpdate.itemName,
+      category: itemToUpdate.listName,
+      date: new Date().toISOString(),
+      amount: price,
     };
-    
+
     addTransaction(newTransaction);
-    
-    const updatedLists = lists.map((list) => {
-      if (list.id === itemToUpdate.listId) {
-        return {
-          ...list,
-          items: list.items.map((item) =>
-            item.itemId === itemToUpdate.itemId
-              ? { ...item, isPurchased: true, price: price }
-              : item
-          ),
-        };
-      }
-      return list;
-    });
-    setLists(updatedLists);
+
+    const list = lists?.find((l) => l.id === itemToUpdate.listId);
+    if (list) {
+      const updatedItems = list.items.map((item: any) =>
+        item.itemId === itemToUpdate.itemId
+          ? { ...item, isPurchased: true, price: price }
+          : item
+      );
+      const listRef = doc(
+        firestore,
+        'users',
+        user.uid,
+        'shoppingLists',
+        itemToUpdate.listId
+      );
+      updateDocumentNonBlocking(listRef, { items: updatedItems });
+    }
+
     setItemToUpdate(null);
     setItemPrice('');
   };
-  
-  const handleDeleteItem = (itemId: number) => {
-    const updatedLists = lists.map((list) => {
-      if (list.id === selectedListId) {
-        return {
-          ...list,
-          items: list.items.filter((item) => item.itemId !== itemId),
-        };
-      }
-      return list;
-    });
-    setLists(updatedLists);
+
+  const handleDeleteItem = (itemId: string) => {
+    if (!selectedList || !user) return;
+    const updatedItems = selectedList.items.filter(
+      (item: any) => item.itemId !== itemId
+    );
+    const listRef = doc(
+      firestore,
+      'users',
+      user.uid,
+      'shoppingLists',
+      selectedListId!
+    );
+    updateDocumentNonBlocking(listRef, { items: updatedItems });
   };
+
+  if (listsLoading) {
+    return <p>Cargando listas...</p>;
+  }
+  
+  if (!selectedListId && lists && lists.length > 0) {
+    setSelectedListId(lists[0].id);
+  }
 
   return (
     <>
@@ -229,10 +289,16 @@ export default function ExpensesPage() {
         </PageHeader>
 
         <div className="md:hidden">
-          <Tabs value={String(selectedListId)} onValueChange={(val) => setSelectedListId(Number(val))} className="w-full">
+          <Tabs
+            value={String(selectedListId)}
+            onValueChange={(val) => setSelectedListId(val)}
+            className="w-full"
+          >
             <TabsList className="grid w-full grid-cols-3">
-              {lists.map((list) => (
-                <TabsTrigger key={list.id} value={String(list.id)}>{list.name}</TabsTrigger>
+              {lists?.map((list) => (
+                <TabsTrigger key={list.id} value={String(list.id)}>
+                  {list.name}
+                </TabsTrigger>
               ))}
             </TabsList>
           </Tabs>
@@ -246,10 +312,12 @@ export default function ExpensesPage() {
               </CardHeader>
               <CardContent className="p-2">
                 <ul className="space-y-1">
-                  {lists.map((list) => (
+                  {lists?.map((list) => (
                     <li key={list.id}>
                       <Button
-                        variant={list.id === selectedListId ? 'secondary' : 'ghost'}
+                        variant={
+                          list.id === selectedListId ? 'secondary' : 'ghost'
+                        }
                         className="w-full justify-start"
                         onClick={() => setSelectedListId(list.id)}
                       >
@@ -270,8 +338,11 @@ export default function ExpensesPage() {
                   <div>
                     <CardTitle>{selectedList.name}</CardTitle>
                     <CardDescription>
-                      {selectedList.items.filter((i) => i.isPurchased).length} de{' '}
-                      {selectedList.items.length} gastos registrados
+                      {
+                        selectedList.items?.filter((i: any) => i.isPurchased)
+                          .length
+                      }{' '}
+                      de {selectedList.items?.length || 0} gastos registrados
                     </CardDescription>
                   </div>
                   <AlertDialog>
@@ -289,8 +360,8 @@ export default function ExpensesPage() {
                         <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                         <AlertDialogDescription>
                           Esta acción no se puede deshacer. Esto eliminará
-                          permanentemente la categoría "{selectedList.name}"
-                          y todos sus gastos.
+                          permanentemente la categoría "{selectedList.name}" y
+                          todos sus gastos.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -316,19 +387,24 @@ export default function ExpensesPage() {
                       className="flex-grow"
                     />
                     <Input
-                        type="text"
-                        placeholder="Cantidad"
-                        value={newItemQuantity}
-                        onChange={(e) => setNewItemQuantity(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddItem()}
-                        className="w-24"
+                      type="text"
+                      placeholder="Cantidad"
+                      value={newItemQuantity}
+                      onChange={(e) => setNewItemQuantity(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddItem()}
+                      className="w-24"
                     />
-                    <Button onClick={handleAddItem} disabled={!newItemName.trim()}>Añadir</Button>
+                    <Button
+                      onClick={handleAddItem}
+                      disabled={!newItemName.trim()}
+                    >
+                      Añadir
+                    </Button>
                   </div>
-                  
+
                   {itemsToPurchase.length > 0 && (
                     <div className="space-y-3">
-                      {itemsToPurchase.map((item) => (
+                      {itemsToPurchase.map((item: any) => (
                         <div
                           key={item.itemId}
                           className="flex items-center gap-3 rounded-lg border p-3 shadow-sm transition-all hover:shadow-md"
@@ -336,7 +412,9 @@ export default function ExpensesPage() {
                           <Checkbox
                             id={`item-${item.itemId}`}
                             checked={item.isPurchased}
-                            onCheckedChange={(checked) => handleToggleItem(item.itemId, !!checked)}
+                            onCheckedChange={(checked) =>
+                              handleToggleItem(item.itemId, !!checked)
+                            }
                             className="h-5 w-5"
                           />
                           <div className="flex-1">
@@ -344,10 +422,18 @@ export default function ExpensesPage() {
                               htmlFor={`item-${item.itemId}`}
                               className="cursor-pointer text-base font-medium"
                             >
-                                {item.name} <span className="text-sm text-muted-foreground">({item.quantity})</span>
+                              {item.name}{' '}
+                              <span className="text-sm text-muted-foreground">
+                                ({item.quantity})
+                              </span>
                             </label>
                           </div>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteItem(item.itemId)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            onClick={() => handleDeleteItem(item.itemId)}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -358,17 +444,21 @@ export default function ExpensesPage() {
                   {purchasedItems.length > 0 && (
                     <>
                       <Separator className="my-6" />
-                      <h3 className="mb-4 text-lg font-medium text-muted-foreground">Gastos Registrados</h3>
+                      <h3 className="mb-4 text-lg font-medium text-muted-foreground">
+                        Gastos Registrados
+                      </h3>
                       <div className="space-y-3">
-                        {purchasedItems.map((item) => (
-                           <div
+                        {purchasedItems.map((item: any) => (
+                          <div
                             key={item.itemId}
                             className="flex items-center gap-3 rounded-lg border border-dashed p-3"
                           >
                             <Checkbox
                               id={`item-${item.itemId}`}
                               checked={item.isPurchased}
-                              onCheckedChange={(checked) => handleToggleItem(item.itemId, !!checked)}
+                              onCheckedChange={(checked) =>
+                                handleToggleItem(item.itemId, !!checked)
+                              }
                               className="h-5 w-5"
                             />
                             <div className="flex-1">
@@ -376,15 +466,23 @@ export default function ExpensesPage() {
                                 htmlFor={`item-${item.itemId}`}
                                 className="cursor-pointer text-base text-muted-foreground line-through"
                               >
-                                  {item.name} <span className="text-sm">({item.quantity})</span>
+                                {item.name}{' '}
+                                <span className="text-sm">
+                                  ({item.quantity})
+                                </span>
                               </label>
-                               {item.price && (
+                              {item.price && (
                                 <p className="text-sm font-semibold text-primary">
                                   {formatCurrency(item.price)}
                                 </p>
                               )}
                             </div>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteItem(item.itemId)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              onClick={() => handleDeleteItem(item.itemId)}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -393,20 +491,27 @@ export default function ExpensesPage() {
                     </>
                   )}
 
-                  {itemsToPurchase.length === 0 && purchasedItems.length === 0 && (
-                     <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-10 text-center">
+                  {itemsToPurchase.length === 0 &&
+                    purchasedItems.length === 0 && (
+                      <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-10 text-center">
                         <ShoppingCart className="h-12 w-12 text-muted-foreground/50" />
-                        <h3 className="mt-4 text-lg font-semibold text-muted-foreground">Sin gastos</h3>
-                        <p className="mt-2 text-sm text-muted-foreground">Añade un gasto para empezar a organizar tus finanzas.</p>
-                    </div>
-                  )}
+                        <h3 className="mt-4 text-lg font-semibold text-muted-foreground">
+                          Sin gastos
+                        </h3>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          Añade un gasto para empezar a organizar tus finanzas.
+                        </p>
+                      </div>
+                    )}
                 </CardContent>
               </Card>
             ) : (
               <Card className="flex flex-col items-center justify-center p-10 text-center md:h-full">
                 <CardHeader>
                   <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <CardTitle className="mt-4">No hay categorías de gastos</CardTitle>
+                  <CardTitle className="mt-4">
+                    No hay categorías de gastos
+                  </CardTitle>
                   <CardDescription>
                     Crea una categoría para empezar a registrar gastos.
                   </CardDescription>
@@ -416,40 +521,47 @@ export default function ExpensesPage() {
           </div>
         </div>
       </div>
-      <Dialog open={!!itemToUpdate} onOpenChange={(open) => !open && setItemToUpdate(null)}>
+      <Dialog
+        open={!!itemToUpdate}
+        onOpenChange={(open) => !open && setItemToUpdate(null)}
+      >
         <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Registrar Gasto</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-2">
-                <Label htmlFor="itemPrice">Precio</Label>
-                <Input
-                    id="itemPrice"
-                    type="number"
-                    value={itemPrice}
-                    onChange={(e) => setItemPrice(e.target.value)}
-                    placeholder="0"
-                />
-            </div>
-            <DialogFooter>
-                <DialogClose asChild>
-                    <Button type="button" onClick={() => {
-                        handleToggleItem(itemToUpdate!.itemId, false);
-                        setItemToUpdate(null);
-                    }} variant="outline">
-                        Cancelar
-                    </Button>
-                </DialogClose>
-                <DialogClose asChild>
-                  <Button
-                      type="button"
-                      onClick={handleSetItemPrice}
-                      disabled={!itemPrice.trim()}
-                  >
-                      Guardar Gasto
-                  </Button>
-                </DialogClose>
-            </DialogFooter>
+          <DialogHeader>
+            <DialogTitle>Registrar Gasto</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="itemPrice">Precio</Label>
+            <Input
+              id="itemPrice"
+              type="number"
+              value={itemPrice}
+              onChange={(e) => setItemPrice(e.target.value)}
+              placeholder="0"
+            />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button
+                type="button"
+                onClick={() => {
+                  handleToggleItem(itemToUpdate!.itemId, false);
+                  setItemToUpdate(null);
+                }}
+                variant="outline"
+              >
+                Cancelar
+              </Button>
+            </DialogClose>
+            <DialogClose asChild>
+              <Button
+                type="button"
+                onClick={handleSetItemPrice}
+                disabled={!itemPrice.trim()}
+              >
+                Guardar Gasto
+              </Button>
+            </DialogClose>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

@@ -1,9 +1,10 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
   Bell,
-  ChevronDown,
   CircleDollarSign,
   ClipboardList,
   LayoutDashboard,
@@ -15,6 +16,7 @@ import {
   Smile,
   Target,
   SquareCheckBig,
+  LogOut,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -41,6 +43,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Logo } from '@/components/icons';
+import {
+  FirebaseClientProvider,
+  useUser,
+  useAuth,
+  useFirebase,
+} from '@/firebase';
+import { useRouter } from 'next/navigation';
+import { getAuth } from 'firebase/auth';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Mi Día' },
@@ -53,8 +63,33 @@ const navItems = [
   { href: '/expenses', icon: ShoppingCart, label: 'Gastos' },
 ];
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const userAvatar = PlaceHolderImages.find((img) => img.id === 'user-avatar-1');
+function AppLayoutContent({ children }: { children: React.ReactNode }) {
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+  const auth = getAuth();
+  const userAvatar = PlaceHolderImages.find(
+    (img) => img.id === 'user-avatar-1'
+  );
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
+
+  const handleSignOut = () => {
+    auth.signOut();
+    router.push('/login');
+  };
+
+  if (isUserLoading || !user) {
+    // You can render a loading spinner here
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
+        <div className="text-xl">Cargando...</div>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -62,7 +97,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarHeader>
           <div className="flex items-center gap-2">
             <Logo className="size-8 text-primary" />
-            <span className="text-lg font-semibold text-sidebar-foreground">Momentum</span>
+            <span className="text-lg font-semibold text-sidebar-foreground">
+              Momentum
+            </span>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -105,29 +142,41 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+              <Button
+                variant="ghost"
+                className="relative h-10 w-10 rounded-full"
+              >
                 <Avatar>
-                  {userAvatar && (
+                  {user.photoURL ? (
+                    <AvatarImage src={user.photoURL} alt={user.displayName || 'User Avatar'} />
+                  ) : userAvatar ? (
                     <AvatarImage
                       src={userAvatar.imageUrl}
                       alt={userAvatar.description}
                       data-ai-hint={userAvatar.imageHint}
                     />
-                  )}
-                  <AvatarFallback>JD</AvatarFallback>
+                  ) : null }
+                  <AvatarFallback>
+                    {user.displayName
+                      ? user.displayName.charAt(0)
+                      : user.email
+                      ? user.email.charAt(0).toUpperCase()
+                      : 'U'}
+                  </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
+              <DropdownMenuLabel>{user.displayName || user.email}</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link href="/settings">Configuración</Link>
               </DropdownMenuItem>
               <DropdownMenuItem>Soporte</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                 <Link href="/login">Cerrar sesión</Link>
+              <DropdownMenuItem onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Cerrar sesión
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -135,5 +184,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <FirebaseClientProvider>
+      <AppLayoutContent>{children}</AppLayoutContent>
+    </FirebaseClientProvider>
   );
 }

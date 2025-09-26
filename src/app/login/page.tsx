@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,8 +12,57 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo, GoogleIcon } from '@/components/icons';
+import { useState } from 'react';
+import { useAuth } from '@/firebase';
+import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 
 export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const auth = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleLogin = async () => {
+    try {
+      await initiateEmailSignIn(auth, email, password);
+      toast({
+        title: 'Inicio de sesión exitoso',
+        description: 'Redirigiendo al dashboard...',
+      });
+      router.push('/dashboard');
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error de inicio de sesión',
+        description:
+          error.message || 'Ocurrió un error. Por favor intenta de nuevo.',
+      });
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      toast({
+        title: 'Inicio de sesión con Google exitoso',
+        description: 'Redirigiendo al dashboard...',
+      });
+      router.push('/dashboard');
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error de inicio de sesión con Google',
+        description:
+          error.message || 'Ocurrió un error. Por favor intenta de nuevo.',
+      });
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="mx-auto w-full max-w-sm">
@@ -26,7 +77,7 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
               <GoogleIcon className="mr-2 h-4 w-4" />
               Iniciar sesión con Google
             </Button>
@@ -47,6 +98,8 @@ export default function LoginPage() {
                 type="email"
                 placeholder="m@example.com"
                 required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div className="grid gap-2">
@@ -59,13 +112,17 @@ export default function LoginPage() {
                   ¿Olvidaste tu contraseña?
                 </Link>
               </div>
-              <Input id="password" type="password" required />
+              <Input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </div>
-            <Link href="/dashboard" className='w-full'>
-              <Button type="submit" className="w-full">
-                Iniciar sesión
-              </Button>
-            </Link>
+            <Button onClick={handleLogin} type="submit" className="w-full">
+              Iniciar sesión
+            </Button>
           </div>
           <div className="mt-4 text-center text-sm">
             ¿No tienes una cuenta?{' '}

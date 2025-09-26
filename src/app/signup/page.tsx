@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,8 +12,66 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo, GoogleIcon } from '@/components/icons';
+import { useState } from 'react';
+import { useAuth } from '@/firebase';
+import { initiateEmailSignUp } from '@/firebase/non-blocking-login';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 
 export default function SignupPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const auth = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleSignUp = async () => {
+    if (password !== confirmPassword) {
+      toast({
+        variant: 'destructive',
+        title: 'Las contraseñas no coinciden',
+        description: 'Por favor, verifica tus contraseñas.',
+      });
+      return;
+    }
+    try {
+      await initiateEmailSignUp(auth, email, password);
+      toast({
+        title: '¡Cuenta creada!',
+        description: 'Redirigiendo a tu dashboard...',
+      });
+      router.push('/dashboard');
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error al registrar',
+        description:
+          error.message || 'Ocurrió un error. Por favor intenta de nuevo.',
+      });
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      toast({
+        title: 'Inicio de sesión con Google exitoso',
+        description: 'Redirigiendo al dashboard...',
+      });
+      router.push('/dashboard');
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error de inicio de sesión con Google',
+        description:
+          error.message || 'Ocurrió un error. Por favor intenta de nuevo.',
+      });
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="mx-auto w-full max-w-sm">
@@ -26,7 +86,11 @@ export default function SignupPage() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
-            <Button variant="outline" className="w-full">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleGoogleSignIn}
+            >
               <GoogleIcon className="mr-2 h-4 w-4" />
               Registrarse con Google
             </Button>
@@ -47,21 +111,33 @@ export default function SignupPage() {
                 type="email"
                 placeholder="m@example.com"
                 required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Contraseña</Label>
-              <Input id="password" type="password" required />
+              <Input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="confirm-password">Confirmar Contraseña</Label>
-              <Input id="confirm-password" type="password" required />
+              <Input
+                id="confirm-password"
+                type="password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
             </div>
-            <Link href="/dashboard" className='w-full'>
-              <Button type="submit" className="w-full">
-                Crear cuenta
-              </Button>
-            </Link>
+            <Button onClick={handleSignUp} type="submit" className="w-full">
+              Crear cuenta
+            </Button>
           </div>
           <div className="mt-4 text-center text-sm">
             ¿Ya tienes una cuenta?{' '}
