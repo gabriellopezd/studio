@@ -224,7 +224,7 @@ export default function ExpensesPage() {
       // Automatically create a budget for the new category
       const newBudget = {
         categoryName: categoryName,
-        monthlyLimit: 0,
+        monthlyLimit: 1000000,
         currentSpend: 0,
         userId: user.uid,
       };
