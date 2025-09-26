@@ -11,6 +11,7 @@ import {
   Calendar,
   CalendarClock,
   CalendarCheck,
+  Trophy,
 } from 'lucide-react';
 import {
   Card,
@@ -48,9 +49,11 @@ import {
   where,
   limit,
   Timestamp,
+  orderBy
 } from 'firebase/firestore';
 import { moods as moodOptions } from '@/lib/moods';
 import type { ChartConfig } from '@/components/ui/chart';
+import { Badge } from '@/components/ui/badge';
 
 const goalProgressData = [
   { month: 'Enero', progress: 65 },
@@ -183,6 +186,13 @@ export default function DashboardPage() {
   const completedDailyHabits = dailyHabits.filter(h => h.lastCompletedAt && isSameDay((h.lastCompletedAt as Timestamp).toDate(), today)).length;
   const completedWeeklyHabits = weeklyHabits.filter(h => h.lastCompletedAt && isSameWeek((h.lastCompletedAt as Timestamp).toDate(), today)).length;
   const completedMonthlyHabits = monthlyHabits.filter(h => h.lastCompletedAt && isSameMonth((h.lastCompletedAt as Timestamp).toDate(), today)).length;
+  
+  const topHabitsByStreak = useMemo(() => {
+    if (!allHabits) return [];
+    return [...allHabits]
+      .sort((a, b) => (b.longestStreak || 0) - (a.longestStreak || 0))
+      .slice(0, 3);
+  }, [allHabits]);
 
   const todayString = new Date().toLocaleDateString('es-ES', {
     weekday: 'long',
@@ -249,8 +259,39 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
-        <Card className="lg:col-span-1">
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="size-5 text-yellow-500" />
+              <span>Top Rachas</span>
+            </CardTitle>
+            <CardDescription>Tus récords de consistencia.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+             {habitsLoading && <p>Cargando rachas...</p>}
+             {topHabitsByStreak.length > 0 ? (
+                topHabitsByStreak.map(habit => (
+                  <div key={habit.id} className="flex items-center justify-between">
+                     <div className="flex items-center gap-3">
+                       <span className="text-2xl">{habit.icon}</span>
+                       <div>
+                         <p className="font-medium">{habit.name}</p>
+                         <p className="text-sm text-muted-foreground">{habit.category}</p>
+                       </div>
+                     </div>
+                     <Badge variant="secondary" className="text-lg">
+                       <Trophy className="h-4 w-4 mr-2 text-yellow-500" />
+                       {habit.longestStreak || 0}
+                     </Badge>
+                  </div>
+                ))
+             ) : (
+                !habitsLoading && <p className="text-sm text-muted-foreground">Aún no tienes rachas récord.</p>
+             )}
+          </CardContent>
+        </Card>
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="size-5" />
@@ -261,7 +302,7 @@ export default function DashboardPage() {
           <CardContent>
             <ChartContainer
               config={chartConfig}
-              className="min-h-[250px] w-full"
+              className="min-h-[200px] w-full"
             >
               <BarChart accessibilityLayer data={goalProgressData}>
                 <XAxis
@@ -291,7 +332,7 @@ export default function DashboardPage() {
             </ChartContainer>
           </CardContent>
         </Card>
-        <Card className="lg:col-span-1">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CalendarDays className="size-5" />
