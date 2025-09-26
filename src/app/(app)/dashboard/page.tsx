@@ -72,9 +72,9 @@ const chartConfig = {
 
 const getStartOfWeek = (date: Date) => {
   const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-  d.setHours(0, 0, 0, 0);
   return new Date(d.setDate(diff));
 };
 
@@ -128,20 +128,22 @@ export default function DashboardPage() {
   );
   const { data: allGoals, isLoading: goalsLoading } = useCollection(goalsQuery);
   
-  const today = new Date();
-  const startOfWeek = getStartOfWeek(today);
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 6);
-  endOfWeek.setHours(23, 59, 59, 999);
+  const today = useMemo(() => new Date(), []);
+  
+  const startOfWeek = useMemo(() => getStartOfWeek(today), [today]);
 
   const moodsQuery = useMemo(() => {
     if (!user) return null;
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+    
     return query(
       collection(firestore, 'users', user.uid, 'moods'),
       where('date', '>=', startOfWeek.toISOString()),
       where('date', '<=', endOfWeek.toISOString())
     );
-  }, [firestore, user, startOfWeek, endOfWeek]);
+  }, [firestore, user, startOfWeek]);
 
   const { data: moods, isLoading: moodsLoading } = useCollection(moodsQuery);
 
@@ -361,5 +363,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
