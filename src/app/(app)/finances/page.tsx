@@ -520,7 +520,13 @@ export default function FinancesPage() {
                       </TableCell>
                       <TableCell>{t.category}</TableCell>
                       <TableCell>
-                        {new Date(t.date).toLocaleDateString()}
+                        {new Date(t.date).toLocaleString('es-ES', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: 'numeric',
+                          minute: 'numeric',
+                          hour12: true,
+                        })}
                       </TableCell>
                       <TableCell
                         className={`text-right font-semibold ${
