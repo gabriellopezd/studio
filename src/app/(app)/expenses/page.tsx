@@ -184,7 +184,6 @@ export default function ExpensesPage() {
       createdAt: serverTimestamp(),
     });
     
-    // Update budget if it's an expense and a budget for that category exists
     if (newTransaction.type === 'expense') {
       const budget = budgets?.find(b => b.categoryName === newTransaction.category);
       if (budget) {
@@ -221,7 +220,6 @@ export default function ExpensesPage() {
       );
       const docRef = await addDocumentNonBlocking(listsColRef, newList);
 
-      // Automatically create a budget for the new category
       const newBudget = {
         categoryName: categoryName,
         monthlyLimit: 1000000,
@@ -244,11 +242,9 @@ export default function ExpensesPage() {
     const listToDelete = lists?.find(l => l.id === listId);
     if (!listToDelete) return;
 
-    // Delete the shopping list
     const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
     await deleteDocumentNonBlocking(listRef);
 
-    // Find and delete the corresponding budget
     const budgetsQuery = query(
       collection(firestore, 'users', user.uid, 'budgets'),
       where('categoryName', '==', listToDelete.name)
@@ -268,7 +264,7 @@ export default function ExpensesPage() {
   const handleAddItem = () => {
     if (newItemName.trim() && selectedList && user) {
       const newItem = {
-        itemId: doc(collection(firestore, 'temp')).id, // temporary unique id
+        itemId: doc(collection(firestore, 'temp')).id, 
         name: newItemName.trim(),
         quantity: newItemQuantity.trim() || '1',
         isPurchased: false,
@@ -316,10 +312,8 @@ export default function ExpensesPage() {
 
       const updatedItems = list.items.map((i: any) => {
         if (i.itemId === itemId) {
-          const newItem: any = { ...i, isPurchased: false };
-          delete newItem.price;
-          delete newItem.transactionId;
-          return newItem;
+          const { price, transactionId, isPurchased, ...rest } = i;
+          return { ...rest, isPurchased: false };
         }
         return i;
       });
