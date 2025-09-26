@@ -44,7 +44,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Logo } from '@/components/icons';
 import {
-  FirebaseClientProvider,
   useUser,
   useAuth,
 } from '@/firebase';
@@ -61,7 +60,7 @@ const navItems = [
   { href: '/expenses', icon: ShoppingCart, label: 'Gastos' },
 ];
 
-function AppLayoutContent({ children }: { children: React.ReactNode }) {
+export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
@@ -184,13 +183,5 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
       </SidebarInset>
     </SidebarProvider>
-  );
-}
-
-export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <FirebaseClientProvider>
-      <AppLayoutContent>{children}</AppLayoutContent>
-    </FirebaseClientProvider>
   );
 }

@@ -5,6 +5,7 @@ import { Inter as FontSans } from 'next/font/google';
 import { Space_Grotesk as FontHeadline } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/theme-provider';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 const fontSans = FontSans({
   subsets: ['latin'],
@@ -37,7 +38,9 @@ export default function RootLayout({
         )}
       >
         <ThemeProvider>
-          {children}
+          <FirebaseClientProvider>
+            {children}
+          </FirebaseClientProvider>
           <Toaster />
         </ThemeProvider>
       </body>
