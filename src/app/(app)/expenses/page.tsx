@@ -205,8 +205,9 @@ export default function ExpensesPage() {
 
   const handleCreateList = async () => {
     if (newListName.trim() && user) {
+      const categoryName = newListName.trim();
       const newList = {
-        name: newListName.trim(),
+        name: categoryName,
         createdAt: serverTimestamp(),
         items: [],
         userId: user.uid,
@@ -219,6 +220,17 @@ export default function ExpensesPage() {
         'shoppingLists'
       );
       const docRef = await addDocumentNonBlocking(listsColRef, newList);
+
+      // Automatically create a budget for the new category
+      const newBudget = {
+        categoryName: categoryName,
+        monthlyLimit: 0,
+        currentSpend: 0,
+        userId: user.uid,
+      };
+      const budgetsColRef = collection(firestore, 'users', user.uid, 'budgets');
+      await addDocumentNonBlocking(budgetsColRef, newBudget);
+
       if (docRef) {
         setSelectedListId(docRef.id);
       }
@@ -226,10 +238,28 @@ export default function ExpensesPage() {
     }
   };
 
-  const handleDeleteList = (listId: string) => {
+  const handleDeleteList = async (listId: string) => {
     if (!user) return;
+    
+    const listToDelete = lists?.find(l => l.id === listId);
+    if (!listToDelete) return;
+
+    // Delete the shopping list
     const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
-    deleteDocumentNonBlocking(listRef);
+    await deleteDocumentNonBlocking(listRef);
+
+    // Find and delete the corresponding budget
+    const budgetsQuery = query(
+      collection(firestore, 'users', user.uid, 'budgets'),
+      where('categoryName', '==', listToDelete.name)
+    );
+    const budgetSnapshot = await getDocs(budgetsQuery);
+    const batch = writeBatch(firestore);
+    budgetSnapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+
     if (selectedListId === listId) {
       setSelectedListId(lists?.[0]?.id ?? null);
     }
@@ -691,5 +721,3 @@ export default function ExpensesPage() {
     </>
   );
 }
-
-    
