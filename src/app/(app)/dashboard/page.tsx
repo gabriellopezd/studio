@@ -75,6 +75,7 @@ const getStartOfWeek = (date: Date) => {
   const d = new Date(date);
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+  d.setHours(0, 0, 0, 0);
   return new Date(d.setDate(diff));
 };
 
@@ -128,43 +129,38 @@ export default function DashboardPage() {
   );
   const { data: allGoals, isLoading: goalsLoading } = useCollection(goalsQuery);
   
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const today = new Date();
+  const startOfWeek = getStartOfWeek(today);
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
 
   const moodsQuery = useMemoFirebase(() => {
     if (!user) return null;
-    const start = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-    const end = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
     return query(
       collection(firestore, 'users', user.uid, 'moods'),
-      where('date', '>=', start.toISOString()),
-      where('date', '<=', end.toISOString())
+      where('date', '>=', startOfWeek.toISOString()),
+      where('date', '<=', endOfWeek.toISOString())
     );
-  }, [firestore, user, currentMonth]);
+  }, [firestore, user, startOfWeek, endOfWeek]);
 
   const { data: moods, isLoading: moodsLoading } = useCollection(moodsQuery);
-  
-  const getDaysInMonth = (year: number, month: number) => {
-    return new Date(year, month + 1, 0).getDate();
-  };
 
-  const daysInMonth = getDaysInMonth(currentMonth.getFullYear(), currentMonth.getMonth());
-  const calendarDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const weekDays = useMemo(() => {
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+        const day = new Date(startOfWeek);
+        day.setDate(startOfWeek.getDate() + i);
+        days.push(day);
+    }
+    return days;
+  }, [startOfWeek]);
   
-  const getMoodForDay = (day: number) => {
-    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-    const moodEntry = moods?.find(
-      (mood) =>
-        new Date(mood.date).toDateString() === date.toDateString()
-    );
-    return moodEntry;
+  const getMoodForDay = (day: Date) => {
+    return moods?.find(mood => isSameDay(new Date(mood.date), day));
   };
-
-  const changeMonth = (offset: number) => {
-    setCurrentMonth(prev => {
-      const newMonth = new Date(prev.getFullYear(), prev.getMonth() + offset, 1);
-      return newMonth;
-    });
-  };
+  
+  const dayLabels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
   useEffect(() => {
     setIsClient(true);
@@ -176,8 +172,6 @@ export default function DashboardPage() {
 
   const completedGoals = allGoals?.filter(g => g.isCompleted).length ?? 0;
   const totalGoals = allGoals?.length ?? 0;
-  
-  const today = new Date();
 
   const dailyHabits = allHabits?.filter(h => h.frequency === 'Diario') ?? [];
   const weeklyHabits = allHabits?.filter(h => h.frequency === 'Semanal') ?? [];
@@ -339,32 +333,24 @@ export default function DashboardPage() {
               <CalendarDays className="size-5" />
               <span>Historial de Ánimo</span>
             </CardTitle>
-            <CardDescription>Tu registro emocional del mes.</CardDescription>
+            <CardDescription>Tu registro emocional de la semana.</CardDescription>
           </CardHeader>
           <CardContent>
-             <div className="flex justify-between items-center mb-4">
-              <Button variant="outline" size="sm" onClick={() => changeMonth(-1)}>Anterior</Button>
-              <div className="text-center font-bold text-lg">
-                {currentMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
-              </div>
-              <Button variant="outline" size="sm" onClick={() => changeMonth(1)}>Siguiente</Button>
-            </div>
              {moodsLoading && <p>Cargando historial de ánimo...</p>}
              <div className="grid grid-cols-7 gap-2">
-                {calendarDays.map((day) => {
+                {weekDays.map((day, index) => {
                   const moodEntry = getMoodForDay(day);
+                  const isFuture = day > today && !isSameDay(day, today);
                   return (
                     <div
-                      key={day}
+                      key={day.toISOString()}
                       className="flex aspect-square flex-col items-center justify-center rounded-lg border bg-card p-2 text-center"
                     >
-                      <span className="text-sm text-muted-foreground">{day}</span>
+                      <span className="text-sm text-muted-foreground">{dayLabels[index]}</span>
                       <span className="text-2xl mt-1">
                         {moodEntry
                           ? moodEntry.emoji
-                          : day < new Date().getDate() && currentMonth.getMonth() === new Date().getMonth()
-                          ? '⚪'
-                          : ''}
+                          : !isFuture ? '⚪' : ''}
                       </span>
                     </div>
                   );
