@@ -86,7 +86,7 @@ const isPreviousWeek = (d1: Date, d2: Date) => {
   return isSameWeek(d2, lastWeek);
 };
 
-const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual"];
+const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
 
 export default function HabitsPage() {
   const { firestore, user } = useFirebase();

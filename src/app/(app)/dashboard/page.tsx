@@ -88,7 +88,7 @@ const isSameWeek = (d1: Date, d2: Date) => {
   return isSameDay(startOfWeek1, startOfWeek2);
 };
 
-const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual"];
+const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
 
 export default function DashboardPage() {
   const [isClient, setIsClient] = useState(false);
