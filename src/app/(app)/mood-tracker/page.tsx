@@ -47,7 +47,7 @@ export default function MoodTrackerPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Rastreador de Ánimo"
+        title="RASTREADOR DE ÁNIMO"
         description="Registra tu ánimo diario y observa tus tendencias emocionales."
       />
 

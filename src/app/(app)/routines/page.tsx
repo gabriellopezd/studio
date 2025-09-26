@@ -26,7 +26,7 @@ export default function RoutinesPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Rutinas"
+        title="RUTINAS"
         description="Crea y sigue tus rutinas diarias para construir consistencia."
       >
         <Button>

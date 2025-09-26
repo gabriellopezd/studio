@@ -407,7 +407,7 @@ export default function ExpensesPage() {
     <>
       <div className="flex flex-col gap-4 md:gap-6">
         <PageHeader
-          title="Registro de Gastos"
+          title="REGISTRO DE GASTOS"
           description="Organiza tus gastos por categorías y no olvides nada."
         >
           <Dialog>

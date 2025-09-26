@@ -31,7 +31,7 @@ export default function GoalsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Metas"
+        title="METAS"
         description="Define y sigue el progreso de tus metas a largo plazo."
       >
         <Button>

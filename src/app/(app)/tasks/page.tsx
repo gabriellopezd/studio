@@ -59,7 +59,7 @@ export default function TasksPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Tareas"
+        title="TAREAS"
         description="Organiza tus tareas y mantente enfocado."
       >
         <Button>

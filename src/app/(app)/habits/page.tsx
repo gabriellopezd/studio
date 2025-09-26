@@ -92,7 +92,7 @@ export default function HabitsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Hábitos"
+        title="HÁBITOS"
         description="Gestiona tus hábitos y sigue tu progreso."
       >
         <Dialog>

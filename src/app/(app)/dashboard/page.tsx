@@ -129,7 +129,7 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col gap-4 md:gap-6">
       <PageHeader
-        title="Mi Día"
+        title="MI DÍA"
         description={
           isClient
             ? `Resumen de tu actividad para hoy, ${todayString}.`

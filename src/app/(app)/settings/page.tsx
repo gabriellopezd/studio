@@ -73,7 +73,7 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col gap-4 md:gap-6">
       <PageHeader
-        title="Configuración"
+        title="CONFIGURACIÓN"
         description="Gestiona tu perfil, cuenta y preferencias."
       />
 

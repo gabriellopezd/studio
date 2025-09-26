@@ -365,7 +365,7 @@ export default function FinancesPage() {
     <>
       <div className="flex flex-col gap-6">
         <PageHeader
-          title="Finanzas"
+          title="FINANZAS"
           description="Controla tus ingresos, gastos y presupuestos."
         >
           <Dialog>
