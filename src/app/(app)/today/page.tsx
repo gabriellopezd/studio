@@ -22,7 +22,6 @@ import PageHeader from '@/components/page-header';
 import { useState, useEffect, useMemo } from 'react';
 import {
   useCollection,
-  useMemoFirebase,
   updateDocumentNonBlocking,
   useFirebase,
 } from '@/firebase';
@@ -96,7 +95,7 @@ export default function TodayPage() {
   const [isClient, setIsClient] = useState(false);
   const { firestore, user } = useFirebase();
 
-  const habitsQuery = useMemoFirebase(
+  const habitsQuery = useMemo(
     () =>
       user
         ? query(collection(firestore, 'users', user.uid, 'habits'))
@@ -118,7 +117,7 @@ export default function TodayPage() {
     }, {} as { [key: string]: any[] });
   }, [dailyHabits]);
 
-  const tasksQuery = useMemoFirebase(
+  const tasksQuery = useMemo(
     () =>
       user
         ? query(
@@ -405,3 +404,5 @@ export default function TodayPage() {
     </div>
   );
 }
+
+    

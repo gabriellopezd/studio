@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,7 +23,6 @@ import {
 import {
   useFirebase,
   useCollection,
-  useMemoFirebase,
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
@@ -76,7 +75,7 @@ export default function GoalsPage() {
   const [dueDate, setDueDate] = useState('');
   const [newProgress, setNewProgress] = useState('');
 
-  const goalsQuery = useMemoFirebase(
+  const goalsQuery = useMemo(
     () => (user ? collection(firestore, 'users', user.uid, 'goals') : null),
     [firestore, user]
   );
@@ -342,3 +341,5 @@ export default function GoalsPage() {
     </>
   );
 }
+
+    

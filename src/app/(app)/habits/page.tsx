@@ -49,7 +49,6 @@ import { Check, Flame, MoreHorizontal, Pencil, PlusCircle, Trash2, Trophy } from
 import {
   useFirebase,
   useCollection,
-  useMemoFirebase,
   updateDocumentNonBlocking,
   addDocumentNonBlocking,
   deleteDocumentNonBlocking,
@@ -117,7 +116,7 @@ export default function HabitsPage() {
   const [newHabitFrequency, setNewHabitFrequency] = useState('Diario');
   const [newHabitCategory, setNewHabitCategory] = useState('');
 
-  const habitsQuery = useMemoFirebase(
+  const habitsQuery = useMemo(
     () => (user ? collection(firestore, 'users', user.uid, 'habits') : null),
     [firestore, user]
   );
@@ -583,3 +582,5 @@ export default function HabitsPage() {
     </>
   );
 }
+
+    

@@ -40,7 +40,6 @@ import PageHeader from '@/components/page-header';
 import { useState, useEffect, useMemo } from 'react';
 import {
   useCollection,
-  useMemoFirebase,
   useFirebase,
 } from '@/firebase';
 import {
@@ -99,7 +98,7 @@ export default function DashboardPage() {
   const [isClient, setIsClient] = useState(false);
   const { firestore, user } = useFirebase();
 
-  const habitsQuery = useMemoFirebase(
+  const habitsQuery = useMemo(
     () =>
       user
         ? query(collection(firestore, 'users', user.uid, 'habits'))
@@ -109,7 +108,7 @@ export default function DashboardPage() {
   const { data: allHabits, isLoading: habitsLoading } =
     useCollection(habitsQuery);
 
-  const tasksQuery = useMemoFirebase(
+  const tasksQuery = useMemo(
     () =>
       user
         ? query(
@@ -120,7 +119,7 @@ export default function DashboardPage() {
   );
   const { data: allTasks, isLoading: tasksLoading } = useCollection(tasksQuery);
 
-  const goalsQuery = useMemoFirebase(
+  const goalsQuery = useMemo(
     () =>
       user
         ? query(collection(firestore, 'users', user.uid, 'goals'))
@@ -135,7 +134,7 @@ export default function DashboardPage() {
   endOfWeek.setDate(startOfWeek.getDate() + 6);
   endOfWeek.setHours(23, 59, 59, 999);
 
-  const moodsQuery = useMemoFirebase(() => {
+  const moodsQuery = useMemo(() => {
     if (!user) return null;
     return query(
       collection(firestore, 'users', user.uid, 'moods'),
@@ -362,3 +361,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    

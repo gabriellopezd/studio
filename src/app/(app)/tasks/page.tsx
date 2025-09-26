@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -9,7 +9,6 @@ import { PlusCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import {
   useFirebase,
   useCollection,
-  useMemoFirebase,
   updateDocumentNonBlocking,
   addDocumentNonBlocking,
   deleteDocumentNonBlocking
@@ -64,7 +63,7 @@ export default function TasksPage() {
   const [dueDate, setDueDate] = useState('');
   const [priority, setPriority] = useState('medium');
 
-  const tasksQuery = useMemoFirebase(() => {
+  const tasksQuery = useMemo(() => {
     if (!user) return null;
     const tasksColRef = collection(firestore, 'users', user.uid, 'tasks');
     const today = new Date();
@@ -309,3 +308,5 @@ export default function TasksPage() {
     </>
   );
 }
+
+    

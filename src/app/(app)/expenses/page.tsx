@@ -41,7 +41,6 @@ import { useToast } from '@/hooks/use-toast';
 import {
   useFirebase,
   useCollection,
-  useMemoFirebase,
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
@@ -107,7 +106,7 @@ function SortableListItem({ list, selectedListId, setSelectedListId, children }:
 export default function ExpensesPage() {
   const { firestore, user } = useFirebase();
 
-  const shoppingListsQuery = useMemoFirebase(
+  const shoppingListsQuery = useMemo(
     () =>
       user ? query(collection(firestore, 'users', user.uid, 'shoppingLists'), orderBy('order')) : null,
     [firestore, user]
@@ -115,7 +114,7 @@ export default function ExpensesPage() {
   const { data: lists, isLoading: listsLoading } =
     useCollection(shoppingListsQuery);
     
-  const budgetsQuery = useMemoFirebase(
+  const budgetsQuery = useMemo(
     () => (user ? collection(firestore, 'users', user.uid, 'budgets') : null),
     [firestore, user]
   );
@@ -729,3 +728,5 @@ export default function ExpensesPage() {
     </>
   );
 }
+
+    

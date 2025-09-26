@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,7 +20,6 @@ import {
 import {
   useFirebase,
   useCollection,
-  useMemoFirebase,
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
@@ -80,13 +79,13 @@ export default function RoutinesPage() {
   const [description, setDescription] = useState('');
   const [selectedHabitIds, setSelectedHabitIds] = useState<string[]>([]);
 
-  const routinesQuery = useMemoFirebase(
+  const routinesQuery = useMemo(
     () => (user ? collection(firestore, 'users', user.uid, 'routines') : null),
     [firestore, user]
   );
   const { data: routines, isLoading: routinesLoading } = useCollection(routinesQuery);
   
-  const habitsQuery = useMemoFirebase(
+  const habitsQuery = useMemo(
     () => (user ? collection(firestore, 'users', user.uid, 'habits') : null),
     [firestore, user]
   );
@@ -324,3 +323,5 @@ export default function RoutinesPage() {
     </>
   );
 }
+
+    

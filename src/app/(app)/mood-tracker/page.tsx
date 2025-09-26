@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   useFirebase,
   useCollection,
-  useMemoFirebase,
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
 } from '@/firebase';
@@ -36,7 +35,7 @@ export default function MoodTrackerPage() {
   const [selectedFeelings, setSelectedFeelings] = useState<string[]>([]);
   const [selectedInfluences, setSelectedInfluences] = useState<string[]>([]);
 
-  const moodsQuery = useMemoFirebase(() => {
+  const moodsQuery = useMemo(() => {
     if (!user) return null;
     const start = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
     const end = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
@@ -276,3 +275,5 @@ export default function MoodTrackerPage() {
     </>
   );
 }
+
+    

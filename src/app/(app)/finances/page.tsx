@@ -65,7 +65,6 @@ import {
 import {
   useFirebase,
   useCollection,
-  useMemoFirebase,
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
@@ -110,7 +109,7 @@ export default function FinancesPage() {
     setCurrentMonthName(monthName.charAt(0).toUpperCase() + monthName.slice(1));
   }, []);
 
-  const transactionsQuery = useMemoFirebase(() => {
+  const transactionsQuery = useMemo(() => {
     if (!user) return null;
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -126,7 +125,7 @@ export default function FinancesPage() {
   const { data: transactions, isLoading: transactionsLoading } =
     useCollection(transactionsQuery);
 
-  const budgetsQuery = useMemoFirebase(
+  const budgetsQuery = useMemo(
     () => (user ? collection(firestore, 'users', user.uid, 'budgets') : null),
     [firestore, user]
   );
@@ -807,3 +806,5 @@ export default function FinancesPage() {
     </>
   );
 }
+
+    
