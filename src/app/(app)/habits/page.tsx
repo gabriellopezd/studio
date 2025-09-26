@@ -38,6 +38,7 @@ import {
   addDocumentNonBlocking,
 } from '@/firebase';
 import { collection, doc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { Badge } from '@/components/ui/badge';
 
 
 const getStartOfWeek = (date: Date) => {
@@ -84,12 +85,15 @@ const isPreviousMonth = (d1: Date, d2: Date) => {
   return d2.getFullYear() === lastMonth.getFullYear() && d2.getMonth() === lastMonth.getMonth();
 };
 
+const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual"];
+
 export default function HabitsPage() {
   const { firestore, user } = useFirebase();
 
   const [newHabitName, setNewHabitName] = useState('');
   const [newHabitIcon, setNewHabitIcon] = useState('');
   const [newHabitFrequency, setNewHabitFrequency] = useState('Diario');
+  const [newHabitCategory, setNewHabitCategory] = useState('');
 
   const habitsQuery = useMemoFirebase(
     () => (user ? collection(firestore, 'users', user.uid, 'habits') : null),
@@ -170,13 +174,14 @@ export default function HabitsPage() {
   };
 
   const handleCreateHabit = async () => {
-    if (!newHabitName.trim() || !newHabitIcon.trim() || !user) return;
+    if (!newHabitName.trim() || !newHabitIcon.trim() || !user || !newHabitCategory) return;
 
     const habitsColRef = collection(firestore, 'users', user.uid, 'habits');
     await addDocumentNonBlocking(habitsColRef, {
       name: newHabitName,
       icon: newHabitIcon,
       frequency: newHabitFrequency,
+      category: newHabitCategory,
       currentStreak: 0,
       createdAt: serverTimestamp(),
       lastCompletedAt: null,
@@ -186,6 +191,7 @@ export default function HabitsPage() {
     setNewHabitName('');
     setNewHabitIcon('');
     setNewHabitFrequency('Diario');
+    setNewHabitCategory('');
   };
 
   return (
@@ -248,6 +254,24 @@ export default function HabitsPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="habit-category" className="text-right">
+                  Categoría
+                </Label>
+                <Select
+                  value={newHabitCategory}
+                  onValueChange={setNewHabitCategory}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Selecciona una categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {habitCategories.map(category => (
+                       <SelectItem key={category} value={category}>{category}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <DialogFooter>
               <DialogClose asChild>
@@ -301,7 +325,9 @@ export default function HabitsPage() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="flex-grow"></CardContent>
+              <CardContent className="flex-grow">
+                 {habit.category && <Badge variant="secondary">{habit.category}</Badge>}
+              </CardContent>
               <CardFooter>
                 <Button
                   variant={isCompleted ? 'secondary' : 'outline'}

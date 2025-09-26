@@ -111,6 +111,11 @@
             "type": ["string", "null"],
             "format": "date-time",
             "description": "The completion timestamp before the last one, used for undo functionality."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the habit.",
+          "enum": ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual"]
         }
       },
       "required": [
@@ -118,7 +123,8 @@
         "userId",
         "name",
         "frequency",
-        "createdAt"
+        "createdAt",
+        "category"
       ]
     },
     "Routine": {
