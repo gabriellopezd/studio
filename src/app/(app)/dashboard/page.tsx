@@ -190,6 +190,7 @@ export default function DashboardPage() {
   const topHabitsByStreak = useMemo(() => {
     if (!allHabits) return [];
     return [...allHabits]
+      .filter(h => h.longestStreak && h.longestStreak > 0)
       .sort((a, b) => (b.longestStreak || 0) - (a.longestStreak || 0))
       .slice(0, 3);
   }, [allHabits]);
