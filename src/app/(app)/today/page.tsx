@@ -141,7 +141,17 @@ function TodaysMoodCard() {
   };
 
   const handleStartMoodRegistration = () => {
-    resetForm();
+    if (todayEntry) {
+      const mood = moodLevels.find(m => m.level === todayEntry.moodLevel);
+      setSelectedMood(mood || null);
+      setSelectedFeelings(todayEntry.feelings || []);
+      setSelectedInfluences(todayEntry.influences || []);
+    } else {
+      setSelectedMood(null);
+      setSelectedFeelings([]);
+      setSelectedInfluences([]);
+    }
+    setStep(1);
     setDialogOpen(true);
   };
 
@@ -230,7 +240,7 @@ function TodaysMoodCard() {
               {moodLevels.map((mood) => (
                 <Button
                   key={mood.level}
-                  variant="ghost"
+                  variant={selectedMood?.level === mood.level ? "secondary" : "ghost"}
                   size="icon"
                   onClick={() => handleMoodSelect(mood)}
                   className="h-20 w-20 rounded-full"
@@ -341,16 +351,17 @@ export default function TodayPage() {
     if (!allHabits) return [];
     return allHabits.filter(habit => {
       const lastCompletedDate = habit.lastCompletedAt ? (habit.lastCompletedAt as Timestamp).toDate() : null;
+      if (!lastCompletedDate) return true; // Always show if never completed
       
       switch (habit.frequency) {
         case 'Diario':
-          return !lastCompletedDate || !isSameDay(lastCompletedDate, today);
+          return !isSameDay(lastCompletedDate, today);
         case 'Semanal':
-          return !lastCompletedDate || !isSameWeek(lastCompletedDate, today);
+          return !isSameWeek(lastCompletedDate, today);
         case 'Mensual':
-          return !lastCompletedDate || !isSameMonth(lastCompletedDate, today);
+          return !isSameMonth(lastCompletedDate, today);
         default:
-          return true;
+          return true; // Should not happen, but good to have a default
       }
     });
   }, [allHabits, today]);
