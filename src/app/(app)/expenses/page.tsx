@@ -304,7 +304,14 @@ export default function ExpensesPage() {
     } else {
        if (item.transactionId) {
         const transactionRef = doc(firestore, 'users', user.uid, 'transactions', item.transactionId);
-        await deleteDocumentNonBlocking(transactionRef);
+        deleteDocumentNonBlocking(transactionRef);
+
+        const budget = budgets?.find(b => b.categoryName === list.name);
+        if (budget && item.price) {
+          const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+          const newSpend = Math.max(0, (budget.currentSpend || 0) - item.price);
+          updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
+        }
       }
 
       const updatedItems = list.items.map((i: any) => {
@@ -372,6 +379,13 @@ export default function ExpensesPage() {
     if (itemToDelete && itemToDelete.transactionId) {
       const transactionRef = doc(firestore, 'users', user.uid, 'transactions', itemToDelete.transactionId);
       deleteDocumentNonBlocking(transactionRef);
+
+      const budget = budgets?.find(b => b.categoryName === selectedList.name);
+      if (budget && itemToDelete.price) {
+        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+        const newSpend = Math.max(0, (budget.currentSpend || 0) - itemToDelete.price);
+        updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
+      }
     }
     
     const updatedItems = selectedList.items.filter(
