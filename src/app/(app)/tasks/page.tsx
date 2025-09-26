@@ -75,26 +75,24 @@ export default function TasksPage() {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const nextWeek = new Date(today);
-    nextWeek.setDate(nextWeek.getDate() + 7);
 
     switch (activeTab) {
       case 'today':
-        return allTasks.filter(task => 
-          !task.isCompleted && 
-          task.dueDate && 
-          task.dueDate.toDate() >= today && 
-          task.dueDate.toDate() < tomorrow
-        );
+        return allTasks.filter(task => {
+          if (task.isCompleted || !task.dueDate) return false;
+          const taskDueDate = task.dueDate.toDate();
+          taskDueDate.setHours(0,0,0,0);
+          return taskDueDate.getTime() === today.getTime();
+        });
       case 'upcoming':
-        return allTasks.filter(task => 
-          !task.isCompleted && 
-          task.dueDate && 
-          task.dueDate.toDate() >= today && 
-          task.dueDate.toDate() <= nextWeek
-        );
+        const nextWeek = new Date(today);
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        return allTasks.filter(task => {
+            if (task.isCompleted || !task.dueDate) return false;
+            const taskDueDate = task.dueDate.toDate();
+            taskDueDate.setHours(0,0,0,0);
+            return taskDueDate >= today && taskDueDate <= nextWeek;
+        });
       case 'completed':
         return allTasks.filter(task => task.isCompleted);
       case 'all':
@@ -131,9 +129,17 @@ export default function TasksPage() {
   const handleSaveTask = async () => {
     if (!user || !name) return;
 
+    let dueDateTimestamp = null;
+    if (dueDate) {
+        const date = new Date(dueDate);
+        // Adjust for timezone offset by setting time to UTC midnight
+        const utcDate = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+        dueDateTimestamp = Timestamp.fromDate(utcDate);
+    }
+
     const taskData = {
       name,
-      dueDate: dueDate ? Timestamp.fromDate(new Date(dueDate)) : null,
+      dueDate: dueDateTimestamp,
       priority,
       userId: user.uid,
     };
