@@ -190,7 +190,7 @@ export default function Dashboard() {
                       <p className="font-medium">{task.name}</p>
                       <p className="text-sm text-muted-foreground">
                         Vence:{' '}
-                        {new Date(task.dueDate?.toDate()).toLocaleDateString()}
+                        {task.dueDate?.toDate ? task.dueDate.toDate().toLocaleDateString() : 'Sin fecha'}
                       </p>
                     </div>
                   </li>
@@ -299,12 +299,10 @@ export default function Dashboard() {
             <CardDescription>Progreso mensual de tus metas.</CardDescription>
           </CardHeader>
           <CardContent>
-            {isClient && <p>Gráfico de progreso no disponible temporalmente.</p>}
+            <p>Gráfico de progreso no disponible temporalmente.</p>
           </CardContent>
         </Card>
       </div>
     </div>
   );
 }
-
-    

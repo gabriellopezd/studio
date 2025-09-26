@@ -71,7 +71,7 @@ export default function GoalsPage() {
             <CardFooter>
               <p className="text-sm text-muted-foreground">
                 Vencimiento:{' '}
-                {new Date(goal.dueDate?.toDate()).toLocaleDateString()}
+                {goal.dueDate?.toDate ? goal.dueDate.toDate().toLocaleDateString() : 'Sin fecha'}
               </p>
             </CardFooter>
           </Card>
