@@ -45,7 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Check, Flame, MoreHorizontal, Pencil, PlusCircle, Trash2 } from 'lucide-react';
+import { Check, Flame, MoreHorizontal, Pencil, PlusCircle, Trash2, Trophy } from 'lucide-react';
 import {
   useFirebase,
   useCollection,
@@ -194,6 +194,7 @@ export default function HabitsPage() {
     } else {
       // Completing the habit.
       const currentStreak = habit.currentStreak || 0;
+      const longestStreak = habit.longestStreak || 0;
       let newStreak = 1;
 
       if (lastCompletedDate) {
@@ -214,11 +215,14 @@ export default function HabitsPage() {
           newStreak = currentStreak + 1;
         }
       }
+      
+      const newLongestStreak = Math.max(longestStreak, newStreak);
 
       // Save the current state before updating, so we can revert if needed.
       updateDocumentNonBlocking(habitRef, {
         lastCompletedAt: Timestamp.fromDate(today),
         currentStreak: newStreak,
+        longestStreak: newLongestStreak,
         previousStreak: currentStreak,
         previousLastCompletedAt: habit.lastCompletedAt,
       });
@@ -248,6 +252,7 @@ export default function HabitsPage() {
         frequency: newHabitFrequency,
         category: newHabitCategory,
         currentStreak: 0,
+        longestStreak: 0,
         createdAt: serverTimestamp(),
         lastCompletedAt: null,
         userId: user.uid,
@@ -334,9 +339,15 @@ export default function HabitsPage() {
                                 <CardDescription>{habit.frequency}</CardDescription>
                               </div>
                             </div>
-                            <div className="flex items-center gap-1 text-orange-500">
-                              <Flame className="h-5 w-5" />
-                              <span className="font-bold">{habit.currentStreak}</span>
+                             <div className="flex flex-col items-end gap-1">
+                              <div className="flex items-center gap-1 text-orange-500">
+                                <Flame className="h-5 w-5" />
+                                <span className="font-bold">{habit.currentStreak || 0}</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-yellow-500">
+                                <Trophy className="h-4 w-4" />
+                                <span className="font-semibold text-sm">{habit.longestStreak || 0}</span>
+                              </div>
                             </div>
                           </div>
                         </CardHeader>
@@ -568,3 +579,5 @@ export default function HabitsPage() {
     </>
   );
 }
+
+    

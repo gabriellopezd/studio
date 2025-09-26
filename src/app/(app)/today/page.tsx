@@ -193,6 +193,7 @@ export default function TodayPage() {
     } else {
       // Completing the habit.
       const currentStreak = habit.currentStreak || 0;
+      const longestStreak = habit.longestStreak || 0;
       let newStreak = 1;
 
       if (lastCompletedDate) {
@@ -213,11 +214,14 @@ export default function TodayPage() {
           newStreak = currentStreak + 1;
         }
       }
+      
+      const newLongestStreak = Math.max(longestStreak, newStreak);
 
       // Save the current state before updating, so we can revert if needed.
       updateDocumentNonBlocking(habitRef, {
         lastCompletedAt: Timestamp.fromDate(today),
         currentStreak: newStreak,
+        longestStreak: newLongestStreak,
         previousStreak: currentStreak,
         previousLastCompletedAt: habit.lastCompletedAt,
       });
@@ -305,7 +309,7 @@ export default function TodayPage() {
                                   <div>
                                     <p className="font-medium">{habit.name}</p>
                                     <p className="text-sm text-muted-foreground">
-                                      Racha: {habit.currentStreak}{' '}
+                                      Racha: {habit.currentStreak || 0}{' '}
                                       {habit.frequency === 'Diario'
                                         ? 'días'
                                         : habit.frequency === 'Semanal'
@@ -393,3 +397,5 @@ export default function TodayPage() {
     </div>
   );
 }
+
+    
