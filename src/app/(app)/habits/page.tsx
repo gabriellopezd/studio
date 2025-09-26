@@ -40,6 +40,7 @@ import {
 import { collection, doc, serverTimestamp, Timestamp } from 'firebase/firestore';
 
 const isSameDay = (date1: Date, date2: Date) => {
+  if (!date1 || !date2) return false;
   return (
     date1.getFullYear() === date2.getFullYear() &&
     date1.getMonth() === date2.getMonth() &&
@@ -66,35 +67,47 @@ export default function HabitsPage() {
 
     const habit = allHabits.find((h) => h.id === habitId);
     if (!habit) return;
-    
+
     const habitRef = doc(firestore, 'users', user.uid, 'habits', habitId);
 
     const today = new Date();
     const yesterday = new Date();
     yesterday.setDate(today.getDate() - 1);
 
-    const lastCompletedDate = habit.lastCompletedAt ? (habit.lastCompletedAt as Timestamp).toDate() : null;
-    const isCompletedToday = lastCompletedDate && isSameDay(lastCompletedDate, today);
+    const lastCompletedDate = habit.lastCompletedAt
+      ? (habit.lastCompletedAt as Timestamp).toDate()
+      : null;
+    const isCompletedToday =
+      lastCompletedDate && isSameDay(lastCompletedDate, today);
 
     if (isCompletedToday) {
-      // Habit already completed today, do nothing.
-      // Or, add logic to "un-complete", which might complicate streak logic.
-      // For now, we prevent un-completing to keep streaks simple.
-      return;
-    }
+      // Reverting completion for today. Restore the previous state.
+      const previousStreak = habit.previousStreak ?? 0;
+      const previousLastCompletedAt = habit.previousLastCompletedAt ?? null;
+      updateDocumentNonBlocking(habitRef, {
+        lastCompletedAt: previousLastCompletedAt,
+        currentStreak: previousStreak,
+        previousStreak: null,
+        previousLastCompletedAt: null,
+      });
+    } else {
+      // Completing the habit for today.
+      const currentStreak = habit.currentStreak || 0;
+      let newStreak = 1; // Start a new streak by default
 
-    const currentStreak = habit.currentStreak || 0;
-    let newStreak = 1; // Default to starting a new streak
+      if (lastCompletedDate && isSameDay(lastCompletedDate, yesterday)) {
+        // Completed yesterday, continue streak.
+        newStreak = currentStreak + 1;
+      }
 
-    if (lastCompletedDate && isSameDay(lastCompletedDate, yesterday)) {
-      // It was completed yesterday, so we increment the streak.
-      newStreak = currentStreak + 1;
+      // Save the current state before updating, so we can revert if needed.
+      updateDocumentNonBlocking(habitRef, {
+        lastCompletedAt: Timestamp.fromDate(today),
+        currentStreak: newStreak,
+        previousStreak: currentStreak,
+        previousLastCompletedAt: habit.lastCompletedAt,
+      });
     }
-    
-    updateDocumentNonBlocking(habitRef, {
-      lastCompletedAt: Timestamp.fromDate(today),
-      currentStreak: newStreak,
-    });
   };
 
   const handleCreateHabit = async () => {
@@ -221,7 +234,6 @@ export default function HabitsPage() {
                   variant={isCompleted ? 'secondary' : 'outline'}
                   className="w-full"
                   onClick={() => handleToggleHabit(habit.id)}
-                  disabled={isCompleted}
                 >
                   <Check className="mr-2 h-4 w-4" />
                   {isCompleted ? 'Completado Hoy' : 'Marcar como completado'}
@@ -234,5 +246,3 @@ export default function HabitsPage() {
     </div>
   );
 }
-
-    

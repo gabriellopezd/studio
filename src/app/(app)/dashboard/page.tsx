@@ -147,28 +147,37 @@ export default function Dashboard() {
     const lastCompletedDate = habit.lastCompletedAt
       ? (habit.lastCompletedAt as Timestamp).toDate()
       : null;
-    const isCompletedToday = lastCompletedDate && isSameDay(lastCompletedDate, today);
+    const isCompletedToday =
+      lastCompletedDate && isSameDay(lastCompletedDate, today);
 
     if (isCompletedToday) {
-      // Undoing completion for today
-      // This logic can be complex: revert streak? Disallow? For now, we'll just un-complete.
-      // A simple approach is to set lastCompletedAt to null or a past date.
-      // For this implementation, we will not allow "un-completing" to simplify streak logic.
-      return;
+      // Reverting completion for today. Restore the previous state.
+      const previousStreak = habit.previousStreak ?? 0;
+      const previousLastCompletedAt = habit.previousLastCompletedAt ?? null;
+      updateDocumentNonBlocking(habitRef, {
+        lastCompletedAt: previousLastCompletedAt,
+        currentStreak: previousStreak,
+        previousStreak: null,
+        previousLastCompletedAt: null,
+      });
+    } else {
+      // Completing the habit for today.
+      const currentStreak = habit.currentStreak || 0;
+      let newStreak = 1; // Start a new streak by default
+
+      if (lastCompletedDate && isSameDay(lastCompletedDate, yesterday)) {
+        // Completed yesterday, continue streak.
+        newStreak = currentStreak + 1;
+      }
+
+      // Save the current state before updating, so we can revert if needed.
+      updateDocumentNonBlocking(habitRef, {
+        lastCompletedAt: Timestamp.fromDate(today),
+        currentStreak: newStreak,
+        previousStreak: currentStreak,
+        previousLastCompletedAt: habit.lastCompletedAt,
+      });
     }
-
-    const currentStreak = habit.currentStreak || 0;
-    let newStreak = 1; // Start a new streak by default
-
-    if (lastCompletedDate && isSameDay(lastCompletedDate, yesterday)) {
-      // Completed yesterday, continue streak
-      newStreak = currentStreak + 1;
-    }
-
-    updateDocumentNonBlocking(habitRef, {
-      lastCompletedAt: Timestamp.fromDate(today),
-      currentStreak: newStreak,
-    });
   };
 
   const todayString = new Date().toLocaleDateString('es-ES', {
@@ -231,7 +240,6 @@ export default function Dashboard() {
                       variant={isCompleted ? 'secondary' : 'outline'}
                       size="sm"
                       onClick={() => handleToggleHabit(habit.id)}
-                      disabled={isCompleted}
                     >
                       <CheckCircle2 className="mr-2 h-4 w-4" />
                       {isCompleted ? 'Completado' : 'Marcar'}
@@ -418,5 +426,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-    
