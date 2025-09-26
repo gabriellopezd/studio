@@ -21,6 +21,13 @@ import { useState, useEffect } from 'react';
 import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from '@/components/theme-provider';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export default function SettingsPage() {
   const { firestore, auth } = useFirebase();
@@ -164,17 +171,21 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div>
-                  <Label htmlFor="theme">Tema Oscuro</Label>
+                  <Label htmlFor="theme-select">Tema</Label>
                   <p className="text-sm text-muted-foreground">
-                    Activa el modo oscuro para una experiencia visual más cómoda
-                    por la noche.
+                    Elige cómo quieres que se vea la aplicación.
                   </p>
                 </div>
-                <Switch 
-                  id="theme" 
-                  checked={theme === 'dark'}
-                  onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
-                />
+                <Select value={theme} onValueChange={setTheme}>
+                  <SelectTrigger className="w-[180px]" id="theme-select">
+                    <SelectValue placeholder="Seleccionar tema" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">Claro</SelectItem>
+                    <SelectItem value="dark">Oscuro</SelectItem>
+                    <SelectItem value="system">Automático</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div>
