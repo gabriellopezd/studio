@@ -34,9 +34,11 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { moodLevels as moodOptions } from '@/lib/moods';
+import Link from 'next/link';
 
 const getStartOfWeek = (date: Date) => {
   const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
   return new Date(d.setDate(diff));
@@ -102,12 +104,33 @@ export default function TodayPage() {
         : null,
     [firestore, user]
   );
-  const { data: dailyHabits, isLoading: habitsLoading } =
+  const { data: allHabits, isLoading: habitsLoading } =
     useCollection(habitsQuery);
+
+  const today = useMemo(() => new Date(), []);
+    
+  const habitsForToday = useMemo(() => {
+    if (!allHabits) return [];
+    return allHabits.filter(habit => {
+      const lastCompletedDate = habit.lastCompletedAt ? (habit.lastCompletedAt as Timestamp).toDate() : null;
+      if (!lastCompletedDate) return true; // Always show if never completed
+
+      switch (habit.frequency) {
+        case 'Diario':
+          return !isSameDay(lastCompletedDate, today);
+        case 'Semanal':
+          return !isSameWeek(lastCompletedDate, today);
+        case 'Mensual':
+          return !isSameMonth(lastCompletedDate, today);
+        default:
+          return true;
+      }
+    });
+  }, [allHabits, today]);
     
   const groupedHabits = useMemo(() => {
-    if (!dailyHabits) return {};
-    return dailyHabits.reduce((acc, habit) => {
+    if (!habitsForToday) return {};
+    return habitsForToday.reduce((acc, habit) => {
       const category = habit.category || 'Sin Categoría';
       if (!acc[category]) {
         acc[category] = [];
@@ -115,7 +138,7 @@ export default function TodayPage() {
       acc[category].push(habit);
       return acc;
     }, {} as { [key: string]: any[] });
-  }, [dailyHabits]);
+  }, [habitsForToday]);
 
   const tasksQuery = useMemo(
     () =>
@@ -135,9 +158,7 @@ export default function TodayPage() {
     setIsClient(true);
   }, []);
 
-  const today = new Date();
-  const completedHabits =
-    dailyHabits?.filter((h) => {
+  const completedHabits = allHabits?.filter((h) => {
       if (!h.lastCompletedAt) return false;
       const lastCompletedDate = (h.lastCompletedAt as Timestamp).toDate();
       switch (h.frequency) {
@@ -150,18 +171,18 @@ export default function TodayPage() {
           return isSameDay(lastCompletedDate, today);
       }
     }).length ?? 0;
-  const totalHabits = dailyHabits?.length ?? 0;
+
+  const totalHabits = allHabits?.length ?? 0;
   const habitsProgress =
     totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
 
   const handleToggleHabit = (habitId: string) => {
-    if (!user || !dailyHabits) return;
+    if (!user || !allHabits) return;
 
-    const habit = dailyHabits.find((h) => h.id === habitId);
+    const habit = allHabits.find((h) => h.id === habitId);
     if (!habit) return;
 
     const habitRef = doc(firestore, 'users', user.uid, 'habits', habitId);
-    const today = new Date();
 
     const lastCompletedDate = habit.lastCompletedAt
       ? (habit.lastCompletedAt as Timestamp).toDate()
@@ -255,10 +276,10 @@ export default function TodayPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="size-5" />
-              <span>Hábitos de Hoy</span>
+              <span>Tus Hábitos Pendientes</span>
             </CardTitle>
             <CardDescription>
-              Has completado {completedHabits} de {totalHabits} hábitos.
+              Progreso general de hoy: {completedHabits} de {totalHabits} hábitos completados.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -268,7 +289,7 @@ export default function TodayPage() {
             />
             <div className="space-y-6">
               {habitsLoading && <p>Cargando hábitos...</p>}
-              {Object.keys(groupedHabits).length > 0 ? (
+              {habitsForToday.length > 0 ? (
                 habitCategories.map(category => (
                     groupedHabits[category] && groupedHabits[category].length > 0 && (
                       <div key={category}>
@@ -341,7 +362,16 @@ export default function TodayPage() {
                     )
                 ))
               ) : (
-                !habitsLoading && <p>No tienes hábitos configurados para hoy.</p>
+                !habitsLoading && 
+                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-10 text-center">
+                    <CheckCircle2 className="h-12 w-12 text-green-500" />
+                    <h3 className="mt-4 text-lg font-semibold text-foreground">
+                      ¡Todo listo por hoy!
+                    </h3>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Has completado todos tus hábitos para el periodo actual. ¡Sigue así!
+                    </p>
+                </div>
               )}
             </div>
           </CardContent>
@@ -392,9 +422,12 @@ export default function TodayPage() {
                   variant="ghost"
                   size="icon"
                   className="h-14 w-14 rounded-full"
+                  asChild
                 >
-                  <span className="text-3xl">{mood.emoji}</span>
-                  <span className="sr-only">{mood.label}</span>
+                  <Link href="/mood-tracker">
+                    <span className="text-3xl">{mood.emoji}</span>
+                    <span className="sr-only">{mood.label}</span>
+                  </Link>
                 </Button>
               ))}
             </CardContent>
