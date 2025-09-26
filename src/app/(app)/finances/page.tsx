@@ -102,6 +102,7 @@ export default function FinancesPage() {
       date: new Date().toISOString(),
       amount: amount,
       createdAt: serverTimestamp(),
+      userId: user.uid,
     };
 
     const transactionsColRef = collection(

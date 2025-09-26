@@ -95,6 +95,7 @@ export default function ExpensesPage() {
     );
     await addDocumentNonBlocking(transactionsColRef, {
       ...newTransaction,
+      userId: user.uid,
       createdAt: serverTimestamp(),
     });
     toast({
@@ -111,6 +112,7 @@ export default function ExpensesPage() {
         name: newListName.trim(),
         createdAt: serverTimestamp(),
         items: [],
+        userId: user.uid,
       };
       const listsColRef = collection(
         firestore,
