@@ -47,10 +47,8 @@ import {
   FirebaseClientProvider,
   useUser,
   useAuth,
-  useFirebase,
 } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { getAuth } from 'firebase/auth';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Mi Día' },
@@ -65,8 +63,9 @@ const navItems = [
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   const router = useRouter();
-  const auth = getAuth();
+  
   const userAvatar = PlaceHolderImages.find(
     (img) => img.id === 'user-avatar-1'
   );
@@ -78,12 +77,13 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   }, [user, isUserLoading, router]);
 
   const handleSignOut = () => {
-    auth.signOut();
-    router.push('/login');
+    if (auth) {
+      auth.signOut();
+      router.push('/login');
+    }
   };
 
   if (isUserLoading || !user) {
-    // You can render a loading spinner here
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <div className="text-xl">Cargando...</div>

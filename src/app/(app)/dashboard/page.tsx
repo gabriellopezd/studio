@@ -34,10 +34,9 @@ import PageHeader from '@/components/page-header';
 import { useState, useEffect } from 'react';
 import {
   useCollection,
-  useDoc,
-  useFirebase,
   useMemoFirebase,
   updateDocumentNonBlocking,
+  useFirebase
 } from '@/firebase';
 import { collection, doc, query, where, limit } from 'firebase/firestore';
 import { moods as moodOptions } from '@/lib/moods';
@@ -93,12 +92,6 @@ export default function Dashboard() {
   );
   const { data: mainGoals, isLoading: goalsLoading } = useCollection(goalsQuery);
   const mainGoal = mainGoals?.[0];
-
-  const chartDataQuery = useMemoFirebase(() => 
-    user ? query(collection(firestore, 'users', user.uid, 'progressHistory')) : null
-  , [firestore, user]);
-  const { data: chartData, isLoading: chartLoading } = useCollection(chartDataQuery);
-
 
   useEffect(() => {
     setIsClient(true);
@@ -247,7 +240,7 @@ export default function Dashboard() {
                 <div
                   className="relative flex h-40 w-40 items-center justify-center rounded-full bg-muted"
                   role="progressbar"
-                  aria-valuenow={mainGoal.progress}
+                  aria-valuenow={(mainGoal.currentValue / mainGoal.targetValue) * 100}
                   aria-valuemin={0}
                   aria-valuemax={100}
                 >
@@ -276,7 +269,7 @@ export default function Dashboard() {
                   </svg>
                   <div className="flex flex-col">
                     <span className="text-4xl font-bold text-foreground">
-                      {Math.round(mainGoal.currentValue / mainGoal.targetValue * 100)}%
+                      {Math.round((mainGoal.currentValue / mainGoal.targetValue) * 100)}%
                     </span>
                     <span className="text-sm text-muted-foreground">
                       Completado
@@ -306,32 +299,12 @@ export default function Dashboard() {
             <CardDescription>Progreso mensual de tus metas.</CardDescription>
           </CardHeader>
           <CardContent>
-            {isClient && !chartLoading && chartData && (
-              <ChartContainer
-                config={chartConfig}
-                className="h-[250px] w-full"
-              >
-                <BarChart accessibilityLayer data={chartData}>
-                  <XAxis
-                    dataKey="month"
-                    tickLine={false}
-                    tickMargin={10}
-                    axisLine={false}
-                    tickFormatter={(value) => value.slice(0, 3)}
-                  />
-                  <YAxis tickLine={false} axisLine={false} tickMargin={10} />
-                  <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent hideLabel />}
-                  />
-                  <Bar dataKey="goal" fill="var(--color-goal)" radius={8} />
-                </BarChart>
-              </ChartContainer>
-            )}
-             {isClient && chartLoading && <p>Cargando datos del gráfico...</p>}
+            {isClient && <p>Gráfico de progreso no disponible temporalmente.</p>}
           </CardContent>
         </Card>
       </div>
     </div>
   );
 }
+
+    
