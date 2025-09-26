@@ -536,7 +536,7 @@ export default function ExpensesPage() {
                   </AlertDialog>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex w-full items-center space-x-2 mb-6">
+                  <div className="flex w-full flex-col sm:flex-row items-center gap-2 mb-6">
                     <Input
                       type="text"
                       placeholder="Añadir gasto..."
@@ -545,20 +545,23 @@ export default function ExpensesPage() {
                       onKeyDown={(e) => e.key === 'Enter' && handleAddItem()}
                       className="flex-grow"
                     />
-                    <Input
-                      type="text"
-                      placeholder="Cantidad"
-                      value={newItemQuantity}
-                      onChange={(e) => setNewItemQuantity(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddItem()}
-                      className="w-24"
-                    />
-                    <Button
-                      onClick={handleAddItem}
-                      disabled={!newItemName.trim()}
-                    >
-                      Añadir
-                    </Button>
+                    <div className="flex w-full sm:w-auto gap-2">
+                        <Input
+                        type="text"
+                        placeholder="Cantidad"
+                        value={newItemQuantity}
+                        onChange={(e) => setNewItemQuantity(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddItem()}
+                        className="w-full sm:w-24"
+                        />
+                        <Button
+                        onClick={handleAddItem}
+                        disabled={!newItemName.trim()}
+                        className="w-full sm:w-auto"
+                        >
+                        Añadir
+                        </Button>
+                    </div>
                   </div>
 
                   {itemsToPurchase.length > 0 && (

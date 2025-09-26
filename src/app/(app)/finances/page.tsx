@@ -491,73 +491,75 @@ export default function FinancesPage() {
             </CardHeader>
             <CardContent>
               {transactionsLoading && <p>Cargando transacciones...</p>}
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Descripción</TableHead>
-                    <TableHead>Categoría</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead className="text-right">Monto</TableHead>
-                    <TableHead className="w-[50px] text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions?.map((t) => (
-                    <TableRow key={t.id}>
-                      <TableCell className="font-medium flex items-center gap-2">
-                        {t.type === 'income' ? (
-                          <ArrowUpCircle className="h-5 w-5 text-emerald-500" />
-                        ) : (
-                          <ArrowDownCircle className="h-5 w-5 text-red-500" />
-                        )}
-                        {t.description}
-                      </TableCell>
-                      <TableCell>{t.category}</TableCell>
-                      <TableCell>
-                        {new Date(t.date).toLocaleString('es-ES', {
-                          day: 'numeric',
-                          month: 'short',
-                          hour: 'numeric',
-                          minute: 'numeric',
-                          hour12: true,
-                        })}
-                      </TableCell>
-                      <TableCell
-                        className={`text-right font-semibold ${
-                          t.type === 'income'
-                            ? 'text-emerald-500'
-                            : 'text-red-500'
-                        }`}
-                      >
-                        {t.type === 'income' ? '+' : '-'}
-                        {formatCurrency(t.amount)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem onClick={() => openEditDialog(t)}>
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setTransactionToDelete(t)}
-                              className="text-red-500 focus:text-red-500"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Eliminar
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Descripción</TableHead>
+                      <TableHead>Categoría</TableHead>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead className="text-right">Monto</TableHead>
+                      <TableHead className="w-[50px] text-right">Acciones</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {transactions?.map((t) => (
+                      <TableRow key={t.id}>
+                        <TableCell className="font-medium flex items-center gap-2">
+                          {t.type === 'income' ? (
+                            <ArrowUpCircle className="h-5 w-5 text-emerald-500" />
+                          ) : (
+                            <ArrowDownCircle className="h-5 w-5 text-red-500" />
+                          )}
+                          {t.description}
+                        </TableCell>
+                        <TableCell>{t.category}</TableCell>
+                        <TableCell>
+                          {new Date(t.date).toLocaleString('es-ES', {
+                            day: 'numeric',
+                            month: 'short',
+                            hour: 'numeric',
+                            minute: 'numeric',
+                            hour12: true,
+                          })}
+                        </TableCell>
+                        <TableCell
+                          className={`text-right font-semibold ${
+                            t.type === 'income'
+                              ? 'text-emerald-500'
+                              : 'text-red-500'
+                          }`}
+                        >
+                          {t.type === 'income' ? '+' : '-'}
+                          {formatCurrency(t.amount)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem onClick={() => openEditDialog(t)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setTransactionToDelete(t)}
+                                className="text-red-500 focus:text-red-500"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Eliminar
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
           <Card>

@@ -86,8 +86,8 @@ export default function SettingsPage() {
         description="Gestiona tu perfil, cuenta y preferencias."
       />
 
-      <div className="grid gap-4 md:gap-6 md:grid-cols-3">
-        <div className="md:col-span-1 flex flex-col gap-4 md:gap-6">
+      <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-1 flex flex-col gap-4 md:gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Información de Usuario</CardTitle>
@@ -136,7 +136,7 @@ export default function SettingsPage() {
           </Card>
         </div>
 
-        <div className="md:col-span-2 flex flex-col gap-4 md:gap-6">
+        <div className="lg:col-span-2 flex flex-col gap-4 md:gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Configuración de Cuenta</CardTitle>

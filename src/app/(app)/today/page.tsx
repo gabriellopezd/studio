@@ -333,7 +333,7 @@ function TodaysMoodCard() {
             {step < 3 && (
               <Button
                 onClick={() => setStep((s) => s + 1)}
-                disabled={step === 1 && !selectedMood || step === 2 && selectedFeelings.length === 0}
+                disabled={(step === 1 && !selectedMood) || (step === 2 && selectedFeelings.length === 0)}
               >
                 Siguiente
               </Button>
@@ -537,113 +537,115 @@ export default function TodayPage() {
             : 'Resumen de tu actividad para hoy.'
         }
       />
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="size-5" />
-              <span>Tus Hábitos Pendientes</span>
-            </CardTitle>
-            <CardDescription>
-              Progreso general de hoy: {completedHabits} de {totalHabits} hábitos completados.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Progress
-              value={habitsProgress}
-              aria-label={`${habitsProgress}% de hábitos completados`}
-            />
-            <div className="space-y-6">
-              {habitsLoading && <p>Cargando hábitos...</p>}
-              {habitsForToday.length > 0 ? (
-                habitCategories.map(category => (
-                    groupedHabits[category] && groupedHabits[category].length > 0 && (
-                      <div key={category}>
-                         <h3 className="text-lg font-semibold tracking-tight mb-2">{category}</h3>
-                         <div className="space-y-2">
-                          {groupedHabits[category].map((habit) => {
-                            const lastCompletedDate = habit.lastCompletedAt
-                              ? (habit.lastCompletedAt as Timestamp).toDate()
-                              : null;
-        
-                            let isCompleted = false;
-                            if (lastCompletedDate) {
-                              switch (habit.frequency) {
-                                case 'Semanal':
-                                  isCompleted = isSameWeek(
-                                    lastCompletedDate,
-                                    new Date()
-                                  );
-                                  break;
-                                case 'Mensual':
-                                  isCompleted = isSameMonth(
-                                    lastCompletedDate,
-                                    new Date()
-                                  );
-                                  break;
-                                case 'Diario':
-                                default:
-                                  isCompleted = isSameDay(
-                                    lastCompletedDate,
-                                    new Date()
-                                  );
-                                  break;
-                              }
-                            }
-        
-                            return (
-                              <div
-                                key={habit.id}
-                                className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50"
-                              >
-                                <div className="flex items-center gap-3">
-                                  <span className="text-2xl">{habit.icon}</span>
-                                  <div>
-                                    <p className="font-medium">{habit.name}</p>
-                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                      <span className="flex items-center gap-1">
-                                        <Flame className="h-4 w-4 text-orange-500"/> 
-                                        {habit.currentStreak || 0}
-                                      </span>
-                                      <span className="flex items-center gap-1">
-                                        <Trophy className="h-4 w-4 text-yellow-500"/>
-                                        {habit.longestStreak || 0}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                                <Button
-                                  variant={isCompleted ? 'secondary' : 'outline'}
-                                  size="sm"
-                                  onClick={() => handleToggleHabit(habit.id)}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 flex flex-col gap-6">
+            <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                <Activity className="size-5" />
+                <span>Tus Hábitos Pendientes</span>
+                </CardTitle>
+                <CardDescription>
+                Progreso general de hoy: {completedHabits} de {totalHabits} hábitos completados.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <Progress
+                value={habitsProgress}
+                aria-label={`${habitsProgress}% de hábitos completados`}
+                />
+                <div className="space-y-6">
+                {habitsLoading && <p>Cargando hábitos...</p>}
+                {habitsForToday.length > 0 ? (
+                    habitCategories.map(category => (
+                        groupedHabits[category] && groupedHabits[category].length > 0 && (
+                        <div key={category}>
+                            <h3 className="text-lg font-semibold tracking-tight mb-2">{category}</h3>
+                            <div className="space-y-2">
+                            {groupedHabits[category].map((habit) => {
+                                const lastCompletedDate = habit.lastCompletedAt
+                                ? (habit.lastCompletedAt as Timestamp).toDate()
+                                : null;
+            
+                                let isCompleted = false;
+                                if (lastCompletedDate) {
+                                switch (habit.frequency) {
+                                    case 'Semanal':
+                                    isCompleted = isSameWeek(
+                                        lastCompletedDate,
+                                        new Date()
+                                    );
+                                    break;
+                                    case 'Mensual':
+                                    isCompleted = isSameMonth(
+                                        lastCompletedDate,
+                                        new Date()
+                                    );
+                                    break;
+                                    case 'Diario':
+                                    default:
+                                    isCompleted = isSameDay(
+                                        lastCompletedDate,
+                                        new Date()
+                                    );
+                                    break;
+                                }
+                                }
+            
+                                return (
+                                <div
+                                    key={habit.id}
+                                    className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50"
                                 >
-                                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                                  {isCompleted ? 'Completado' : 'Marcar'}
-                                </Button>
-                              </div>
-                            );
-                          })}
+                                    <div className="flex items-center gap-3">
+                                    <span className="text-2xl">{habit.icon}</span>
+                                    <div>
+                                        <p className="font-medium">{habit.name}</p>
+                                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                        <span className="flex items-center gap-1">
+                                            <Flame className="h-4 w-4 text-orange-500"/> 
+                                            {habit.currentStreak || 0}
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            <Trophy className="h-4 w-4 text-yellow-500"/>
+                                            {habit.longestStreak || 0}
+                                        </span>
+                                        </div>
+                                    </div>
+                                    </div>
+                                    <Button
+                                    variant={isCompleted ? 'secondary' : 'outline'}
+                                    size="sm"
+                                    onClick={() => handleToggleHabit(habit.id)}
+                                    >
+                                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                                    {isCompleted ? 'Completado' : 'Marcar'}
+                                    </Button>
+                                </div>
+                                );
+                            })}
+                            </div>
                         </div>
-                      </div>
-                    )
-                ))
-              ) : (
-                !habitsLoading && 
-                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-10 text-center">
-                    <CheckCircle2 className="h-12 w-12 text-green-500" />
-                    <h3 className="mt-4 text-lg font-semibold text-foreground">
-                      ¡Todo listo por hoy!
-                    </h3>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      Has completado todos tus hábitos para el periodo actual. ¡Sigue así!
-                    </p>
+                        )
+                    ))
+                ) : (
+                    !habitsLoading && 
+                    <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-10 text-center">
+                        <CheckCircle2 className="h-12 w-12 text-green-500" />
+                        <h3 className="mt-4 text-lg font-semibold text-foreground">
+                        ¡Todo listo por hoy!
+                        </h3>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                        Has completado todos tus hábitos para el periodo actual. ¡Sigue así!
+                        </p>
+                    </div>
+                )}
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+            </Card>
+        </div>
 
-        <div className="space-y-6">
+        <div className="lg:col-span-1 flex flex-col gap-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

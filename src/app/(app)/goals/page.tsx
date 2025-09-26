@@ -121,7 +121,7 @@ export default function GoalsPage() {
       targetValue: parseFloat(targetValue),
       currentValue: parseFloat(currentValue || '0'),
       unit,
-      dueDate: dueDate ? Timestamp.fromDate(new Date(dueDate)) : null,
+      dueDate: dueDate ? Timestamp.fromDate(new Date(dueDate + 'T00:00:00')) : null,
       userId: user.uid,
     };
 
@@ -169,7 +169,11 @@ export default function GoalsPage() {
   
   const formatDate = (date: any) => {
      if (!date?.toDate) return 'Sin fecha';
-     return date.toDate().toLocaleDateString('es-ES', {
+     const d = date.toDate();
+     // Adjust for timezone offset to show the correct date
+     const timezoneOffset = d.getTimezoneOffset() * 60000;
+     const adjustedDate = new Date(d.getTime() + timezoneOffset);
+     return adjustedDate.toLocaleDateString('es-ES', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
@@ -195,7 +199,7 @@ export default function GoalsPage() {
           {allGoals?.map((goal) => (
             <Card key={goal.id} className="flex flex-col">
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between">
                   <CardTitle>{goal.name}</CardTitle>
                   <div className="flex items-center gap-2">
                     <Target className={`h-6 w-6 ${goal.isCompleted ? 'text-green-500' : 'text-primary'}`} />
@@ -246,7 +250,7 @@ export default function GoalsPage() {
             </Card>
           ))}
           {!allGoals?.length && !goalsLoading && (
-            <Card className="md:col-span-3 flex flex-col items-center justify-center p-10 text-center">
+            <Card className="md:col-span-2 lg:col-span-3 flex flex-col items-center justify-center p-10 text-center">
                 <CardHeader>
                   <Target className="mx-auto h-12 w-12 text-muted-foreground" />
                   <CardTitle className="mt-4">
