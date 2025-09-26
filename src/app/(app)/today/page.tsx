@@ -45,6 +45,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 
 const getStartOfWeek = (date: Date) => {
   const d = new Date(date);
@@ -214,7 +215,7 @@ function TodaysMoodCard() {
           <CardDescription>Registra tu estado de ánimo de hoy.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={handleStartMoodRegistration} className="w-full">
+          <Button onClick={handleStartMoodRegistration} className="w-full mb-4">
             {todayEntry ? (
               <>
                 <span className="mr-2 text-lg">{todayEntry.emoji}</span>
@@ -224,6 +225,26 @@ function TodaysMoodCard() {
               'Registrar mi día'
             )}
           </Button>
+          {todayEntry && (
+            <div className="space-y-4 text-sm">
+                <div>
+                    <h4 className="font-medium mb-2">Sentimientos:</h4>
+                    <div className="flex flex-wrap gap-1">
+                        {todayEntry.feelings.map((feeling: string) => (
+                            <Badge key={feeling} variant="secondary">{feeling}</Badge>
+                        ))}
+                    </div>
+                </div>
+                 <div>
+                    <h4 className="font-medium mb-2">Influencias:</h4>
+                    <div className="flex flex-wrap gap-1">
+                        {todayEntry.influences.map((influence: string) => (
+                            <Badge key={influence} variant="secondary">{influence}</Badge>
+                        ))}
+                    </div>
+                </div>
+            </div>
+          )}
         </CardContent>
       </Card>
       <Dialog open={isDialogOpen} onOpenChange={(open) => { if (!open) resetForm() }}>
