@@ -24,6 +24,7 @@ import {
   ResponsiveContainer,
   XAxis,
   YAxis,
+  Tooltip,
 } from 'recharts';
 import {
   ChartContainer,
@@ -40,13 +41,23 @@ import {
 } from '@/firebase';
 import { collection, doc, query, where, limit } from 'firebase/firestore';
 import { moods as moodOptions } from '@/lib/moods';
+import type { ChartConfig } from '@/components/ui/chart';
+
+const goalProgressData = [
+  { month: 'Enero', progress: 65 },
+  { month: 'Febrero', progress: 70 },
+  { month: 'Marzo', progress: 75 },
+  { month: 'Abril', progress: 80 },
+  { month: 'Mayo', progress: 85 },
+  { month: 'Junio', progress: 90 },
+];
 
 const chartConfig = {
-  goal: {
+  progress: {
     label: 'Progreso',
     color: 'hsl(var(--primary))',
   },
-};
+} satisfies ChartConfig;
 
 export default function Dashboard() {
   const [isClient, setIsClient] = useState(false);
@@ -299,7 +310,33 @@ export default function Dashboard() {
             <CardDescription>Progreso mensual de tus metas.</CardDescription>
           </CardHeader>
           <CardContent>
-            <p>Gráfico de progreso no disponible temporalmente.</p>
+            <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+              <BarChart accessibilityLayer data={goalProgressData}>
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tickFormatter={(value) => value.slice(0, 3)}
+                />
+                <YAxis
+                  stroke="#888888"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => `${value}%`}
+                />
+                <Tooltip
+                  cursor={{ fill: 'hsl(var(--muted))' }}
+                  content={<ChartTooltipContent />}
+                />
+                <Bar
+                  dataKey="progress"
+                  fill="hsl(var(--primary))"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>
