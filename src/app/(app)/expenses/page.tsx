@@ -53,6 +53,8 @@ import {
   query,
   orderBy,
   writeBatch,
+  getDocs,
+  where,
 } from 'firebase/firestore';
 import {
   DndContext,
@@ -112,6 +114,12 @@ export default function ExpensesPage() {
   );
   const { data: lists, isLoading: listsLoading } =
     useCollection(shoppingListsQuery);
+    
+  const budgetsQuery = useMemoFirebase(
+    () => (user ? collection(firestore, 'users', user.uid, 'budgets') : null),
+    [firestore, user]
+  );
+  const { data: budgets } = useCollection(budgetsQuery);
 
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [newListName, setNewListName] = useState('');
@@ -175,6 +183,17 @@ export default function ExpensesPage() {
       userId: user.uid,
       createdAt: serverTimestamp(),
     });
+    
+    // Update budget if it's an expense and a budget for that category exists
+    if (newTransaction.type === 'expense') {
+      const budget = budgets?.find(b => b.categoryName === newTransaction.category);
+      if (budget) {
+        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+        const newSpend = (budget.currentSpend || 0) + newTransaction.amount;
+        updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
+      }
+    }
+    
     toast({
       title: 'Gasto Registrado',
       description: `${
@@ -260,7 +279,7 @@ export default function ExpensesPage() {
 
       const updatedItems = list.items.map((i: any) => {
         if (i.itemId === itemId) {
-          const newItem = { ...i, isPurchased: false };
+          const newItem: any = { ...i, isPurchased: false };
           delete newItem.price;
           delete newItem.transactionId;
           return newItem;
@@ -672,3 +691,5 @@ export default function ExpensesPage() {
     </>
   );
 }
+
+    
