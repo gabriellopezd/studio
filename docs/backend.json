@@ -104,18 +104,27 @@
           "format": "date-time"
         },
         "previousStreak": {
-            "type": "number",
-            "description": "The streak count before the last completion, used for undo functionality."
+          "type": "number",
+          "description": "The streak count before the last completion, used for undo functionality."
         },
         "previousLastCompletedAt": {
-            "type": ["string", "null"],
-            "format": "date-time",
-            "description": "The completion timestamp before the last one, used for undo functionality."
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "The completion timestamp before the last one, used for undo functionality."
         },
         "category": {
           "type": "string",
           "description": "The category of the habit.",
-          "enum": ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual"]
+          "enum": [
+            "Productividad",
+            "Conocimiento",
+            "Social",
+            "Físico",
+            "Espiritual"
+          ]
         }
       },
       "required": [
