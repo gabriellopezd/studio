@@ -5,7 +5,7 @@ import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Pencil, Trash2, CalendarIcon } from 'lucide-react';
 import {
   useFirebase,
   useCollection,
@@ -13,13 +13,12 @@ import {
   addDocumentNonBlocking,
   deleteDocumentNonBlocking
 } from '@/firebase';
-import { collection, doc, query, where, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, query, Timestamp, serverTimestamp } from 'firebase/firestore';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
@@ -48,7 +47,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 
 export default function TasksPage() {
@@ -60,7 +64,7 @@ export default function TasksPage() {
   const [taskToDelete, setTaskToDelete] = useState<any | null>(null);
 
   const [name, setName] = useState('');
-  const [dueDate, setDueDate] = useState('');
+  const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [priority, setPriority] = useState('medium');
 
   const tasksQuery = useMemo(() => {
@@ -71,7 +75,7 @@ export default function TasksPage() {
   const { data: allTasks, isLoading: tasksLoading } = useCollection(tasksQuery);
 
   const filteredTasks = useMemo(() => {
-    if (!allTasks) return null;
+    if (!allTasks) return [];
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -86,12 +90,12 @@ export default function TasksPage() {
         });
       case 'upcoming':
         const nextWeek = new Date(today);
-        nextWeek.setDate(nextWeek.getDate() + 7);
+        nextWeek.setDate(today.getDate() + 7);
         return allTasks.filter(task => {
             if (task.isCompleted || !task.dueDate) return false;
             const taskDueDate = task.dueDate.toDate();
             taskDueDate.setHours(0,0,0,0);
-            return taskDueDate >= today && taskDueDate <= nextWeek;
+            return taskDueDate > today && taskDueDate <= nextWeek;
         });
       case 'completed':
         return allTasks.filter(task => task.isCompleted);
@@ -109,7 +113,7 @@ export default function TasksPage() {
   
   const resetForm = () => {
     setName('');
-    setDueDate('');
+    setDueDate(undefined);
     setPriority('medium');
     setTaskToEdit(null);
   };
@@ -118,7 +122,7 @@ export default function TasksPage() {
     if (task) {
       setTaskToEdit(task);
       setName(task.name);
-      setDueDate(task.dueDate?.toDate ? task.dueDate.toDate().toISOString().split('T')[0] : '');
+      setDueDate(task.dueDate?.toDate ? task.dueDate.toDate() : undefined);
       setPriority(task.priority || 'medium');
     } else {
       resetForm();
@@ -131,10 +135,7 @@ export default function TasksPage() {
   
     const taskData = {
       name,
-      // The `dueDate` is a string in "YYYY-MM-DD" format.
-      // `new Date(dueDate)` will parse it as UTC midnight.
-      // To correctly represent the user's intended date, we must account for the timezone offset.
-      dueDate: dueDate ? Timestamp.fromDate(new Date(dueDate + 'T00:00:00')) : null,
+      dueDate: dueDate ? Timestamp.fromDate(dueDate) : null,
       priority,
       userId: user.uid,
     };
@@ -165,10 +166,15 @@ export default function TasksPage() {
   const getTaskDueDate = (task: any) => {
     if (task.dueDate && task.dueDate.toDate) {
       const date = task.dueDate.toDate();
-      // Adjust for timezone when displaying
-      const userTimezoneOffset = date.getTimezoneOffset() * 60000;
-      const localDate = new Date(date.getTime() + userTimezoneOffset);
-      return `Vence: ${localDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}`;
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const taskDate = new Date(date);
+      taskDate.setHours(0,0,0,0);
+
+      if (taskDate.getTime() < today.getTime()) {
+        return `Venció: ${format(date, 'PPP', { locale: es })}`;
+      }
+      return `Vence: ${format(date, 'PPP', { locale: es })}`;
     }
     return 'Sin fecha de vencimiento';
   }
@@ -283,7 +289,28 @@ export default function TasksPage() {
              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="task-due-date">Fecha de Vencimiento</Label>
-                  <Input id="task-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !dueDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dueDate ? format(dueDate, "PPP", { locale: es }) : <span>Elige una fecha</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={dueDate}
+                        onSelect={setDueDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="space-y-2">
                    <Label htmlFor="task-priority">Prioridad</Label>
