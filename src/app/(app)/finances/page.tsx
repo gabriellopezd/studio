@@ -155,7 +155,6 @@ export default function FinancesPage() {
     );
     await addDocumentNonBlocking(transactionsColRef, newTransaction);
     
-    // Update budget if it's an expense and a budget for that category exists
     if (newTransaction.type === 'expense') {
       const budget = budgets?.find(b => b.categoryName === newTransaction.category);
       if (budget) {
@@ -180,15 +179,13 @@ export default function FinancesPage() {
     if (!category || !newBudgetLimit || isNaN(limit)) return;
   
     if (budgetToEdit) {
-      // Logic to update existing budget
       const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budgetToEdit.id);
       updateDocumentNonBlocking(budgetRef, { monthlyLimit: limit });
     } else {
-      // Logic to add new budget
       const newBudget = {
         categoryName: category,
         monthlyLimit: limit,
-        currentSpend: 0, // Initialize currentSpend for new budgets
+        currentSpend: 0,
         userId: user.uid,
       };
       const budgetsColRef = collection(firestore, 'users', user.uid, 'budgets');
@@ -217,7 +214,6 @@ export default function FinancesPage() {
     const amount = parseFloat(transactionToEdit.amount);
     if (isNaN(amount)) return;
 
-    // Fetch original transaction to calculate spend difference
     const originalTransaction = transactions?.find(t => t.id === transactionToEdit.id);
     if (!originalTransaction) return;
     
@@ -237,16 +233,47 @@ export default function FinancesPage() {
       type: transactionToEdit.type,
     });
     
-    // Update budget if category has a budget
-    if (transactionToEdit.type === 'expense') {
-        const budget = budgets?.find(b => b.categoryName === transactionToEdit.category);
-        if (budget) {
-            const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-            const newSpend = (budget.currentSpend || 0) + amountDifference;
-            updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
+    const oldCategoryBudget = budgets?.find(b => b.categoryName === originalTransaction.category);
+    const newCategoryBudget = budgets?.find(b => b.categoryName === transactionToEdit.category);
+
+    // If transaction type changed from expense to income
+    if (originalTransaction.type === 'expense' && transactionToEdit.type === 'income') {
+      if (oldCategoryBudget) {
+        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', oldCategoryBudget.id);
+        const newSpend = Math.max(0, (oldCategoryBudget.currentSpend || 0) - originalTransaction.amount);
+        updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
+      }
+    } 
+    // If transaction type changed from income to expense
+    else if (originalTransaction.type === 'income' && transactionToEdit.type === 'expense') {
+      if (newCategoryBudget) {
+        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', newCategoryBudget.id);
+        const newSpend = (newCategoryBudget.currentSpend || 0) + amount;
+        updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
+      }
+    }
+    // If transaction remains an expense
+    else if (transactionToEdit.type === 'expense') {
+        // If category changed
+        if (originalTransaction.category !== transactionToEdit.category) {
+            if (oldCategoryBudget) {
+                const budgetRef = doc(firestore, 'users', user.uid, 'budgets', oldCategoryBudget.id);
+                const newSpend = Math.max(0, (oldCategoryBudget.currentSpend || 0) - originalTransaction.amount);
+                updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
+            }
+            if (newCategoryBudget) {
+                const budgetRef = doc(firestore, 'users', user.uid, 'budgets', newCategoryBudget.id);
+                const newSpend = (newCategoryBudget.currentSpend || 0) + amount;
+                updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
+            }
+        } 
+        // If only amount changed
+        else if (newCategoryBudget) {
+            const budgetRef = doc(firestore, 'users', user.uid, 'budgets', newCategoryBudget.id);
+            const newSpend = (newCategoryBudget.currentSpend || 0) + amountDifference;
+            updateDocumentNonBlocking(budgetRef, { currentSpend: Math.max(0, newSpend) });
         }
     }
-
 
     setTransactionToEdit(null);
   };
@@ -254,7 +281,6 @@ export default function FinancesPage() {
   const handleDeleteTransaction = async () => {
     if (!transactionToDelete || !user) return;
 
-    // Delete the transaction
     const transactionRef = doc(
       firestore,
       'users',
@@ -264,8 +290,7 @@ export default function FinancesPage() {
     );
     await deleteDocumentNonBlocking(transactionRef);
 
-    // If linked to a shopping item, update it
-    if (transactionToDelete.category !== 'Salario' && transactionToDelete.category !== 'Otro') {
+    if (transactionToDelete.type === 'expense') {
       const shoppingListsQuery = query(
         collection(firestore, 'users', user.uid, 'shoppingLists'),
         where('name', '==', transactionToDelete.category)
@@ -287,18 +312,14 @@ export default function FinancesPage() {
 
         await updateDocumentNonBlocking(listRef, { items: updatedItems });
       }
-    }
-    
-     // Update budget on delete
-    if (transactionToDelete.type === 'expense') {
+      
       const budget = budgets?.find(b => b.categoryName === transactionToDelete.category);
       if (budget) {
           const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
           const newSpend = (budget.currentSpend || 0) - transactionToDelete.amount;
-          updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend < 0 ? 0 : newSpend });
+          updateDocumentNonBlocking(budgetRef, { currentSpend: Math.max(0, newSpend) });
       }
     }
-
 
     setTransactionToDelete(null);
   };
