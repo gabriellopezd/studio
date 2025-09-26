@@ -4,7 +4,6 @@ import { useState } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { moods as moodOptions } from '@/lib/moods';
 import {
   useFirebase,
   useCollection,
@@ -14,10 +13,28 @@ import {
 } from '@/firebase';
 import { collection, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { moodLevels, feelings, influences } from '@/lib/moods';
+
 
 export default function MoodTrackerPage() {
   const { firestore, user } = useFirebase();
   const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  const [isDialogOpen, setDialogOpen] = useState(false);
+  const [step, setStep] = useState(1);
+  
+  const [selectedMood, setSelectedMood] = useState<{ level: number; emoji: string; label: string } | null>(null);
+  const [selectedFeelings, setSelectedFeelings] = useState<string[]>([]);
+  const [selectedInfluences, setSelectedInfluences] = useState<string[]>([]);
 
   const moodsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -39,33 +56,63 @@ export default function MoodTrackerPage() {
   const daysInMonth = getDaysInMonth(currentMonth.getFullYear(), currentMonth.getMonth());
   const calendarDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
-  const handleMoodSelect = async (moodLevel: number, emoji: string) => {
-    if (!user) return;
+  const resetForm = () => {
+    setStep(1);
+    setSelectedMood(null);
+    setSelectedFeelings([]);
+    setSelectedInfluences([]);
+    setDialogOpen(false);
+  };
+  
+  const handleStartMoodRegistration = () => {
+    resetForm();
+    setDialogOpen(true);
+  };
+
+  const handleMoodSelect = (mood: {level: number; emoji: string; label: string}) => {
+    setSelectedMood(mood);
+    setStep(2);
+  };
+  
+  const handleToggleSelection = (
+    item: string,
+    selection: string[],
+    setSelection: React.Dispatch<React.SetStateAction<string[]>>
+  ) => {
+    setSelection(prev =>
+      prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]
+    );
+  };
+
+  const handleSaveMood = async () => {
+    if (!user || !selectedMood) return;
     
     const today = new Date();
     today.setHours(0, 0, 0, 0); 
     const todayISO = today.toISOString().split('T')[0];
 
     const moodsColRef = collection(firestore, 'users', user.uid, 'moods');
-    
-    // Check if there's already an entry for today
     const q = query(collection(firestore, 'users', user.uid, 'moods'), where('date', '>=', `${todayISO}T00:00:00.000Z`), where('date', '<=', `${todayISO}T23:59:59.999Z`));
     const querySnapshot = await getDocs(q);
 
-    if (!querySnapshot.empty) {
-      // Update existing entry
-      const existingDoc = querySnapshot.docs[0];
-      updateDocumentNonBlocking(existingDoc.ref, { moodLevel, emoji });
-    } else {
-      // Add new entry
-      addDocumentNonBlocking(moodsColRef, {
-        moodLevel,
-        emoji,
+    const moodData = {
+        moodLevel: selectedMood.level,
+        moodLabel: selectedMood.label,
+        emoji: selectedMood.emoji,
+        feelings: selectedFeelings,
+        influences: selectedInfluences,
         date: new Date().toISOString(),
-        createdAt: serverTimestamp(),
-      });
+      };
+
+    if (!querySnapshot.empty) {
+      const existingDoc = querySnapshot.docs[0];
+      updateDocumentNonBlocking(existingDoc.ref, moodData);
+    } else {
+      addDocumentNonBlocking(moodsColRef, { ...moodData, createdAt: serverTimestamp() });
     }
+    resetForm();
   };
+
 
   const getMoodForDay = (day: number) => {
     const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
@@ -86,11 +133,16 @@ export default function MoodTrackerPage() {
   const todayEntry = moods?.find(m => new Date(m.date).toDateString() === new Date().toDateString());
 
   return (
+    <>
     <div className="flex flex-col gap-6">
       <PageHeader
         title="RASTREADOR DE ÁNIMO"
         description="Registra tu ánimo diario y observa tus tendencias emocionales."
-      />
+      >
+        <Button onClick={handleStartMoodRegistration}>
+          {todayEntry ? 'Actualizar mi día' : 'Registrar mi día'}
+        </Button>
+      </PageHeader>
 
       <Card>
         <CardContent className="p-4 md:p-6">
@@ -127,32 +179,86 @@ export default function MoodTrackerPage() {
           </div>
         </CardContent>
       </Card>
-
-      <Card>
-        <CardContent className="p-6">
-          <h3 className="mb-4 text-center text-lg font-medium">
-            ¿Cómo te sientes hoy?
-          </h3>
-          <div className="flex justify-around">
-            {moodOptions.map((mood) => (
-              <Button
-                key={mood.level}
-                variant="ghost"
-                size="icon"
-                onClick={() => handleMoodSelect(mood.level, mood.emoji)}
-                className={`h-16 w-16 rounded-full hover:bg-muted ${todayEntry?.moodLevel === mood.level ? 'bg-muted border-2 border-primary' : ''}`}
-              >
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-3xl">{mood.emoji}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {mood.label}
-                  </span>
-                </div>
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
+
+    <Dialog open={isDialogOpen} onOpenChange={(open) => !open && resetForm()}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+                {step === 1 && '¿Cómo te sientes hoy?'}
+                {step === 2 && '¿Qué características describen mejor lo que sientes?'}
+                {step === 3 && '¿Qué es lo que más está influyendo en tu ánimo?'}
+            </DialogTitle>
+          </DialogHeader>
+
+          {step === 1 && (
+             <div className="flex justify-around py-6">
+                {moodLevels.map((mood) => (
+                  <Button
+                    key={mood.level}
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleMoodSelect(mood)}
+                    className="h-20 w-20 rounded-full"
+                  >
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-4xl">{mood.emoji}</span>
+                      <span className="text-xs text-muted-foreground text-center">
+                        {mood.label}
+                      </span>
+                    </div>
+                  </Button>
+                ))}
+            </div>
+          )}
+
+          {step === 2 && (
+             <div className="flex flex-wrap gap-2 justify-center py-4">
+                {feelings.map((feeling) => (
+                    <Button 
+                        key={feeling} 
+                        variant={selectedFeelings.includes(feeling) ? 'secondary' : 'outline'}
+                        onClick={() => handleToggleSelection(feeling, selectedFeelings, setSelectedFeelings)}
+                    >
+                      {feeling}
+                    </Button>
+                ))}
+             </div>
+          )}
+
+           {step === 3 && (
+             <div className="flex flex-wrap gap-2 justify-center py-4">
+                {influences.map((influence) => (
+                    <Button 
+                        key={influence} 
+                        variant={selectedInfluences.includes(influence) ? 'secondary' : 'outline'}
+                        onClick={() => handleToggleSelection(influence, selectedInfluences, setSelectedInfluences)}
+                    >
+                      {influence}
+                    </Button>
+                ))}
+             </div>
+          )}
+
+          <DialogFooter>
+             {step > 1 && (
+                <Button variant="outline" onClick={() => setStep(s => s - 1)}>
+                    Atrás
+                </Button>
+             )}
+             {step < 3 && (
+                <Button onClick={() => setStep(s => s + 1)} disabled={step === 2 && selectedFeelings.length === 0}>
+                    Siguiente
+                </Button>
+             )}
+              {step === 3 && (
+                <Button onClick={handleSaveMood} disabled={selectedInfluences.length === 0}>
+                    Guardar Registro
+                </Button>
+             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

@@ -34,7 +34,7 @@ import {
   limit,
   Timestamp,
 } from 'firebase/firestore';
-import { moods as moodOptions } from '@/lib/moods';
+import { moodLevels as moodOptions } from '@/lib/moods';
 
 const getStartOfWeek = (date: Date) => {
   const d = new Date(date);
