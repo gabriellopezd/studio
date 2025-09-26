@@ -9,9 +9,9 @@ import {
   useCollection,
   useMemoFirebase,
   addDocumentNonBlocking,
-  updateDocumentNonBlocking
+  updateDocumentNonBlocking,
 } from '@/firebase';
-import { collection, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { collection, serverTimestamp, query, where, getDocs, doc } from 'firebase/firestore';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   Dialog,
@@ -86,30 +86,44 @@ export default function MoodTrackerPage() {
 
   const handleSaveMood = async () => {
     if (!user || !selectedMood) return;
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); 
-    const todayISO = today.toISOString().split('T')[0];
 
-    const moodsColRef = collection(firestore, 'users', user.uid, 'moods');
-    const q = query(collection(firestore, 'users', user.uid, 'moods'), where('date', '>=', `${todayISO}T00:00:00.000Z`), where('date', '<=', `${todayISO}T23:59:59.999Z`));
-    const querySnapshot = await getDocs(q);
+    const today = new Date();
+    const todayISO = today.toISOString().split('T')[0]; // YYYY-MM-DD
 
     const moodData = {
-        moodLevel: selectedMood.level,
-        moodLabel: selectedMood.label,
-        emoji: selectedMood.emoji,
-        feelings: selectedFeelings,
-        influences: selectedInfluences,
-        date: new Date().toISOString(),
-      };
+      moodLevel: selectedMood.level,
+      moodLabel: selectedMood.label,
+      emoji: selectedMood.emoji,
+      feelings: selectedFeelings,
+      influences: selectedInfluences,
+      date: new Date().toISOString(),
+      userId: user.uid
+    };
 
-    if (!querySnapshot.empty) {
-      const existingDoc = querySnapshot.docs[0];
-      updateDocumentNonBlocking(existingDoc.ref, moodData);
-    } else {
-      addDocumentNonBlocking(moodsColRef, { ...moodData, createdAt: serverTimestamp() });
+    const moodsColRef = collection(firestore, 'users', user.uid, 'moods');
+    const q = query(moodsColRef, where('date', '>=', `${todayISO}T00:00:00.000Z`), where('date', '<=', `${todayISO}T23:59:59.999Z`));
+
+    try {
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        // Update existing document for today
+        const existingDocRef = querySnapshot.docs[0].ref;
+        await updateDocumentNonBlocking(existingDocRef, moodData);
+      } else {
+        // Create a new document for today
+        const newDocRef = doc(moodsColRef);
+        await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'moods'), {
+          ...moodData,
+          id: newDocRef.id,
+          createdAt: serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      // The non-blocking updates will handle permission errors via the emitter
+      console.error("Error saving mood", e);
     }
+    
     resetForm();
   };
 
