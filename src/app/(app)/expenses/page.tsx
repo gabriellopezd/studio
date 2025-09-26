@@ -312,7 +312,7 @@ export default function ExpensesPage() {
 
       const updatedItems = list.items.map((i: any) => {
         if (i.itemId === itemId) {
-          const { price, transactionId, isPurchased, ...rest } = i;
+          const { price, transactionId, ...rest } = i;
           return { ...rest, isPurchased: false };
         }
         return i;
@@ -451,7 +451,7 @@ export default function ExpensesPage() {
             onValueChange={(val) => setSelectedListId(val)}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3">
               {sortedLists?.map((list) => (
                 <TabsTrigger key={list.id} value={String(list.id)}>
                   {list.name}
