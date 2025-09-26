@@ -54,9 +54,20 @@ export default function HabitsPage() {
     useCollection(habitsQuery);
 
   const handleToggleHabit = (habitId: string, currentStatus: boolean) => {
-    if (!user) return;
+    if (!user || !allHabits) return;
+    
+    const habit = allHabits.find(h => h.id === habitId);
+    if (!habit) return;
+
     const habitRef = doc(firestore, 'users', user.uid, 'habits', habitId);
-    updateDocumentNonBlocking(habitRef, { completed: !currentStatus });
+    const newCompletedStatus = !currentStatus;
+    const currentStreak = habit.currentStreak || 0;
+    const newStreak = newCompletedStatus ? currentStreak + 1 : Math.max(0, currentStreak - 1);
+
+    updateDocumentNonBlocking(habitRef, { 
+      completed: newCompletedStatus,
+      currentStreak: newStreak,
+    });
   };
 
   const handleCreateHabit = async () => {
