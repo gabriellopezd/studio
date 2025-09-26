@@ -89,7 +89,7 @@ const isSameMonth = (d1: Date, d2: Date) => {
   return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth();
 };
 
-const calendarDays = Array.from({ length: 31 }, (_, i) => i + 1);
+const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual"];
 
 export default function DashboardPage() {
   const [isClient, setIsClient] = useState(false);
@@ -125,15 +125,30 @@ export default function DashboardPage() {
   );
   const { data: allGoals, isLoading: goalsLoading } = useCollection(goalsQuery);
   
-  const moodsQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'moods') : null),
-    [firestore, user]
-  );
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  const moodsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    const start = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+    const end = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+    return query(
+      collection(firestore, 'users', user.uid, 'moods'),
+      where('date', '>=', start.toISOString()),
+      where('date', '<=', end.toISOString())
+    );
+  }, [firestore, user, currentMonth]);
+
   const { data: moods, isLoading: moodsLoading } = useCollection(moodsQuery);
   
+  const getDaysInMonth = (year: number, month: number) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const daysInMonth = getDaysInMonth(currentMonth.getFullYear(), currentMonth.getMonth());
+  const calendarDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  
   const getMoodForDay = (day: number) => {
-    const today = new Date();
-    const date = new Date(today.getFullYear(), today.getMonth(), day);
+    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
     const moodEntry = moods?.find(
       (mood) =>
         new Date(mood.date).toDateString() === date.toDateString()
@@ -141,6 +156,12 @@ export default function DashboardPage() {
     return moodEntry;
   };
 
+  const changeMonth = (offset: number) => {
+    setCurrentMonth(prev => {
+      const newMonth = new Date(prev.getFullYear(), prev.getMonth() + offset, 1);
+      return newMonth;
+    });
+  };
 
   useEffect(() => {
     setIsClient(true);
@@ -162,7 +183,6 @@ export default function DashboardPage() {
   const completedDailyHabits = dailyHabits.filter(h => h.lastCompletedAt && isSameDay((h.lastCompletedAt as Timestamp).toDate(), today)).length;
   const completedWeeklyHabits = weeklyHabits.filter(h => h.lastCompletedAt && isSameWeek((h.lastCompletedAt as Timestamp).toDate(), today)).length;
   const completedMonthlyHabits = monthlyHabits.filter(h => h.lastCompletedAt && isSameMonth((h.lastCompletedAt as Timestamp).toDate(), today)).length;
-
 
   const todayString = new Date().toLocaleDateString('es-ES', {
     weekday: 'long',
@@ -280,7 +300,13 @@ export default function DashboardPage() {
             <CardDescription>Tu registro emocional del mes.</CardDescription>
           </CardHeader>
           <CardContent>
-             <div className="text-center font-bold text-lg mb-4">Junio 2024</div>
+             <div className="flex justify-between items-center mb-4">
+              <Button variant="outline" size="sm" onClick={() => changeMonth(-1)}>Anterior</Button>
+              <div className="text-center font-bold text-lg">
+                {currentMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+              </div>
+              <Button variant="outline" size="sm" onClick={() => changeMonth(1)}>Siguiente</Button>
+            </div>
              {moodsLoading && <p>Cargando historial de ánimo...</p>}
              <div className="grid grid-cols-7 gap-2">
                 {calendarDays.map((day) => {
@@ -294,7 +320,7 @@ export default function DashboardPage() {
                       <span className="text-2xl mt-1">
                         {moodEntry
                           ? moodEntry.emoji
-                          : day < new Date().getDate()
+                          : day < new Date().getDate() && currentMonth.getMonth() === new Date().getMonth()
                           ? '⚪'
                           : ''}
                       </span>

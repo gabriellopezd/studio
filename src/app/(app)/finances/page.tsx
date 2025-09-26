@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -84,6 +84,9 @@ import {
 export default function FinancesPage() {
   const { firestore, user } = useFirebase();
   const [currentMonthName, setCurrentMonthName] = useState('');
+
+  const [isTransactionDialogOpen, setTransactionDialogOpen] = useState(false);
+  const [isBudgetDialogOpen, setBudgetDialogOpen] = useState(false);
 
   const [newTransactionType, setNewTransactionType] = useState<
     'income' | 'expense'
@@ -184,6 +187,7 @@ export default function FinancesPage() {
     setNewTransactionDesc('');
     setNewTransactionAmount('');
     setNewTransactionCategory('');
+    setTransactionDialogOpen(false);
   };
   
   const handleSaveBudget = () => {
@@ -211,6 +215,7 @@ export default function FinancesPage() {
     setBudgetToEdit(null);
     setNewBudgetCategory('');
     setNewBudgetLimit('');
+    setBudgetDialogOpen(false);
   };
 
   const openBudgetDialog = (budget?: any) => {
@@ -223,6 +228,7 @@ export default function FinancesPage() {
       setNewBudgetCategory('');
       setNewBudgetLimit('');
     }
+    setBudgetDialogOpen(true);
   };
 
   const handleUpdateTransaction = async () => {
@@ -249,47 +255,31 @@ export default function FinancesPage() {
       type: transactionToEdit.type,
     });
     
-    const oldCategoryBudget = budgets?.find(b => b.categoryName === originalTransaction.category);
-    const newCategoryBudget = budgets?.find(b => b.categoryName === transactionToEdit.category);
+    const batch = writeBatch(firestore);
+    
+    // Adjust budgets based on the changes
+    if (originalTransaction.type === 'expense') {
+      const oldBudget = budgets?.find(b => b.categoryName === originalTransaction.category);
+      if (oldBudget) {
+        const oldBudgetRef = doc(firestore, 'users', user.uid, 'budgets', oldBudget.id);
+        batch.update(oldBudgetRef, { currentSpend: Math.max(0, (oldBudget.currentSpend || 0) - originalTransaction.amount) });
+      }
+    }
 
-    // If transaction type changed from expense to income
-    if (originalTransaction.type === 'expense' && transactionToEdit.type === 'income') {
-      if (oldCategoryBudget) {
-        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', oldCategoryBudget.id);
-        const newSpend = Math.max(0, (oldCategoryBudget.currentSpend || 0) - originalTransaction.amount);
-        updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
-      }
-    } 
-    // If transaction type changed from income to expense
-    else if (originalTransaction.type === 'income' && transactionToEdit.type === 'expense') {
-      if (newCategoryBudget) {
-        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', newCategoryBudget.id);
-        const newSpend = (newCategoryBudget.currentSpend || 0) + amount;
-        updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
+    if (transactionToEdit.type === 'expense') {
+      const newBudget = budgets?.find(b => b.categoryName === transactionToEdit.category);
+      if (newBudget) {
+        // We need to refetch the budget to get the most up-to-date currentSpend
+         const updatedOldBudget = budgets?.find(b => b.id === newBudget.id);
+         const spendAfterRevert = updatedOldBudget ? (updatedOldBudget.currentSpend || 0) - (originalTransaction.category === transactionToEdit.category ? originalTransaction.amount : 0) : 0;
+         const newSpend = spendAfterRevert + amount;
+
+        const newBudgetRef = doc(firestore, 'users', user.uid, 'budgets', newBudget.id);
+        batch.update(newBudgetRef, { currentSpend: Math.max(0, (newBudget.currentSpend || 0) - (originalTransaction.category === newBudget.categoryName ? originalTransaction.amount : 0) + amount) });
       }
     }
-    // If transaction remains an expense
-    else if (transactionToEdit.type === 'expense') {
-        // If category changed
-        if (originalTransaction.category !== transactionToEdit.category) {
-            if (oldCategoryBudget) {
-                const budgetRef = doc(firestore, 'users', user.uid, 'budgets', oldCategoryBudget.id);
-                const newSpend = Math.max(0, (oldCategoryBudget.currentSpend || 0) - originalTransaction.amount);
-                updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
-            }
-            if (newCategoryBudget) {
-                const budgetRef = doc(firestore, 'users', user.uid, 'budgets', newCategoryBudget.id);
-                const newSpend = (newCategoryBudget.currentSpend || 0) + amount;
-                updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
-            }
-        } 
-        // If only amount changed
-        else if (newCategoryBudget) {
-            const budgetRef = doc(firestore, 'users', user.uid, 'budgets', newCategoryBudget.id);
-            const newSpend = (newCategoryBudget.currentSpend || 0) + amountDifference;
-            updateDocumentNonBlocking(budgetRef, { currentSpend: Math.max(0, newSpend) });
-        }
-    }
+    
+    await batch.commit();
 
     setTransactionToEdit(null);
   };
@@ -305,6 +295,8 @@ export default function FinancesPage() {
       transactionToDelete.id
     );
     await deleteDocumentNonBlocking(transactionRef);
+
+    const batch = writeBatch(firestore);
 
     if (transactionToDelete.type === 'expense') {
       const shoppingListsQuery = query(
@@ -326,22 +318,24 @@ export default function FinancesPage() {
           return item;
         });
 
-        await updateDocumentNonBlocking(listRef, { items: updatedItems });
+        batch.update(listRef, { items: updatedItems });
       }
       
       const budget = budgets?.find(b => b.categoryName === transactionToDelete.category);
       if (budget) {
           const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
           const newSpend = (budget.currentSpend || 0) - transactionToDelete.amount;
-          updateDocumentNonBlocking(budgetRef, { currentSpend: Math.max(0, newSpend) });
+          batch.update(budgetRef, { currentSpend: Math.max(0, newSpend) });
       }
     }
+    
+    await batch.commit();
 
     setTransactionToDelete(null);
   };
 
   const openEditDialog = (transaction: any) => {
-    setTransactionToEdit({ ...transaction });
+    setTransactionToEdit({ ...transaction, amount: transaction.amount.toString() });
   };
 
   const expenseCategories = [
@@ -355,7 +349,7 @@ export default function FinancesPage() {
     ),
   ];
   
-  const uniqueExpenseCategories = [...new Set(expenseCategories)];
+  const uniqueExpenseCategories = [...new Set(expenseCategories)].filter(Boolean);
 
   const categoriesWithoutBudget = uniqueExpenseCategories.filter(
     (cat) => !budgets?.some((b) => b.categoryName === cat)
@@ -368,7 +362,7 @@ export default function FinancesPage() {
           title="FINANZAS"
           description="Controla tus ingresos, gastos y presupuestos."
         >
-          <Dialog>
+          <Dialog open={isTransactionDialogOpen} onOpenChange={setTransactionDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <PlusCircle className="mr-2 h-4 w-4" />
@@ -447,10 +441,11 @@ export default function FinancesPage() {
               </div>
               <DialogFooter>
                 <DialogClose asChild>
-                  <Button type="submit" onClick={handleAddTransaction}>
-                    Guardar Transacción
-                  </Button>
+                  <Button type="button" variant="outline">Cancelar</Button>
                 </DialogClose>
+                <Button type="submit" onClick={handleAddTransaction}>
+                  Guardar Transacción
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -574,7 +569,10 @@ export default function FinancesPage() {
                   Seguimiento de tus límites mensuales.
                 </CardDescription>
               </div>
-               <Dialog onOpenChange={(open) => !open && openBudgetDialog()}>
+               <Dialog open={isBudgetDialogOpen} onOpenChange={(open) => {
+                 setBudgetDialogOpen(open);
+                 if (!open) setBudgetToEdit(null);
+               }}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openBudgetDialog()}>
                     <PlusCircle className="h-4 w-4" />
@@ -582,7 +580,7 @@ export default function FinancesPage() {
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Añadir Presupuesto</DialogTitle>
+                    <DialogTitle>{budgetToEdit ? 'Editar Presupuesto' : 'Añadir Presupuesto'}</DialogTitle>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
@@ -592,12 +590,15 @@ export default function FinancesPage() {
                        <Select
                         value={newBudgetCategory}
                         onValueChange={setNewBudgetCategory}
+                        disabled={!!budgetToEdit}
                       >
                         <SelectTrigger className="col-span-3">
                           <SelectValue placeholder="Selecciona una categoría" />
                         </SelectTrigger>
                         <SelectContent>
-                          {categoriesWithoutBudget.map((cat) => (
+                          {budgetToEdit ? (
+                             <SelectItem value={budgetToEdit.categoryName}>{budgetToEdit.categoryName}</SelectItem>
+                          ) : categoriesWithoutBudget.map((cat) => (
                             <SelectItem key={cat} value={cat}>
                               {cat}
                             </SelectItem>
@@ -619,11 +620,12 @@ export default function FinancesPage() {
                     </div>
                   </div>
                   <DialogFooter>
-                    <DialogClose asChild>
-                      <Button type="submit" onClick={handleSaveBudget}>
-                        Guardar Presupuesto
-                      </Button>
+                     <DialogClose asChild>
+                      <Button type="button" variant="outline">Cancelar</Button>
                     </DialogClose>
+                    <Button type="submit" onClick={handleSaveBudget}>
+                      {budgetToEdit ? 'Guardar Cambios' : 'Guardar Presupuesto'}
+                    </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -645,50 +647,9 @@ export default function FinancesPage() {
                           {formatCurrency(currentSpend)} /{' '}
                           {formatCurrency(b.monthlyLimit)}
                         </span>
-                        <Dialog onOpenChange={(open) => !open && openBudgetDialog()}>
-                          <DialogTrigger asChild>
-                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openBudgetDialog(b)}>
-                              <Pencil className="h-3 w-3" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Editar Presupuesto</DialogTitle>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="budget-category-edit" className="text-right">
-                                  Categoría
-                                </Label>
-                                <Input
-                                  id="budget-category-edit"
-                                  value={b.categoryName}
-                                  className="col-span-3"
-                                  disabled
-                                />
-                              </div>
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="budget-limit-edit" className="text-right">
-                                  Límite Mensual
-                                </Label>
-                                <Input
-                                  id="budget-limit-edit"
-                                  type="number"
-                                  value={newBudgetLimit}
-                                  onChange={(e) => setNewBudgetLimit(e.target.value)}
-                                  className="col-span-3"
-                                />
-                              </div>
-                            </div>
-                             <DialogFooter>
-                              <DialogClose asChild>
-                                <Button type="submit" onClick={handleSaveBudget}>
-                                  Actualizar Límite
-                                </Button>
-                              </DialogClose>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openBudgetDialog(b)}>
+                          <Pencil className="h-3 w-3" />
+                        </Button>
                       </div>
                     </div>
                     <Progress value={progress} />
