@@ -88,10 +88,6 @@ const isSameWeek = (d1: Date, d2: Date) => {
   return isSameDay(startOfWeek1, startOfWeek2);
 };
 
-const isSameMonth = (d1: Date, d2: Date) => {
-  return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth();
-};
-
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual"];
 
 export default function DashboardPage() {
@@ -176,11 +172,9 @@ export default function DashboardPage() {
 
   const dailyHabits = allHabits?.filter(h => h.frequency === 'Diario') ?? [];
   const weeklyHabits = allHabits?.filter(h => h.frequency === 'Semanal') ?? [];
-  const monthlyHabits = allHabits?.filter(h => h.frequency === 'Mensual') ?? [];
 
   const completedDailyHabits = dailyHabits.filter(h => h.lastCompletedAt && isSameDay((h.lastCompletedAt as Timestamp).toDate(), today)).length;
   const completedWeeklyHabits = weeklyHabits.filter(h => h.lastCompletedAt && isSameWeek((h.lastCompletedAt as Timestamp).toDate(), today)).length;
-  const completedMonthlyHabits = monthlyHabits.filter(h => h.lastCompletedAt && isSameMonth((h.lastCompletedAt as Timestamp).toDate(), today)).length;
   
   const topHabitsByStreak = useMemo(() => {
     if (!allHabits) return [];
@@ -208,7 +202,7 @@ export default function DashboardPage() {
         }
       />
       
-      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">Hábitos Diarios</CardTitle>
@@ -227,16 +221,6 @@ export default function DashboardPage() {
             <CardContent>
                 <div className="text-2xl font-bold">{completedWeeklyHabits} de {weeklyHabits.length}</div>
                 <p className="text-xs text-muted-foreground">Completados esta semana</p>
-            </CardContent>
-        </Card>
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Hábitos Mensuales</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">{completedMonthlyHabits} de {monthlyHabits.length}</div>
-                <p className="text-xs text-muted-foreground">Completados este mes</p>
             </CardContent>
         </Card>
         <Card>

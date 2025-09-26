@@ -69,10 +69,6 @@ const isSameWeek = (d1: Date, d2: Date) => {
   return isSameDay(startOfWeek1, startOfWeek2);
 };
 
-const isSameMonth = (d1: Date, d2: Date) => {
-  return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth();
-};
-
 const isPreviousDay = (d1: Date, d2: Date) => {
   const yesterday = new Date(d1);
   yesterday.setDate(d1.getDate() - 1);
@@ -83,23 +79,6 @@ const isPreviousWeek = (d1: Date, d2: Date) => {
   const lastWeek = new Date(d1);
   lastWeek.setDate(d1.getDate() - 7);
   return isSameWeek(d2, lastWeek);
-};
-
-const isPreviousMonth = (d1: Date, d2: Date) => {
-  const lastMonth = new Date(d1);
-  lastMonth.setMonth(d1.getMonth() - 1);
-  // Handle year change
-  if (
-    d1.getMonth() === 0 &&
-    d2.getMonth() === 11 &&
-    d2.getFullYear() === d1.getFullYear() - 1
-  ) {
-    return true;
-  }
-  return (
-    d2.getFullYear() === lastMonth.getFullYear() &&
-    d2.getMonth() === lastMonth.getMonth()
-  );
 };
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual"];
@@ -383,9 +362,6 @@ export default function TodayPage() {
           case 'Semanal':
             isCompletedInCurrentPeriod = isSameWeek(lastCompletedDate, today);
             break;
-          case 'Mensual':
-            isCompletedInCurrentPeriod = isSameMonth(lastCompletedDate, today);
-            break;
           default:
             break;
         }
@@ -430,8 +406,6 @@ export default function TodayPage() {
       switch (h.frequency) {
         case 'Semanal':
           return isSameWeek(lastCompletedDate, today);
-        case 'Mensual':
-          return isSameMonth(lastCompletedDate, today);
         case 'Diario':
         default:
           return isSameDay(lastCompletedDate, today);
@@ -460,9 +434,6 @@ export default function TodayPage() {
         case 'Semanal':
           isCompletedInCurrentPeriod = isSameWeek(lastCompletedDate, today);
           break;
-        case 'Mensual':
-          isCompletedInCurrentPeriod = isSameMonth(lastCompletedDate, today);
-          break;
         case 'Diario':
         default:
           isCompletedInCurrentPeriod = isSameDay(lastCompletedDate, today);
@@ -489,9 +460,6 @@ export default function TodayPage() {
         switch (habit.frequency) {
           case 'Semanal':
             isConsecutive = isPreviousWeek(today, lastCompletedDate);
-            break;
-          case 'Mensual':
-            isConsecutive = isPreviousMonth(today, lastCompletedDate);
             break;
           case 'Diario':
           default:
@@ -572,12 +540,6 @@ export default function TodayPage() {
                                 switch (habit.frequency) {
                                     case 'Semanal':
                                     isCompleted = isSameWeek(
-                                        lastCompletedDate,
-                                        new Date()
-                                    );
-                                    break;
-                                    case 'Mensual':
-                                    isCompleted = isSameMonth(
                                         lastCompletedDate,
                                         new Date()
                                     );
