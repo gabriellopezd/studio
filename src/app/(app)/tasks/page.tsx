@@ -13,7 +13,7 @@ import {
   addDocumentNonBlocking,
   deleteDocumentNonBlocking
 } from '@/firebase';
-import { collection, doc, query, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, query, Timestamp, serverTimestamp, where } from 'firebase/firestore';
 import {
   Dialog,
   DialogContent,
@@ -81,10 +81,22 @@ export default function TasksPage() {
     if (!user) return null;
     return query(
       collection(firestore, 'users', user.uid, 'tasks'),
+      where('userId', '==', user.uid)
     );
   }, [firestore, user]);
 
   const { data: allTasks, isLoading: tasksLoading } = useCollection(tasksQuery);
+
+  const totalStats = useMemo(() => {
+    if (!allTasks) return { completed: 0, total: 0, completionRate: 0 };
+    
+    const completed = allTasks.filter(t => t.isCompleted).length;
+    const total = allTasks.length;
+    const completionRate = total > 0 ? (completed / total) * 100 : 0;
+    
+    return { completed, total, completionRate };
+  }, [allTasks]);
+
 
   const categoryStats = useMemo(() => {
     if (!allTasks) return {};
@@ -325,6 +337,20 @@ export default function TasksPage() {
             Crear Tarea
           </Button>
         </PageHeader>
+
+        <div className="grid grid-cols-1 gap-6">
+          <Card>
+            <CardHeader>
+                <CardTitle>Progreso Total</CardTitle>
+                <CardDescription>
+                    {totalStats.completed} de {totalStats.total} tareas completadas
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Progress value={totalStats.completionRate} />
+            </CardContent>
+          </Card>
+        </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {Object.entries(categoryStats).map(([category, stats]) => (
