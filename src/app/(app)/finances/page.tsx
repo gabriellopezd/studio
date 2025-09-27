@@ -29,6 +29,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
   ArrowDownCircle,
@@ -190,6 +191,11 @@ export default function FinancesPage() {
     if (!recurringIncomes) return [];
     return recurringIncomes.filter(income => income.lastInstanceCreated === currentMonthYear);
   }, [recurringIncomes, currentMonthYear]);
+
+  const pendingExpensesTotal = useMemo(() => {
+    if (!pendingRecurringExpenses) return 0;
+    return pendingRecurringExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  }, [pendingRecurringExpenses]);
 
 
   const monthlyIncome =
@@ -633,7 +639,7 @@ export default function FinancesPage() {
           </Dialog>
         </PageHeader>
         
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
                 <CardHeader>
                 <CardTitle>Ingresos del Mes</CardTitle>
@@ -652,6 +658,16 @@ export default function FinancesPage() {
                 <p className="text-2xl font-bold text-red-500">
                     {formatCurrency(monthlyExpenses)}
                 </p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                <CardTitle>Gastos Pendientes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-2xl font-bold text-amber-500">
+                        {formatCurrency(pendingExpensesTotal)}
+                    </p>
                 </CardContent>
             </Card>
             <Card>
@@ -1179,5 +1195,3 @@ export default function FinancesPage() {
     </>
   );
 }
-
-    
