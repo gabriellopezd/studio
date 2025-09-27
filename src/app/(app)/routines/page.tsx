@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +18,7 @@ import {
   Pencil,
   Trash2,
   Check,
+  Timer,
 } from 'lucide-react';
 import {
   useFirebase,
@@ -80,6 +81,12 @@ export default function RoutinesPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedHabitIds, setSelectedHabitIds] = useState<string[]>([]);
+  
+  const [timerHabit, setTimerHabit] = useState<any | null>(null);
+  const [timerMinutes, setTimerMinutes] = useState(25);
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [isTimerActive, setIsTimerActive] = useState(false);
+  const [isTimerDialogOpen, setTimerDialogOpen] = useState(false);
 
   const routinesQuery = useMemo(
     () => (user ? collection(firestore, 'users', user.uid, 'routines') : null),
@@ -92,6 +99,28 @@ export default function RoutinesPage() {
     [firestore, user]
   );
   const { data: allHabits } = useCollection(habitsQuery);
+  
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isTimerActive && (timerMinutes > 0 || timerSeconds > 0)) {
+      interval = setInterval(() => {
+        if (timerSeconds > 0) {
+          setTimerSeconds(s => s - 1);
+        } else {
+          setTimerMinutes(m => m - 1);
+          setTimerSeconds(59);
+        }
+      }, 1000);
+    } else if (isTimerActive && timerMinutes === 0 && timerSeconds === 0) {
+      handleToggleHabit(timerHabit.id);
+      setIsTimerActive(false);
+      setTimerDialogOpen(false);
+      setTimerHabit(null);
+    }
+    return () => {
+      if(interval) clearInterval(interval);
+    };
+  }, [isTimerActive, timerSeconds, timerMinutes]);
 
   const resetForm = () => {
     setName('');
@@ -213,6 +242,22 @@ export default function RoutinesPage() {
           default: return isSameDay(lastCompletedDate, today);
       }
   };
+  
+  const handleStartTimer = (habit: any) => {
+    setTimerHabit(habit);
+    setTimerMinutes(25); 
+    setTimerSeconds(0);
+    setIsTimerActive(false); 
+    setTimerDialogOpen(true);
+  };
+  
+  const handleTimeInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const minutes = parseInt(e.target.value, 10);
+    if (!isNaN(minutes)) {
+      setTimerMinutes(minutes);
+      setTimerSeconds(0);
+    }
+  };
 
   const handleCompleteRoutine = async (routine: any) => {
     if (!user || !allHabits) return;
@@ -257,6 +302,10 @@ export default function RoutinesPage() {
     });
     
     await batch.commit();
+  };
+  
+  const formatTime = (minutes: number, seconds: number) => {
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   };
 
   return (
@@ -324,10 +373,13 @@ export default function RoutinesPage() {
                           checked={isHabitCompleted(habit)}
                           onCheckedChange={() => handleToggleHabit(habit.id)}
                         />
-                        <Label htmlFor={`routine-${routine.id}-habit-${habit.id}`} className="flex items-center gap-2 font-normal cursor-pointer">
+                        <Label htmlFor={`routine-${routine.id}-habit-${habit.id}`} className="flex-1 items-center gap-2 font-normal cursor-pointer">
                           <span className="text-lg">{habit.icon}</span>
                           <span>{habit.name}</span>
                         </Label>
+                        <Button variant="ghost" size="icon" onClick={() => handleStartTimer(habit)}>
+                           <Play className="h-4 w-4"/>
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -347,6 +399,38 @@ export default function RoutinesPage() {
           })}
         </div>
       </div>
+      
+      {/* Timer Dialog */}
+      <Dialog open={isTimerDialogOpen} onOpenChange={setTimerDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+                <Timer /> {timerHabit?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center gap-4 py-8">
+             <div className="text-8xl font-bold font-mono">
+                {formatTime(timerMinutes, timerSeconds)}
+             </div>
+             <div className="flex items-center gap-2">
+                <Label htmlFor="timer-minutes">Duración (minutos)</Label>
+                <Input 
+                    id="timer-minutes"
+                    type="number"
+                    value={timerMinutes}
+                    onChange={handleTimeInputChange}
+                    className="w-20"
+                    disabled={isTimerActive}
+                />
+             </div>
+          </div>
+          <DialogFooter className="justify-center">
+            <Button onClick={() => setIsTimerActive(!isTimerActive)}>
+                {isTimerActive ? 'Pausar' : 'Iniciar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
