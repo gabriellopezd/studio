@@ -9,6 +9,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import {
   Play,
@@ -16,6 +17,7 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
+  Check,
 } from 'lucide-react';
 import {
   useFirebase,
@@ -203,7 +205,7 @@ export default function RoutinesPage() {
   };
   
   const isHabitCompleted = (habit: any) => {
-      if (!habit.lastCompletedAt) return false;
+      if (!habit || !habit.lastCompletedAt) return false;
       const lastCompletedDate = (habit.lastCompletedAt as Timestamp).toDate();
       const today = new Date();
       switch (habit.frequency) {
@@ -212,6 +214,50 @@ export default function RoutinesPage() {
       }
   };
 
+  const handleCompleteRoutine = async (routine: any) => {
+    if (!user || !allHabits) return;
+
+    const routineHabits = allHabits.filter(h => routine.habitIds.includes(h.id));
+    const habitsToComplete = routineHabits.filter(h => !isHabitCompleted(h));
+
+    if (habitsToComplete.length === 0) return;
+    
+    const batch = writeBatch(firestore);
+    const today = new Date();
+
+    habitsToComplete.forEach(habit => {
+      const habitRef = doc(firestore, "users", user.uid, "habits", habit.id);
+      
+      const lastCompletedDate = habit.lastCompletedAt
+        ? (habit.lastCompletedAt as Timestamp).toDate()
+        : null;
+
+      const currentStreak = habit.currentStreak || 0;
+      let longestStreak = habit.longestStreak || 0;
+      let newStreak = 1;
+      
+      if (lastCompletedDate) {
+        let isConsecutive = false;
+        switch(habit.frequency) {
+          case 'Semanal': isConsecutive = isPreviousWeek(today, lastCompletedDate); break;
+          default: isConsecutive = isPreviousDay(today, lastCompletedDate); break;
+        }
+        if (isConsecutive) newStreak = currentStreak + 1;
+      }
+      
+      const newLongestStreak = Math.max(longestStreak, newStreak);
+
+      batch.update(habitRef, {
+        lastCompletedAt: Timestamp.fromDate(today),
+        currentStreak: newStreak,
+        longestStreak: newLongestStreak,
+        previousStreak: currentStreak,
+        previousLastCompletedAt: habit.lastCompletedAt,
+      });
+    });
+    
+    await batch.commit();
+  };
 
   return (
     <>
@@ -233,6 +279,7 @@ export default function RoutinesPage() {
             const routineHabits = allHabits?.filter(h => routine.habitIds.includes(h.id)) || [];
             const completedHabitsCount = routineHabits.filter(isHabitCompleted).length;
             const progress = routineHabits.length > 0 ? (completedHabitsCount / routineHabits.length) * 100 : 0;
+            const allHabitsInRoutineCompleted = completedHabitsCount === routineHabits.length;
             
             return (
               <Card key={routine.id} className="flex flex-col">
@@ -285,6 +332,16 @@ export default function RoutinesPage() {
                     ))}
                   </div>
                 </CardContent>
+                 <CardFooter>
+                    <Button 
+                      className="w-full"
+                      onClick={() => handleCompleteRoutine(routine)}
+                      disabled={allHabitsInRoutineCompleted}
+                    >
+                      <Check className="mr-2 h-4 w-4" />
+                      {allHabitsInRoutineCompleted ? 'Rutina Completa' : 'Completar Rutina'}
+                    </Button>
+                </CardFooter>
               </Card>
             )
           })}
