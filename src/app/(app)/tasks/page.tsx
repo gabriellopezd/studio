@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -69,6 +69,7 @@ const taskCategories = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro"];
 export default function TasksPage() {
   const { firestore, user } = useFirebase();
   const [activeTab, setActiveTab] = useState('all');
+  const [isClient, setIsClient] = useState(false);
 
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<any | null>(null);
@@ -78,6 +79,10 @@ export default function TasksPage() {
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [priority, setPriority] = useState('medium');
   const [category, setCategory] = useState('Otro');
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const tasksQuery = useMemo(() => {
     if (!user) return null;
@@ -404,6 +409,7 @@ export default function TasksPage() {
         </div>
         
         <div className="grid grid-cols-1 gap-6">
+          {isClient ? (
             <Card>
                 <CardHeader>
                     <CardTitle>Tareas de la Semana</CardTitle>
@@ -421,6 +427,16 @@ export default function TasksPage() {
                     </ResponsiveContainer>
                 </CardContent>
             </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Tareas de la Semana</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>Cargando gráfico...</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <Tabs defaultValue="all" onValueChange={setActiveTab}>
