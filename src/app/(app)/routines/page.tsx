@@ -55,6 +55,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
 const getStartOfWeek = (date: Date) => {
   const d = new Date(date);
@@ -64,10 +65,9 @@ const getStartOfWeek = (date: Date) => {
 };
 const isSameDay = (d1: Date, d2: Date) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
 const isSameWeek = (d1: Date, d2: Date) => isSameDay(getStartOfWeek(d1), getStartOfWeek(d2));
-const isSameMonth = (d1: Date, d2: Date) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth();
 const isPreviousDay = (d1: Date, d2: Date) => { const y = new Date(d1); y.setDate(d1.getDate() - 1); return isSameDay(d2, y); };
 const isPreviousWeek = (d1: Date, d2: Date) => { const lw = new Date(d1); lw.setDate(d1.getDate() - 7); return isSameWeek(d2, lw); };
-const isPreviousMonth = (d1: Date, d2: Date) => { const lm = new Date(d1); lm.setMonth(d1.getMonth() - 1); return d2.getFullYear() === lm.getFullYear() && d2.getMonth() === lm.getMonth(); };
+
 
 export default function RoutinesPage() {
   const { firestore, user } = useFirebase();
@@ -140,58 +140,78 @@ export default function RoutinesPage() {
     await deleteDocumentNonBlocking(routineRef);
     setRoutineToDelete(null);
   };
-  
-  const handleStartRoutine = async (routine: any) => {
+
+  const handleToggleHabit = (habitId: string) => {
     if (!user || !allHabits) return;
-    
-    const batch = writeBatch(firestore);
+
+    const habit = allHabits.find((h) => h.id === habitId);
+    if (!habit) return;
+
+    const habitRef = doc(firestore, 'users', user.uid, 'habits', habitId);
     const today = new Date();
 
-    routine.habitIds.forEach((habitId: string) => {
-        const habit = allHabits.find(h => h.id === habitId);
-        if (!habit) return;
+    const lastCompletedDate = habit.lastCompletedAt
+      ? (habit.lastCompletedAt as Timestamp).toDate()
+      : null;
 
-        const habitRef = doc(firestore, 'users', user.uid, 'habits', habit.id);
-        const lastCompletedDate = habit.lastCompletedAt ? (habit.lastCompletedAt as Timestamp).toDate() : null;
+    let isCompletedInCurrentPeriod = false;
+    if (lastCompletedDate) {
+      switch (habit.frequency) {
+        case 'Semanal':
+          isCompletedInCurrentPeriod = isSameWeek(lastCompletedDate, today);
+          break;
+        case 'Diario':
+        default:
+          isCompletedInCurrentPeriod = isSameDay(lastCompletedDate, today);
+          break;
+      }
+    }
 
-        let isCompletedInCurrentPeriod = false;
-        if (lastCompletedDate) {
-            switch (habit.frequency) {
-                case 'Semanal': isCompletedInCurrentPeriod = isSameWeek(lastCompletedDate, today); break;
-                case 'Mensual': isCompletedInCurrentPeriod = isSameMonth(lastCompletedDate, today); break;
-                default: isCompletedInCurrentPeriod = isSameDay(lastCompletedDate, today); break;
-            }
+    if (isCompletedInCurrentPeriod) {
+      // Reverting completion
+      updateDocumentNonBlocking(habitRef, {
+        lastCompletedAt: habit.previousLastCompletedAt ?? null,
+        currentStreak: habit.previousStreak ?? 0,
+        previousStreak: null,
+        previousLastCompletedAt: null,
+      });
+    } else {
+      // Completing the habit
+      const currentStreak = habit.currentStreak || 0;
+      let longestStreak = habit.longestStreak || 0;
+      let newStreak = 1;
+      
+      if (lastCompletedDate) {
+        let isConsecutive = false;
+        switch(habit.frequency) {
+          case 'Semanal': isConsecutive = isPreviousWeek(today, lastCompletedDate); break;
+          default: isConsecutive = isPreviousDay(today, lastCompletedDate); break;
         }
+        if (isConsecutive) newStreak = currentStreak + 1;
+      }
+      
+      const newLongestStreak = Math.max(longestStreak, newStreak);
 
-        if (!isCompletedInCurrentPeriod) {
-            const currentStreak = habit.currentStreak || 0;
-            const longestStreak = habit.longestStreak || 0;
-            let newStreak = 1;
-
-            if (lastCompletedDate) {
-                let isConsecutive = false;
-                switch(habit.frequency) {
-                    case 'Semanal': isConsecutive = isPreviousWeek(today, lastCompletedDate); break;
-                    case 'Mensual': isConsecutive = isPreviousMonth(today, lastCompletedDate); break;
-                    default: isConsecutive = isPreviousDay(today, lastCompletedDate); break;
-                }
-                if (isConsecutive) newStreak = currentStreak + 1;
-            }
-            
-            const newLongestStreak = Math.max(longestStreak, newStreak);
-
-            batch.update(habitRef, {
-                lastCompletedAt: Timestamp.fromDate(today),
-                currentStreak: newStreak,
-                longestStreak: newLongestStreak,
-                previousStreak: currentStreak,
-                previousLastCompletedAt: habit.lastCompletedAt,
-            });
-        }
-    });
-
-    await batch.commit();
+      updateDocumentNonBlocking(habitRef, {
+        lastCompletedAt: Timestamp.fromDate(today),
+        currentStreak: newStreak,
+        longestStreak: newLongestStreak,
+        previousStreak: currentStreak,
+        previousLastCompletedAt: habit.lastCompletedAt,
+      });
+    }
   };
+  
+  const isHabitCompleted = (habit: any) => {
+      if (!habit.lastCompletedAt) return false;
+      const lastCompletedDate = (habit.lastCompletedAt as Timestamp).toDate();
+      const today = new Date();
+      switch (habit.frequency) {
+          case 'Semanal': return isSameWeek(lastCompletedDate, today);
+          default: return isSameDay(lastCompletedDate, today);
+      }
+  };
+
 
   return (
     <>
@@ -208,9 +228,12 @@ export default function RoutinesPage() {
 
         {routinesLoading && <p>Cargando rutinas...</p>}
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {routines?.map((routine) => {
             const routineHabits = allHabits?.filter(h => routine.habitIds.includes(h.id)) || [];
+            const completedHabitsCount = routineHabits.filter(isHabitCompleted).length;
+            const progress = routineHabits.length > 0 ? (completedHabitsCount / routineHabits.length) * 100 : 0;
+            
             return (
               <Card key={routine.id} className="flex flex-col">
                 <CardHeader>
@@ -238,21 +261,29 @@ export default function RoutinesPage() {
                     </DropdownMenu>
                   </div>
                 </CardHeader>
-                <CardContent className="flex-grow">
-                  <div className="flex flex-wrap gap-2">
+                <CardContent className="flex-grow space-y-4">
+                  <div>
+                    <div className="flex justify-between items-center mb-2 text-sm text-muted-foreground">
+                        <span>Progreso</span>
+                        <span>{completedHabitsCount} de {routineHabits.length}</span>
+                    </div>
+                    <Progress value={progress} />
+                  </div>
+                  <div className="space-y-3">
                     {routineHabits.map((habit: any) => (
-                      <Badge key={habit.id} variant="secondary" className="flex items-center gap-1">
-                        <span>{habit.icon}</span>
-                        <span>{habit.name}</span>
-                      </Badge>
+                      <div key={habit.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50">
+                        <Checkbox
+                          id={`routine-${routine.id}-habit-${habit.id}`}
+                          checked={isHabitCompleted(habit)}
+                          onCheckedChange={() => handleToggleHabit(habit.id)}
+                        />
+                        <Label htmlFor={`routine-${routine.id}-habit-${habit.id}`} className="flex items-center gap-2 font-normal cursor-pointer">
+                          <span className="text-lg">{habit.icon}</span>
+                          <span>{habit.name}</span>
+                        </Label>
+                      </div>
                     ))}
                   </div>
-                </CardContent>
-                <CardContent>
-                  <Button className="w-full" onClick={() => handleStartRoutine(routine)}>
-                    <Play className="mr-2 h-4 w-4" />
-                    Comenzar Rutina
-                  </Button>
                 </CardContent>
               </Card>
             )
@@ -323,5 +354,3 @@ export default function RoutinesPage() {
     </>
   );
 }
-
-    
