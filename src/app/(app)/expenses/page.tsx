@@ -21,6 +21,7 @@ import {
   MoreHorizontal,
   Pencil,
   CheckCircle,
+  Undo2,
 } from 'lucide-react';
 import {
   Dialog,
@@ -211,6 +212,13 @@ export default function ExpensesPage() {
     if (!recurringExpenses) return [];
     return recurringExpenses.filter(
       (expense) => expense.lastInstanceCreated !== currentMonthYear
+    );
+  }, [recurringExpenses, currentMonthYear]);
+  
+  const paidRecurringExpenses = useMemo(() => {
+    if (!recurringExpenses) return [];
+    return recurringExpenses.filter(
+      (expense) => expense.lastInstanceCreated === currentMonthYear
     );
   }, [recurringExpenses, currentMonthYear]);
 
@@ -676,7 +684,7 @@ export default function ExpensesPage() {
 
   const handlePayRecurringExpense = async (expense: any) => {
     if (!user) return;
-
+  
     const now = new Date();
     // Create new transaction
     const newTransaction = {
@@ -692,15 +700,14 @@ export default function ExpensesPage() {
       userId: user.uid,
       createdAt: serverTimestamp(),
     };
-
+  
     const batch = writeBatch(firestore);
-
+  
     // Add transaction
     const transactionsColRef = collection(firestore, 'users', user.uid, 'transactions');
     const newTransactionRef = doc(transactionsColRef);
     batch.set(newTransactionRef, newTransaction);
-
-
+  
     // Update budget
     const budget = budgets?.find((b) => b.categoryName === expense.category);
     if (budget) {
@@ -714,7 +721,7 @@ export default function ExpensesPage() {
       const newSpend = (budget.currentSpend || 0) + expense.amount;
       batch.update(budgetRef, { currentSpend: newSpend });
     }
-
+  
     // Update recurring expense
     const expenseRef = doc(
       firestore,
@@ -723,8 +730,11 @@ export default function ExpensesPage() {
       'recurringExpenses',
       expense.id
     );
-    batch.update(expenseRef, { lastInstanceCreated: currentMonthYear });
-
+    batch.update(expenseRef, {
+      lastInstanceCreated: currentMonthYear,
+      lastTransactionId: newTransactionRef.id
+    });
+  
     try {
         await batch.commit();
         toast({
@@ -739,6 +749,58 @@ export default function ExpensesPage() {
             variant: "destructive",
             title: "Error",
             description: "No se pudo registrar el pago del gasto recurrente.",
+        });
+    }
+  };
+
+  const handleRevertPayment = async (expense: any) => {
+    if (!user || !expense.lastTransactionId) return;
+
+    const batch = writeBatch(firestore);
+
+    // 1. Delete the transaction
+    const transactionRef = doc(firestore, 'users', user.uid, 'transactions', expense.lastTransactionId);
+    batch.delete(transactionRef);
+
+    // 2. Revert the budget
+    const budget = budgets?.find((b) => b.categoryName === expense.category);
+    if (budget) {
+      const budgetRef = doc(
+        firestore,
+        'users',
+        user.uid,
+        'budgets',
+        budget.id
+      );
+      const newSpend = Math.max(0, (budget.currentSpend || 0) - expense.amount);
+      batch.update(budgetRef, { currentSpend: newSpend });
+    }
+
+    // 3. Revert the recurring expense
+    const expenseRef = doc(
+      firestore,
+      'users',
+      user.uid,
+      'recurringExpenses',
+      expense.id
+    );
+    batch.update(expenseRef, {
+      lastInstanceCreated: null,
+      lastTransactionId: null
+    });
+
+    try {
+        await batch.commit();
+        toast({
+          title: 'Pago Revertido',
+          description: `Se ha deshecho el pago de ${expense.name}.`,
+        });
+    } catch(error) {
+        console.error("Error reverting payment:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudo revertir el pago.",
         });
     }
   };
@@ -1060,7 +1122,7 @@ export default function ExpensesPage() {
           </TabsContent>
           <TabsContent value="recurring" className="mt-6">
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-2 space-y-6">
                 <Card>
                   <CardHeader>
                     <CardTitle>Gastos Recurrentes Pendientes</CardTitle>
@@ -1105,6 +1167,48 @@ export default function ExpensesPage() {
                                 No tienes gastos recurrentes pendientes para este mes.
                             </p>
                         </div>
+                    )}
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Gastos Pagados este Mes</CardTitle>
+                    <CardDescription>
+                      Estos son los gastos recurrentes que ya has pagado.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {recurringExpensesLoading ? (
+                        <p>Cargando...</p>
+                    ) : paidRecurringExpenses.length > 0 ? (
+                        <div className="space-y-3">
+                            {paidRecurringExpenses.map((expense) => (
+                            <div
+                                key={expense.id}
+                                className="flex items-center justify-between p-3 rounded-lg border bg-card/50"
+                            >
+                                <div>
+                                <p className="font-semibold text-muted-foreground line-through">{expense.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                    {expense.category} -{' '}
+                                    {formatCurrency(expense.amount)}
+                                </p>
+                                </div>
+                                <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRevertPayment(expense)}
+                                >
+                                <Undo2 className="mr-2 h-4 w-4" />
+                                Revertir
+                                </Button>
+                            </div>
+                            ))}
+                        </div>
+                    ) : (
+                       <p className="text-sm text-muted-foreground text-center pt-4">
+                          Aún no has pagado ningún gasto recurrente este mes.
+                        </p>
                     )}
                   </CardContent>
                 </Card>
