@@ -54,6 +54,7 @@ import { es } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
+const taskCategories = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro"];
 
 export default function TasksPage() {
   const { firestore, user } = useFirebase();
@@ -66,6 +67,7 @@ export default function TasksPage() {
   const [name, setName] = useState('');
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [priority, setPriority] = useState('medium');
+  const [category, setCategory] = useState('Otro');
 
   const tasksQuery = useMemo(() => {
     if (!user) return null;
@@ -78,34 +80,52 @@ export default function TasksPage() {
   const { data: allTasks, isLoading: tasksLoading } = useCollection(tasksQuery);
 
   const filteredTasks = useMemo(() => {
-    if (!allTasks) return [];
+    if (!allTasks) return { byCategory: {}, all: [] };
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    let tasksToShow: any[];
+
     switch (activeTab) {
       case 'today':
-        return allTasks.filter(task => {
+        tasksToShow = allTasks.filter(task => {
           if (task.isCompleted || !task.dueDate) return false;
           const taskDueDate = task.dueDate.toDate();
           taskDueDate.setHours(0,0,0,0);
           return taskDueDate.getTime() === today.getTime();
         });
+        break;
       case 'upcoming':
         const nextWeek = new Date(today);
         nextWeek.setDate(today.getDate() + 7);
-        return allTasks.filter(task => {
+        tasksToShow = allTasks.filter(task => {
             if (task.isCompleted || !task.dueDate) return false;
             const taskDueDate = task.dueDate.toDate();
             taskDueDate.setHours(0,0,0,0);
             return taskDueDate > today && taskDueDate <= nextWeek;
         });
+        break;
       case 'completed':
-        return allTasks.filter(task => task.isCompleted);
+        tasksToShow = allTasks.filter(task => task.isCompleted);
+        break;
       case 'all':
       default:
-        return allTasks.filter(task => !task.isCompleted);
+        tasksToShow = allTasks.filter(task => !task.isCompleted);
+        break;
     }
+
+    const byCategory = tasksToShow.reduce((acc, task) => {
+      const cat = task.category || 'Sin Categoría';
+      if (!acc[cat]) {
+        acc[cat] = [];
+      }
+      acc[cat].push(task);
+      return acc;
+    }, {} as Record<string, any[]>);
+
+    return { byCategory, all: tasksToShow };
+
   }, [allTasks, activeTab]);
 
   const handleToggleTask = (taskId: string, currentStatus: boolean) => {
@@ -118,6 +138,7 @@ export default function TasksPage() {
     setName('');
     setDueDate(undefined);
     setPriority('medium');
+    setCategory('Otro');
     setTaskToEdit(null);
   };
 
@@ -127,6 +148,7 @@ export default function TasksPage() {
       setName(task.name);
       setDueDate(task.dueDate?.toDate ? task.dueDate.toDate() : undefined);
       setPriority(task.priority || 'medium');
+      setCategory(task.category || 'Otro');
     } else {
       resetForm();
     }
@@ -140,6 +162,7 @@ export default function TasksPage() {
       name,
       dueDate: dueDate ? Timestamp.fromDate(dueDate) : null,
       priority,
+      category,
       userId: user.uid,
     };
   
@@ -191,61 +214,74 @@ export default function TasksPage() {
      }
   }
   
-  const renderTaskList = (tasks: any[] | null) => {
+  const categoryOrder = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro", "Sin Categoría"];
+
+  const renderTaskList = (groupedTasks: Record<string, any[]>, allTasks: any[]) => {
+    const sortedCategories = Object.keys(groupedTasks).sort((a, b) => {
+        return categoryOrder.indexOf(a) - categoryOrder.indexOf(b);
+    });
+
     return (
-      <div className="mt-4 space-y-2 rounded-lg border bg-card p-4">
+      <div className="mt-4 space-y-6">
         {tasksLoading && <p>Cargando tareas...</p>}
-        {!tasks?.length && !tasksLoading && (
+        {!allTasks?.length && !tasksLoading && (
            <p className="text-muted-foreground text-center p-4">No hay tareas en esta vista.</p>
         )}
-        {tasks?.map((task) => (
-          <div
-            key={task.id}
-            className="flex items-center gap-3 rounded-md p-2 hover:bg-muted/50"
-          >
-            <Checkbox
-              id={`task-${task.id}`}
-              checked={task.isCompleted}
-              onCheckedChange={() => handleToggleTask(task.id, task.isCompleted)}
-            />
-            <label
-              htmlFor={`task-${task.id}`}
-              className="flex-1 cursor-pointer"
-            >
-              <p
-                className={`font-medium ${
-                  task.isCompleted
-                    ? 'text-muted-foreground line-through'
-                    : ''
-                }`}
-              >
-                {task.name}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {getTaskDueDate(task)}
-              </p>
-            </label>
-             <Badge className={getPriorityBadge(task.priority)}>
-              {task.priority}
-            </Badge>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleOpenDialog(task)}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Editar
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTaskToDelete(task)} className="text-red-500">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Eliminar
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+        {sortedCategories.map(category => (
+            <div key={category}>
+                <h3 className="text-lg font-semibold mb-2">{category}</h3>
+                <div className="space-y-2 rounded-lg border bg-card p-4">
+                    {groupedTasks[category].map(task => (
+                        <div
+                            key={task.id}
+                            className="flex items-center gap-3 rounded-md p-2 hover:bg-muted/50"
+                        >
+                            <Checkbox
+                            id={`task-${task.id}`}
+                            checked={task.isCompleted}
+                            onCheckedChange={() => handleToggleTask(task.id, task.isCompleted)}
+                            />
+                            <label
+                            htmlFor={`task-${task.id}`}
+                            className="flex-1 cursor-pointer"
+                            >
+                            <p
+                                className={`font-medium ${
+                                task.isCompleted
+                                    ? 'text-muted-foreground line-through'
+                                    : ''
+                                }`}
+                            >
+                                {task.name}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                                {getTaskDueDate(task)}
+                            </p>
+                            </label>
+                            <Badge className={getPriorityBadge(task.priority)}>
+                                {task.priority}
+                            </Badge>
+                            <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleOpenDialog(task)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setTaskToDelete(task)} className="text-red-500">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Eliminar
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    ))}
+                </div>
+            </div>
         ))}
       </div>
     );
@@ -271,10 +307,10 @@ export default function TasksPage() {
             <TabsTrigger value="upcoming">Próximos 7 días</TabsTrigger>
             <TabsTrigger value="completed">Completadas</TabsTrigger>
           </TabsList>
-          <TabsContent value="all">{renderTaskList(filteredTasks)}</TabsContent>
-          <TabsContent value="today">{renderTaskList(filteredTasks)}</TabsContent>
-          <TabsContent value="upcoming">{renderTaskList(filteredTasks)}</TabsContent>
-          <TabsContent value="completed">{renderTaskList(filteredTasks)}</TabsContent>
+          <TabsContent value="all">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
+          <TabsContent value="today">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
+          <TabsContent value="upcoming">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
+          <TabsContent value="completed">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
         </Tabs>
       </div>
       
@@ -291,31 +327,19 @@ export default function TasksPage() {
             </div>
              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="task-due-date">Fecha de Vencimiento</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !dueDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dueDate ? format(dueDate, "PPP", { locale: es }) : <span>Elige una fecha</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={dueDate}
-                        onSelect={setDueDate}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                   <Label htmlFor="task-category">Categoría</Label>
+                   <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger id="task-category">
+                      <SelectValue placeholder="Selecciona categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {taskCategories.map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="space-y-2">
+                 <div className="space-y-2">
                    <Label htmlFor="task-priority">Prioridad</Label>
                    <Select value={priority} onValueChange={setPriority}>
                     <SelectTrigger id="task-priority">
@@ -328,6 +352,31 @@ export default function TasksPage() {
                     </SelectContent>
                   </Select>
                 </div>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="task-due-date">Fecha de Vencimiento</Label>
+                <Popover>
+                <PopoverTrigger asChild>
+                    <Button
+                    variant={"outline"}
+                    className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !dueDate && "text-muted-foreground"
+                    )}
+                    >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dueDate ? format(dueDate, "PPP", { locale: es }) : <span>Elige una fecha</span>}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                    <Calendar
+                    mode="single"
+                    selected={dueDate}
+                    onSelect={setDueDate}
+                    initialFocus
+                    />
+                </PopoverContent>
+                </Popover>
             </div>
           </div>
           <DialogFooter>
@@ -357,3 +406,5 @@ export default function TasksPage() {
     </>
   );
 }
+
+    
