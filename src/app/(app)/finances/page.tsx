@@ -37,8 +37,6 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
-  WalletCards,
-  CheckCircle,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import {
@@ -80,18 +78,14 @@ import {
   query,
   where,
   getDocs,
-  Timestamp,
 } from 'firebase/firestore';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function FinancesPage() {
   const { firestore, user } = useFirebase();
   const [currentMonthName, setCurrentMonthName] = useState('');
-  const [currentMonthYear, setCurrentMonthYear] = useState('');
 
   const [isTransactionDialogOpen, setTransactionDialogOpen] = useState(false);
   const [isBudgetDialogOpen, setBudgetDialogOpen] = useState(false);
-  const [isRecurringExpenseDialogOpen, setRecurringExpenseDialogOpen] = useState(false);
 
   const [newTransactionType, setNewTransactionType] = useState<
     'income' | 'expense'
@@ -103,25 +97,16 @@ export default function FinancesPage() {
   const [budgetToEdit, setBudgetToEdit] = useState<any | null>(null);
   const [newBudgetCategory, setNewBudgetCategory] = useState('');
   const [newBudgetLimit, setNewBudgetLimit] = useState('');
-  
-  const [recurringExpenseToEdit, setRecurringExpenseToEdit] = useState<any | null>(null);
-  const [newRecurringExpenseName, setNewRecurringExpenseName] = useState('');
-  const [newRecurringExpenseAmount, setNewRecurringExpenseAmount] = useState('');
-  const [newRecurringExpenseCategory, setNewRecurringExpenseCategory] = useState('');
-  const [newRecurringExpenseDay, setNewRecurringExpenseDay] = useState('');
-
 
   const [transactionToEdit, setTransactionToEdit] = useState<any | null>(null);
   const [transactionToDelete, setTransactionToDelete] = useState<any | null>(
     null
   );
-  const [recurringExpenseToDelete, setRecurringExpenseToDelete] = useState<any | null>(null);
 
   useEffect(() => {
     const now = new Date();
     const monthName = now.toLocaleDateString('es-ES', { month: 'long' });
     setCurrentMonthName(monthName.charAt(0).toUpperCase() + monthName.slice(1));
-    setCurrentMonthYear(`${now.getFullYear()}-${now.getMonth()}`);
   }, []);
 
   const transactionsQuery = useMemo(() => {
@@ -146,19 +131,6 @@ export default function FinancesPage() {
   );
   const { data: budgets, isLoading: budgetsLoading } =
     useCollection(budgetsQuery);
-
-  const recurringExpensesQuery = useMemo(
-    () => (user ? collection(firestore, 'users', user.uid, 'recurringExpenses') : null),
-    [firestore, user]
-  );
-  const { data: recurringExpenses, isLoading: recurringExpensesLoading } =
-    useCollection(recurringExpensesQuery);
-
-  const pendingRecurringExpenses = useMemo(() => {
-    if (!recurringExpenses) return [];
-    return recurringExpenses.filter(expense => expense.lastInstanceCreated !== currentMonthYear);
-  }, [recurringExpenses, currentMonthYear]);
-
 
   const monthlyIncome =
     transactions
@@ -284,7 +256,6 @@ export default function FinancesPage() {
     
     const batch = writeBatch(firestore);
     
-    // Adjust budgets based on the changes
     if (originalTransaction.type === 'expense') {
       const oldBudget = budgets?.find(b => b.categoryName === originalTransaction.category);
       if (oldBudget) {
@@ -296,7 +267,6 @@ export default function FinancesPage() {
     if (transactionToEdit.type === 'expense') {
       const newBudget = budgets?.find(b => b.categoryName === transactionToEdit.category);
       if (newBudget) {
-        // We need to refetch the budget to get the most up-to-date currentSpend
          const updatedOldBudget = budgets?.find(b => b.id === newBudget.id);
          const spendAfterRevert = updatedOldBudget ? (updatedOldBudget.currentSpend || 0) - (originalTransaction.category === transactionToEdit.category ? originalTransaction.amount : 0) : 0;
          const newSpend = spendAfterRevert + amount;
@@ -364,92 +334,6 @@ export default function FinancesPage() {
   const openEditDialog = (transaction: any) => {
     setTransactionToEdit({ ...transaction, amount: transaction.amount.toString() });
   };
-  
-  const openRecurringExpenseDialog = (expense?: any) => {
-    if (expense) {
-      setRecurringExpenseToEdit(expense);
-      setNewRecurringExpenseName(expense.name);
-      setNewRecurringExpenseAmount(expense.amount.toString());
-      setNewRecurringExpenseCategory(expense.category);
-      setNewRecurringExpenseDay(expense.dayOfMonth.toString());
-    } else {
-      setRecurringExpenseToEdit(null);
-      setNewRecurringExpenseName('');
-      setNewRecurringExpenseAmount('');
-      setNewRecurringExpenseCategory('');
-      setNewRecurringExpenseDay('');
-    }
-    setRecurringExpenseDialogOpen(true);
-  };
-
-  const handleSaveRecurringExpense = async () => {
-    if (!user || !newRecurringExpenseName || !newRecurringExpenseAmount || !newRecurringExpenseCategory || !newRecurringExpenseDay) return;
-
-    const amount = parseFloat(newRecurringExpenseAmount);
-    const dayOfMonth = parseInt(newRecurringExpenseDay, 10);
-    if (isNaN(amount) || isNaN(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) return;
-
-    const expenseData = {
-      name: newRecurringExpenseName,
-      amount,
-      category: newRecurringExpenseCategory,
-      dayOfMonth,
-      userId: user.uid,
-    };
-
-    if (recurringExpenseToEdit) {
-      const expenseRef = doc(firestore, 'users', user.uid, 'recurringExpenses', recurringExpenseToEdit.id);
-      await updateDocumentNonBlocking(expenseRef, expenseData);
-    } else {
-      const expensesColRef = collection(firestore, 'users', user.uid, 'recurringExpenses');
-      await addDocumentNonBlocking(expensesColRef, expenseData);
-    }
-    setRecurringExpenseDialogOpen(false);
-  };
-  
-  const handleDeleteRecurringExpense = async () => {
-    if (!recurringExpenseToDelete || !user) return;
-    const expenseRef = doc(firestore, 'users', user.uid, 'recurringExpenses', recurringExpenseToDelete.id);
-    await deleteDocumentNonBlocking(expenseRef);
-    setRecurringExpenseToDelete(null);
-  };
-
-  const handlePayRecurringExpense = async (expense: any) => {
-    if (!user) return;
-    
-    const now = new Date();
-    // Create new transaction
-    const newTransaction = {
-      type: 'expense' as const,
-      description: expense.name,
-      category: expense.category,
-      date: new Date(now.getFullYear(), now.getMonth(), expense.dayOfMonth).toISOString(),
-      amount: expense.amount,
-      createdAt: serverTimestamp(),
-      userId: user.uid,
-    };
-    
-    const batch = writeBatch(firestore);
-
-    const transactionsColRef = collection(firestore, 'users', user.uid, 'transactions');
-    const newTransactionRef = doc(transactionsColRef);
-    batch.set(newTransactionRef, newTransaction);
-    
-    // Update budget
-    const budget = budgets?.find(b => b.categoryName === expense.category);
-    if (budget) {
-      const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-      const newSpend = (budget.currentSpend || 0) + expense.amount;
-      batch.update(budgetRef, { currentSpend: newSpend });
-    }
-    
-    // Update recurring expense
-    const expenseRef = doc(firestore, 'users', user.uid, 'recurringExpenses', expense.id);
-    batch.update(expenseRef, { lastInstanceCreated: currentMonthYear });
-    
-    await batch.commit();
-  };
-
 
   const expenseCategories = [
     ...new Set(
@@ -597,33 +481,6 @@ export default function FinancesPage() {
             </CardContent>
           </Card>
         </div>
-        
-        {pendingRecurringExpenses.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Gastos Recurrentes Pendientes</CardTitle>
-              <CardDescription>Estos gastos fijos están pendientes de pago para {currentMonthName}.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {pendingRecurringExpenses.map((expense) => (
-                  <div key={expense.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
-                    <div>
-                      <p className="font-semibold">{expense.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {expense.category} - {formatCurrency(expense.amount)}
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => handlePayRecurringExpense(expense)}>
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Pagar
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card className="lg:col-span-2">
@@ -704,206 +561,102 @@ export default function FinancesPage() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader>
-                <CardTitle>Gestión Financiera</CardTitle>
-                <CardDescription>
-                  Define presupuestos y gastos fijos.
-                </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Presupuestos</CardTitle>
+                 <Dialog open={isBudgetDialogOpen} onOpenChange={(open) => {
+                    setBudgetDialogOpen(open);
+                    if (!open) setBudgetToEdit(null);
+                }}>
+                    <DialogTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openBudgetDialog()}>
+                        <PlusCircle className="h-4 w-4" />
+                    </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{budgetToEdit ? 'Editar Presupuesto' : 'Añadir Presupuesto'}</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="budget-category" className="text-right">
+                            Categoría
+                        </Label>
+                        <Select
+                            value={newBudgetCategory}
+                            onValueChange={setNewBudgetCategory}
+                            disabled={!!budgetToEdit}
+                        >
+                            <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Selecciona una categoría" />
+                            </SelectTrigger>
+                            <SelectContent>
+                            {budgetToEdit ? (
+                                <SelectItem value={budgetToEdit.categoryName}>{budgetToEdit.categoryName}</SelectItem>
+                            ) : categoriesWithoutBudget.map((cat) => (
+                                <SelectItem key={cat} value={cat}>
+                                {cat}
+                                </SelectItem>
+                            ))}
+                            </SelectContent>
+                        </Select>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="budget-limit" className="text-right">
+                            Límite Mensual
+                        </Label>
+                        <Input
+                            id="budget-limit"
+                            type="number"
+                            value={newBudgetLimit}
+                            onChange={(e) => setNewBudgetLimit(e.target.value)}
+                            className="col-span-3"
+                        />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                        <Button type="button" variant="outline">Cancelar</Button>
+                        </DialogClose>
+                        <Button type="submit" onClick={handleSaveBudget}>
+                        {budgetToEdit ? 'Guardar Cambios' : 'Guardar Presupuesto'}
+                        </Button>
+                    </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </CardHeader>
             <CardContent>
-                <Tabs defaultValue="budgets">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="budgets">Presupuestos</TabsTrigger>
-                        <TabsTrigger value="recurring">Recurrentes</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="budgets" className="mt-4">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-semibold">Límites Mensuales</h3>
-                            <Dialog open={isBudgetDialogOpen} onOpenChange={(open) => {
-                                setBudgetDialogOpen(open);
-                                if (!open) setBudgetToEdit(null);
-                            }}>
-                                <DialogTrigger asChild>
-                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openBudgetDialog()}>
-                                    <PlusCircle className="h-4 w-4" />
-                                </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>{budgetToEdit ? 'Editar Presupuesto' : 'Añadir Presupuesto'}</DialogTitle>
-                                </DialogHeader>
-                                <div className="grid gap-4 py-4">
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="budget-category" className="text-right">
-                                        Categoría
-                                    </Label>
-                                    <Select
-                                        value={newBudgetCategory}
-                                        onValueChange={setNewBudgetCategory}
-                                        disabled={!!budgetToEdit}
-                                    >
-                                        <SelectTrigger className="col-span-3">
-                                        <SelectValue placeholder="Selecciona una categoría" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                        {budgetToEdit ? (
-                                            <SelectItem value={budgetToEdit.categoryName}>{budgetToEdit.categoryName}</SelectItem>
-                                        ) : categoriesWithoutBudget.map((cat) => (
-                                            <SelectItem key={cat} value={cat}>
-                                            {cat}
-                                            </SelectItem>
-                                        ))}
-                                        </SelectContent>
-                                    </Select>
-                                    </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="budget-limit" className="text-right">
-                                        Límite Mensual
-                                    </Label>
-                                    <Input
-                                        id="budget-limit"
-                                        type="number"
-                                        value={newBudgetLimit}
-                                        onChange={(e) => setNewBudgetLimit(e.target.value)}
-                                        className="col-span-3"
-                                    />
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                    <DialogClose asChild>
-                                    <Button type="button" variant="outline">Cancelar</Button>
-                                    </DialogClose>
-                                    <Button type="submit" onClick={handleSaveBudget}>
-                                    {budgetToEdit ? 'Guardar Cambios' : 'Guardar Presupuesto'}
-                                    </Button>
-                                </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-                        </div>
-                        <div className="space-y-4">
-                            {budgetsLoading && <p>Cargando presupuestos...</p>}
-                            {budgets?.map((b) => {
-                                const currentSpend = b.currentSpend || 0;
-                                const progress = (currentSpend / b.monthlyLimit) * 100;
+                <div className="space-y-4">
+                    {budgetsLoading && <p>Cargando presupuestos...</p>}
+                    {budgets?.map((b) => {
+                        const currentSpend = b.currentSpend || 0;
+                        const progress = (currentSpend / b.monthlyLimit) * 100;
 
-                                return (
-                                <div key={b.id}>
-                                    <div className="flex justify-between items-center mb-1">
-                                    <span className="text-sm font-medium">
-                                        {b.categoryName}
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm text-muted-foreground">
-                                        {formatCurrency(currentSpend)} /{' '}
-                                        {formatCurrency(b.monthlyLimit)}
-                                        </span>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openBudgetDialog(b)}>
-                                        <Pencil className="h-3 w-3" />
-                                        </Button>
-                                    </div>
-                                    </div>
-                                    <Progress value={progress} />
-                                </div>
-                                );
-                            })}
-                            {budgets?.length === 0 && !budgetsLoading && (
-                                <p className="text-sm text-muted-foreground text-center pt-4">
-                                    No has creado ningún presupuesto.
-                                </p>
-                                )}
+                        return (
+                        <div key={b.id}>
+                            <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-medium">
+                                {b.categoryName}
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">
+                                {formatCurrency(currentSpend)} /{' '}
+                                {formatCurrency(b.monthlyLimit)}
+                                </span>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openBudgetDialog(b)}>
+                                <Pencil className="h-3 w-3" />
+                                </Button>
+                            </div>
+                            </div>
+                            <Progress value={progress} />
                         </div>
-                    </TabsContent>
-                     <TabsContent value="recurring" className="mt-4">
-                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-semibold">Gastos Fijos Mensuales</h3>
-                            <Dialog open={isRecurringExpenseDialogOpen} onOpenChange={(open) => {
-                                setRecurringExpenseDialogOpen(open);
-                                if (!open) setRecurringExpenseToEdit(null);
-                            }}>
-                                <DialogTrigger asChild>
-                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openRecurringExpenseDialog()}>
-                                        <PlusCircle className="h-4 w-4" />
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>{recurringExpenseToEdit ? 'Editar Gasto Recurrente' : 'Añadir Gasto Recurrente'}</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="grid gap-4 py-4">
-                                         <div className="grid grid-cols-4 items-center gap-4">
-                                            <Label htmlFor="recurring-name" className="text-right">Descripción</Label>
-                                            <Input id="recurring-name" value={newRecurringExpenseName} onChange={(e) => setNewRecurringExpenseName(e.target.value)} className="col-span-3" />
-                                        </div>
-                                        <div className="grid grid-cols-4 items-center gap-4">
-                                            <Label htmlFor="recurring-amount" className="text-right">Monto</Label>
-                                            <Input id="recurring-amount" type="number" value={newRecurringExpenseAmount} onChange={(e) => setNewRecurringExpenseAmount(e.target.value)} className="col-span-3" />
-                                        </div>
-                                         <div className="grid grid-cols-4 items-center gap-4">
-                                            <Label htmlFor="recurring-category" className="text-right">Categoría</Label>
-                                            <Select value={newRecurringExpenseCategory} onValueChange={setNewRecurringExpenseCategory}>
-                                                <SelectTrigger className="col-span-3">
-                                                    <SelectValue placeholder="Selecciona categoría" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                     {uniqueExpenseCategories.map((cat) => (
-                                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                                     ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                         <div className="grid grid-cols-4 items-center gap-4">
-                                            <Label htmlFor="recurring-day" className="text-right">Día del Mes</Label>
-                                            <Input id="recurring-day" type="number" min="1" max="31" value={newRecurringExpenseDay} onChange={(e) => setNewRecurringExpenseDay(e.target.value)} className="col-span-3" />
-                                        </div>
-                                    </div>
-                                    <DialogFooter>
-                                        <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                                        <Button type="submit" onClick={handleSaveRecurringExpense}>{recurringExpenseToEdit ? 'Guardar Cambios' : 'Guardar Gasto'}</Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-                         </div>
-                         <div className="space-y-2">
-                            {recurringExpensesLoading && <p>Cargando gastos recurrentes...</p>}
-                            {recurringExpenses?.map((expense) => (
-                                <div key={expense.id} className="flex items-center justify-between p-2 rounded-md border">
-                                    <div className='flex items-center gap-2'>
-                                        <WalletCards className="h-5 w-5 text-muted-foreground"/>
-                                        <div>
-                                            <p className="font-medium text-sm">{expense.name}</p>
-                                            <p className="text-xs text-muted-foreground">{expense.category} &middot; Día {expense.dayOfMonth} de cada mes</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <span className="font-semibold text-sm">{formatCurrency(expense.amount)}</span>
-                                         <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent>
-                                                <DropdownMenuItem onClick={() => openRecurringExpenseDialog(expense)}>
-                                                    <Pencil className="mr-2 h-4 w-4" />
-                                                    Editar
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => setRecurringExpenseToDelete(expense)} className="text-red-500 focus:text-red-500">
-                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                    Eliminar
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
-                                </div>
-                            ))}
-                            {recurringExpenses?.length === 0 && !recurringExpensesLoading && (
-                                <p className="text-sm text-muted-foreground text-center pt-4">
-                                    No tienes gastos recurrentes definidos.
-                                </p>
-                            )}
-                         </div>
-                    </TabsContent>
-                </Tabs>
+                        );
+                    })}
+                    {budgets?.length === 0 && !budgetsLoading && (
+                        <p className="text-sm text-muted-foreground text-center pt-4">
+                            No has creado ningún presupuesto.
+                        </p>
+                        )}
+                </div>
             </CardContent>
           </Card>
         </div>
@@ -1047,26 +800,6 @@ export default function FinancesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
-      {/* Delete Recurring Expense Confirmation */}
-      <AlertDialog open={!!recurringExpenseToDelete} onOpenChange={(open) => !open && setRecurringExpenseToDelete(null)}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                <AlertDialogDescription>
-                Esta acción no se puede deshacer. Se eliminará el gasto recurrente "{recurringExpenseToDelete?.name}" permanentemente.
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteRecurringExpense} className="bg-destructive hover:bg-destructive/90">
-                Eliminar
-                </AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
-
-    
