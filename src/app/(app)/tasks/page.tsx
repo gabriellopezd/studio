@@ -61,6 +61,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+
 
 const taskCategories = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro"];
 
@@ -114,6 +116,37 @@ export default function TasksPage() {
     }, {} as Record<string, { completed: number; total: number; completionRate: number; }>);
 
     return stats;
+  }, [allTasks]);
+
+  const weeklyTaskStats = useMemo(() => {
+    if (!allTasks) return [];
+
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)); // Lunes como inicio de semana
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const weekData = Array(7).fill(0).map((_, i) => {
+        const day = new Date(startOfWeek);
+        day.setDate(startOfWeek.getDate() + i);
+        return {
+            name: day.toLocaleDateString('es-ES', { weekday: 'short' }),
+            tasks: 0,
+        };
+    });
+
+    allTasks.forEach(task => {
+        if (task.dueDate && task.dueDate.toDate) {
+            const taskDate = task.dueDate.toDate();
+            const dayIndex = taskDate.getDay() - (startOfWeek.getDay() === 0 ? -1 : 1);
+            
+            if (taskDate >= startOfWeek && taskDate <= new Date(startOfWeek.getTime() + 6 * 24 * 60 * 60 * 1000) && dayIndex >= 0 && dayIndex < 7) {
+                 weekData[dayIndex].tasks++;
+            }
+        }
+    });
+
+    return weekData;
   }, [allTasks]);
 
 
@@ -266,60 +299,62 @@ export default function TasksPage() {
            <p className="text-muted-foreground text-center p-4">No hay tareas en esta vista.</p>
         )}
         {sortedCategories.map(category => (
-            <div key={category}>
-                <h3 className="text-lg font-semibold mb-2">{category}</h3>
-                <div className="space-y-2 rounded-lg border bg-card p-4">
-                    {groupedTasks[category].map(task => (
-                        <div
-                            key={task.id}
-                            className="flex items-center gap-3 rounded-md p-2 hover:bg-muted/50"
-                        >
-                            <Checkbox
-                            id={`task-${task.id}`}
-                            checked={task.isCompleted}
-                            onCheckedChange={() => handleToggleTask(task.id, task.isCompleted)}
-                            />
-                            <label
-                            htmlFor={`task-${task.id}`}
-                            className="flex-1 cursor-pointer"
+            groupedTasks[category] && groupedTasks[category].length > 0 && (
+                <div key={category}>
+                    <h3 className="text-lg font-semibold mb-2">{category}</h3>
+                    <div className="space-y-2 rounded-lg border bg-card p-4">
+                        {groupedTasks[category].map(task => (
+                            <div
+                                key={task.id}
+                                className="flex items-center gap-3 rounded-md p-2 hover:bg-muted/50"
                             >
-                            <p
-                                className={`font-medium ${
-                                task.isCompleted
-                                    ? 'text-muted-foreground line-through'
-                                    : ''
-                                }`}
-                            >
-                                {task.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                                {getTaskDueDate(task)}
-                            </p>
-                            </label>
-                            <Badge className={getPriorityBadge(task.priority)}>
-                                {task.priority}
-                            </Badge>
-                            <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleOpenDialog(task)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Editar
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setTaskToDelete(task)} className="text-red-500">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Eliminar
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    ))}
+                                <Checkbox
+                                id={`task-${task.id}`}
+                                checked={task.isCompleted}
+                                onCheckedChange={() => handleToggleTask(task.id, task.isCompleted)}
+                                />
+                                <label
+                                htmlFor={`task-${task.id}`}
+                                className="flex-1 cursor-pointer"
+                                >
+                                <p
+                                    className={`font-medium ${
+                                    task.isCompleted
+                                        ? 'text-muted-foreground line-through'
+                                        : ''
+                                    }`}
+                                >
+                                    {task.name}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    {getTaskDueDate(task)}
+                                </p>
+                                </label>
+                                <Badge className={getPriorityBadge(task.priority)}>
+                                    {task.priority}
+                                </Badge>
+                                <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleOpenDialog(task)}>
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Editar
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setTaskToDelete(task)} className="text-red-500">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Eliminar
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        ))}
+                    </div>
                 </div>
-            </div>
+            )
         ))}
       </div>
     );
@@ -366,6 +401,26 @@ export default function TasksPage() {
                     </CardContent>
                 </Card>
             ))}
+        </div>
+        
+        <div className="grid grid-cols-1 gap-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Tareas de la Semana</CardTitle>
+                    <CardDescription>Distribución de tareas con fecha de vencimiento en la semana actual.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={weeklyTaskStats}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis allowDecimals={false}/>
+                            <Tooltip />
+                            <Bar dataKey="tasks" fill="hsl(var(--primary))" name="Tareas" />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </CardContent>
+            </Card>
         </div>
 
         <Tabs defaultValue="all" onValueChange={setActiveTab}>
