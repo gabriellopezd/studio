@@ -5,7 +5,7 @@ import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, MoreHorizontal, Pencil, Trash2, CalendarIcon, ListTodo, CheckCircle2, PieChart } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Pencil, Trash2, CalendarIcon } from 'lucide-react';
 import {
   useFirebase,
   useCollection,
@@ -13,7 +13,7 @@ import {
   addDocumentNonBlocking,
   deleteDocumentNonBlocking
 } from '@/firebase';
-import { collection, doc, query, Timestamp, serverTimestamp, where } from 'firebase/firestore';
+import { collection, doc, query, Timestamp, serverTimestamp } from 'firebase/firestore';
 import {
   Dialog,
   DialogContent,
@@ -86,13 +86,22 @@ export default function TasksPage() {
 
   const { data: allTasks, isLoading: tasksLoading } = useCollection(tasksQuery);
 
-  const stats = useMemo(() => {
-    if (!allTasks) return { pending: 0, completed: 0, total: 0, completionRate: 0 };
-    const completed = allTasks.filter(t => t.isCompleted).length;
-    const total = allTasks.length;
-    const pending = total - completed;
-    const completionRate = total > 0 ? (completed / total) * 100 : 0;
-    return { pending, completed, total, completionRate };
+  const categoryStats = useMemo(() => {
+    if (!allTasks) return {};
+    
+    const stats = taskCategories.reduce((acc, category) => {
+        const tasksInCategory = allTasks.filter(t => t.category === category);
+        if (tasksInCategory.length > 0) {
+            const completed = tasksInCategory.filter(t => t.isCompleted).length;
+            const total = tasksInCategory.length;
+            const completionRate = total > 0 ? (completed / total) * 100 : 0;
+            
+            acc[category] = { completed, total, completionRate };
+        }
+        return acc;
+    }, {} as Record<string, { completed: number; total: number; completionRate: number; }>);
+
+    return stats;
   }, [allTasks]);
 
 
@@ -318,38 +327,20 @@ export default function TasksPage() {
         </PageHeader>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tareas Pendientes</CardTitle>
-              <ListTodo className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.pending}</div>
-              <p className="text-xs text-muted-foreground">Total de tareas por completar</p>
-            </CardContent>
-          </Card>
-           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tareas Completadas</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.completed}</div>
-              <p className="text-xs text-muted-foreground">Total de tareas finalizadas</p>
-            </CardContent>
-          </Card>
-           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tasa de Finalización</CardTitle>
-              <PieChart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.completionRate.toFixed(1)}%</div>
-              <Progress value={stats.completionRate} className="mt-2 h-2" />
-            </CardContent>
-          </Card>
+            {Object.entries(categoryStats).map(([category, stats]) => (
+                <Card key={category}>
+                    <CardHeader>
+                        <CardTitle>{category}</CardTitle>
+                        <CardDescription>
+                            {stats.completed} de {stats.total} tareas completadas
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Progress value={stats.completionRate} />
+                    </CardContent>
+                </Card>
+            ))}
         </div>
-
 
         <Tabs defaultValue="all" onValueChange={setActiveTab}>
           <TabsList>
