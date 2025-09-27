@@ -38,6 +38,7 @@ import {
   Pencil,
   Trash2,
   WalletCards,
+  CheckCircle,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import {
@@ -86,6 +87,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 export default function FinancesPage() {
   const { firestore, user } = useFirebase();
   const [currentMonthName, setCurrentMonthName] = useState('');
+  const [currentMonthYear, setCurrentMonthYear] = useState('');
 
   const [isTransactionDialogOpen, setTransactionDialogOpen] = useState(false);
   const [isBudgetDialogOpen, setBudgetDialogOpen] = useState(false);
@@ -119,6 +121,7 @@ export default function FinancesPage() {
     const now = new Date();
     const monthName = now.toLocaleDateString('es-ES', { month: 'long' });
     setCurrentMonthName(monthName.charAt(0).toUpperCase() + monthName.slice(1));
+    setCurrentMonthYear(`${now.getFullYear()}-${now.getMonth()}`);
   }, []);
 
   const transactionsQuery = useMemo(() => {
@@ -151,50 +154,10 @@ export default function FinancesPage() {
   const { data: recurringExpenses, isLoading: recurringExpensesLoading } =
     useCollection(recurringExpensesQuery);
 
-  useEffect(() => {
-    if (recurringExpenses && user) {
-        const checkAndCreateRecurringTransactions = async () => {
-            const now = new Date();
-            const currentMonthYear = `${now.getFullYear()}-${now.getMonth()}`;
-            const batch = writeBatch(firestore);
-
-            for (const expense of recurringExpenses) {
-                const lastInstance = expense.lastInstanceCreated;
-                
-                if (lastInstance !== currentMonthYear) {
-                    // Create a new transaction
-                    const newTransaction = {
-                        type: 'expense' as const,
-                        description: expense.name,
-                        category: expense.category,
-                        date: new Date(now.getFullYear(), now.getMonth(), expense.dayOfMonth).toISOString(),
-                        amount: expense.amount,
-                        createdAt: serverTimestamp(),
-                        userId: user.uid,
-                    };
-
-                    const transactionsColRef = collection(firestore, 'users', user.uid, 'transactions');
-                    batch.set(doc(transactionsColRef), newTransaction);
-
-                    // Update the budget
-                    const budget = budgets?.find(b => b.categoryName === expense.category);
-                    if (budget) {
-                        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-                        const newSpend = (budget.currentSpend || 0) + expense.amount;
-                        batch.update(budgetRef, { currentSpend: newSpend });
-                    }
-
-                    // Update the recurring expense's lastInstanceCreated
-                    const expenseRef = doc(firestore, 'users', user.uid, 'recurringExpenses', expense.id);
-                    batch.update(expenseRef, { lastInstanceCreated: currentMonthYear });
-                }
-            }
-            await batch.commit();
-        };
-
-        checkAndCreateRecurringTransactions();
-    }
-  }, [recurringExpenses, user, firestore, budgets]);
+  const pendingRecurringExpenses = useMemo(() => {
+    if (!recurringExpenses) return [];
+    return recurringExpenses.filter(expense => expense.lastInstanceCreated !== currentMonthYear);
+  }, [recurringExpenses, currentMonthYear]);
 
 
   const monthlyIncome =
@@ -451,6 +414,42 @@ export default function FinancesPage() {
     setRecurringExpenseToDelete(null);
   };
 
+  const handlePayRecurringExpense = async (expense: any) => {
+    if (!user) return;
+    
+    const now = new Date();
+    // Create new transaction
+    const newTransaction = {
+      type: 'expense' as const,
+      description: expense.name,
+      category: expense.category,
+      date: new Date(now.getFullYear(), now.getMonth(), expense.dayOfMonth).toISOString(),
+      amount: expense.amount,
+      createdAt: serverTimestamp(),
+      userId: user.uid,
+    };
+    
+    const batch = writeBatch(firestore);
+
+    const transactionsColRef = collection(firestore, 'users', user.uid, 'transactions');
+    const newTransactionRef = doc(transactionsColRef);
+    batch.set(newTransactionRef, newTransaction);
+    
+    // Update budget
+    const budget = budgets?.find(b => b.categoryName === expense.category);
+    if (budget) {
+      const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+      const newSpend = (budget.currentSpend || 0) + expense.amount;
+      batch.update(budgetRef, { currentSpend: newSpend });
+    }
+    
+    // Update recurring expense
+    const expenseRef = doc(firestore, 'users', user.uid, 'recurringExpenses', expense.id);
+    batch.update(expenseRef, { lastInstanceCreated: currentMonthYear });
+    
+    await batch.commit();
+  };
+
 
   const expenseCategories = [
     ...new Set(
@@ -598,6 +597,33 @@ export default function FinancesPage() {
             </CardContent>
           </Card>
         </div>
+
+         {pendingRecurringExpenses.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Gastos Recurrentes Pendientes</CardTitle>
+              <CardDescription>Estos gastos fijos están pendientes de pago para {currentMonthName}.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {pendingRecurringExpenses.map((expense) => (
+                  <div key={expense.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
+                    <div>
+                      <p className="font-semibold">{expense.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {expense.category} - {formatCurrency(expense.amount)}
+                      </p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => handlePayRecurringExpense(expense)}>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Pagar
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card className="lg:col-span-2">
@@ -1042,7 +1068,3 @@ export default function FinancesPage() {
     </>
   );
 }
-
-    
-    
-    
