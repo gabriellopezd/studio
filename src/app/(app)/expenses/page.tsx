@@ -78,6 +78,7 @@ import {
   getDocs,
   where,
   Timestamp,
+  getDoc,
 } from 'firebase/firestore';
 import {
   DndContext,
@@ -755,53 +756,49 @@ export default function ExpensesPage() {
 
   const handleRevertPayment = async (expense: any) => {
     if (!user || !expense.lastTransactionId) return;
-
-    const batch = writeBatch(firestore);
-
-    // 1. Delete the transaction
-    const transactionRef = doc(firestore, 'users', user.uid, 'transactions', expense.lastTransactionId);
-    batch.delete(transactionRef);
-
-    // 2. Revert the budget
-    const budget = budgets?.find((b) => b.categoryName === expense.category);
-    if (budget) {
-      const budgetRef = doc(
-        firestore,
-        'users',
-        user.uid,
-        'budgets',
-        budget.id
-      );
-      const newSpend = Math.max(0, (budget.currentSpend || 0) - expense.amount);
-      batch.update(budgetRef, { currentSpend: newSpend });
-    }
-
-    // 3. Revert the recurring expense
-    const expenseRef = doc(
-      firestore,
-      'users',
-      user.uid,
-      'recurringExpenses',
-      expense.id
-    );
-    batch.update(expenseRef, {
-      lastInstanceCreated: null,
-      lastTransactionId: null
-    });
-
+  
     try {
-        await batch.commit();
-        toast({
-          title: 'Pago Revertido',
-          description: `Se ha deshecho el pago de ${expense.name}.`,
-        });
-    } catch(error) {
-        console.error("Error reverting payment:", error);
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "No se pudo revertir el pago.",
-        });
+      const transactionRef = doc(firestore, 'users', user.uid, 'transactions', expense.lastTransactionId);
+      const transactionSnap = await getDoc(transactionRef);
+      
+      if (!transactionSnap.exists()) {
+        toast({ variant: "destructive", title: "Error", description: "La transacción original no se encontró." });
+        return;
+      }
+      
+      const transactionData = transactionSnap.data();
+      const batch = writeBatch(firestore);
+  
+      // 1. Delete the transaction
+      batch.delete(transactionRef);
+  
+      // 2. Revert the budget
+      const budget = budgets?.find((b) => b.categoryName === transactionData.category);
+      if (budget) {
+        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+        const newSpend = Math.max(0, (budget.currentSpend || 0) - transactionData.amount);
+        batch.update(budgetRef, { currentSpend: newSpend });
+      }
+  
+      // 3. Revert the recurring expense
+      const expenseRef = doc(firestore, 'users', user.uid, 'recurringExpenses', expense.id);
+      batch.update(expenseRef, {
+        lastInstanceCreated: null,
+        lastTransactionId: null,
+      });
+  
+      await batch.commit();
+      toast({
+        title: 'Pago Revertido',
+        description: `Se ha deshecho el pago de ${expense.name}.`,
+      });
+    } catch (error) {
+      console.error("Error reverting payment:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo revertir el pago.",
+      });
     }
   };
 
