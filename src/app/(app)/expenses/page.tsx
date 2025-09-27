@@ -1258,37 +1258,57 @@ export default function ExpensesPage() {
                           <span className="font-semibold text-sm">
                             {formatCurrency(expense.amount)}
                           </span>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  openRecurringExpenseDialog(expense)
-                                }
-                              >
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Editar
-                              </DropdownMenuItem>
-                              <AlertDialogTrigger asChild>
-                                <DropdownMenuItem
-                                    onSelect={(e) => e.preventDefault()}
-                                    onClick={() => setRecurringExpenseToDelete(expense)}
-                                    className="text-red-500 focus:text-red-500"
+                           <AlertDialog>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
                                 >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Eliminar
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                <DropdownMenuItem
+                                    onClick={() =>
+                                    openRecurringExpenseDialog(expense)
+                                    }
+                                >
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Editar
                                 </DropdownMenuItem>
-                              </AlertDialogTrigger>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                                <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem
+                                        onSelect={(e) => e.preventDefault()}
+                                        onClick={() => setRecurringExpenseToDelete(expense)}
+                                        className="text-red-500 focus:text-red-500"
+                                    >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Eliminar
+                                    </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                             <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                    Esta acción no se puede deshacer. Se eliminará el gasto recurrente
+                                    "{recurringExpenseToDelete?.name}" permanentemente.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel onClick={() => setRecurringExpenseToDelete(null)}>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                    onClick={handleDeleteRecurringExpense}
+                                    className="bg-destructive hover:bg-destructive/90"
+                                    >
+                                    Eliminar
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                           </AlertDialog>
                         </div>
                       </div>
                     ))}
@@ -1351,30 +1371,6 @@ export default function ExpensesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* Delete Recurring Expense Confirmation */}
-      <AlertDialog
-        open={!!recurringExpenseToDelete}
-        onOpenChange={(open) => !open && setRecurringExpenseToDelete(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará el gasto recurrente
-              "{recurringExpenseToDelete?.name}" permanentemente.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteRecurringExpense}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Eliminar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
