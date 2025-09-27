@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -10,6 +11,7 @@ import {
   Activity,
   ListTodo,
   CheckCircle2,
+  SquareCheck,
 } from 'lucide-react';
 import {
   Card,
@@ -44,6 +46,14 @@ const getStartOfWeek = (date: Date) => {
   return new Date(d.setDate(diff));
 };
 
+const getEndOfWeek = (date: Date) => {
+    const start = getStartOfWeek(date);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+    return end;
+};
+
 const isSameDay = (d1: Date, d2: Date) => {
   return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
 };
@@ -68,18 +78,24 @@ export default function DashboardPage() {
   );
   const { data: allHabits, isLoading: habitsLoading } = useCollection(habitsQuery);
 
-  const tasksQuery = useMemo(
-    () =>
-      user
-        ? query(
-            collection(firestore, 'users', user.uid, 'tasks'),
-            where('isCompleted', '==', false),
-            limit(5)
-          )
-        : null,
-    [firestore, user]
-  );
-  const { data: tasks, isLoading: tasksLoading } = useCollection(tasksQuery);
+  const weeklyTasksQuery = useMemo(() => {
+    if (!user) return null;
+    const startOfWeek = getStartOfWeek(today);
+    const endOfWeek = getEndOfWeek(today);
+    return query(
+        collection(firestore, 'users', user.uid, 'tasks'),
+        where('dueDate', '>=', startOfWeek),
+        where('dueDate', '<=', endOfWeek)
+      )
+  }, [firestore, user, today]);
+
+  const { data: weeklyTasks, isLoading: tasksLoading } = useCollection(weeklyTasksQuery);
+
+  const pendingTasks = useMemo(() => weeklyTasks?.filter(t => !t.isCompleted) || [], [weeklyTasks]);
+  const completedWeeklyTasks = useMemo(() => weeklyTasks?.filter(t => t.isCompleted).length || 0, [weeklyTasks]);
+  const totalWeeklyTasks = weeklyTasks?.length || 0;
+  const weeklyTasksProgress = totalWeeklyTasks > 0 ? (completedWeeklyTasks / totalWeeklyTasks) * 100 : 0;
+
 
   const moodsQuery = useMemo(() => {
     if (!user) return null;
@@ -184,15 +200,15 @@ export default function DashboardPage() {
              <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                     <ListTodo className="size-5"/>
-                    Tareas Pendientes
+                    Tareas Pendientes de la Semana
                 </CardTitle>
-                 <CardDescription>Tus tareas más próximas a vencer.</CardDescription>
+                 <CardDescription>Tus tareas pendientes para los próximos días.</CardDescription>
             </CardHeader>
             <CardContent>
                 {tasksLoading && <p>Cargando tareas...</p>}
-                {tasks && tasks.length > 0 ? (
+                {pendingTasks && pendingTasks.length > 0 ? (
                     <ul className="space-y-3">
-                        {tasks.map(task => (
+                        {pendingTasks.slice(0, 5).map(task => (
                              <li key={task.id} className="flex items-center justify-between">
                                 <div>
                                     <p className="font-medium">{task.name}</p>
@@ -203,7 +219,7 @@ export default function DashboardPage() {
                         ))}
                     </ul>
                 ) : (
-                    !tasksLoading && <p className="text-sm text-muted-foreground">No tienes tareas pendientes.</p>
+                    !tasksLoading && <p className="text-sm text-muted-foreground">No tienes tareas pendientes para esta semana.</p>
                 )}
             </CardContent>
           </Card>
@@ -232,6 +248,20 @@ export default function DashboardPage() {
                  <Button variant="link" asChild className="mt-2">
                     <Link href="/mood-tracker">Ver detalles y tendencias</Link>
                  </Button>
+            </CardContent>
+        </Card>
+      </div>
+       <div className="grid grid-cols-1 gap-6">
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                    <SquareCheck className="size-5"/>
+                    Progreso de Tareas Semanales
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Progress value={weeklyTasksProgress} className="mb-2"/>
+                <p className="text-sm text-muted-foreground">{completedWeeklyTasks} de {totalWeeklyTasks} tareas completadas esta semana.</p>
             </CardContent>
         </Card>
       </div>
