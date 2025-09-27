@@ -141,6 +141,23 @@ export default function FinancesPage() {
   const { data: budgets, isLoading: budgetsLoading } =
     useCollection(budgetsQuery);
 
+  const recurringExpensesQuery = useMemo(
+    () =>
+      user
+        ? query(collection(firestore, 'users', user.uid, 'recurringExpenses'))
+        : null,
+    [firestore, user]
+  );
+  const { data: recurringExpenses } = useCollection(recurringExpensesQuery);
+
+  const pendingRecurringExpensesTotal = useMemo(() => {
+    if (!recurringExpenses) return 0;
+    return recurringExpenses
+      .filter((expense) => expense.lastInstanceCreated !== currentMonthYear)
+      .reduce((total, expense) => total + expense.amount, 0);
+  }, [recurringExpenses, currentMonthYear]);
+
+
   const monthlyIncome =
     transactions
       ?.filter((t) => t.type === 'income')
@@ -446,7 +463,7 @@ export default function FinancesPage() {
           </Dialog>
         </PageHeader>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader>
               <CardTitle>Ingresos del Mes</CardTitle>
@@ -467,6 +484,17 @@ export default function FinancesPage() {
               <p className="text-3xl font-bold text-red-500">
                 {formatCurrency(monthlyExpenses)}
               </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Gastos Pendientes</CardTitle>
+              <CardDescription>Total de gastos recurrentes por pagar</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <p className="text-3xl font-bold text-amber-500">
+                    {formatCurrency(pendingRecurringExpensesTotal)}
+                </p>
             </CardContent>
           </Card>
           <Card>
