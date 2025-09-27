@@ -5,6 +5,11 @@ import {
   CalendarDays,
   Heart,
   Wind,
+  Flame,
+  Trophy,
+  Activity,
+  ListTodo,
+  CheckCircle2,
 } from 'lucide-react';
 import {
   Card,
@@ -23,8 +28,13 @@ import {
   collection,
   query,
   where,
+  limit,
+  Timestamp,
 } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 const getStartOfWeek = (date: Date) => {
   const d = new Date(date);
@@ -38,70 +48,64 @@ const isSameDay = (d1: Date, d2: Date) => {
   return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
 };
 
+const isSameWeek = (d1: Date, d2: Date) => {
+  const startOfWeek1 = getStartOfWeek(d1);
+  const startOfWeek2 = getStartOfWeek(d2);
+  return isSameDay(startOfWeek1, startOfWeek2);
+};
+
+const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
+
 export default function DashboardPage() {
   const [isClient, setIsClient] = useState(false);
   const { firestore, user } = useFirebase();
   
   const today = useMemo(() => new Date(), []);
   
-  const startOfWeek = useMemo(() => getStartOfWeek(today), [today]);
+  const habitsQuery = useMemo(
+    () => (user ? collection(firestore, 'users', user.uid, 'habits') : null),
+    [firestore, user]
+  );
+  const { data: allHabits, isLoading: habitsLoading } = useCollection(habitsQuery);
+
+  const tasksQuery = useMemo(
+    () =>
+      user
+        ? query(
+            collection(firestore, 'users', user.uid, 'tasks'),
+            where('isCompleted', '==', false),
+            where('dueDate', '<=', new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString()), // Today + 24h
+            limit(5)
+          )
+        : null,
+    [firestore, user, today]
+  );
+  const { data: tasks, isLoading: tasksLoading } = useCollection(tasksQuery);
 
   const moodsQuery = useMemo(() => {
     if (!user) return null;
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    startOfMonth.setHours(0, 0, 0, 0);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    endOfMonth.setHours(23, 59, 59, 999);
-    
+    const todayISO = today.toISOString().split('T')[0];
     return query(
       collection(firestore, 'users', user.uid, 'moods'),
-      where('date', '>=', startOfMonth.toISOString()),
-      where('date', '<=', endOfMonth.toISOString())
+      where('date', '>=', `${todayISO}T00:00:00.000Z`),
+      where('date', '<=', `${todayISO}T23:59:59.999Z`),
+      limit(1)
     );
-  }, [firestore, user]);
-
+  }, [firestore, user, today]);
   const { data: moods, isLoading: moodsLoading } = useCollection(moodsQuery);
+  const todayMood = moods?.[0];
+
+  const dailyHabits = useMemo(() => allHabits?.filter(h => h.frequency === 'Diario') || [], [allHabits]);
+  const weeklyHabits = useMemo(() => allHabits?.filter(h => h.frequency === 'Semanal') || [], [allHabits]);
   
-  const feelingStats = useMemo(() => {
-    if (!moods) return [];
-    const counts = moods.flatMap(m => m.feelings).reduce((acc, feeling) => {
-        acc[feeling] = (acc[feeling] || 0) + 1;
-        return acc;
-    }, {} as Record<string, number>);
+  const completedDaily = useMemo(() => dailyHabits.filter(h => h.lastCompletedAt && isSameDay(h.lastCompletedAt.toDate(), today)).length, [dailyHabits, today]);
+  const completedWeekly = useMemo(() => weeklyHabits.filter(h => h.lastCompletedAt && isSameWeek(h.lastCompletedAt.toDate(), today)).length, [weeklyHabits, today]);
 
-    return Object.entries(counts)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 5);
-  }, [moods]);
-
-  const influenceStats = useMemo(() => {
-      if (!moods) return [];
-      const counts = moods.flatMap(m => m.influences).reduce((acc, influence) => {
-          acc[influence] = (acc[influence] || 0) + 1;
-          return acc;
-      }, {} as Record<string, number>);
-
-      return Object.entries(counts)
-          .sort(([, a], [, b]) => b - a)
-          .slice(0, 5);
-  }, [moods]);
-
-  const weekDays = useMemo(() => {
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-        const day = new Date(startOfWeek);
-        day.setDate(startOfWeek.getDate() + i);
-        days.push(day);
-    }
-    return days;
-  }, [startOfWeek]);
+  const longestStreak = useMemo(() => allHabits?.reduce((max, h) => Math.max(max, h.longestStreak || 0), 0) || 0, [allHabits]);
+  const longestCurrentStreak = useMemo(() => allHabits?.reduce((max, h) => Math.max(max, h.currentStreak || 0), 0) || 0, [allHabits]);
   
-  const getMoodForDay = (day: Date) => {
-    return moods?.find(mood => isSameDay(new Date(mood.date), day));
-  };
-  
-  const dayLabels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+  const dailyProgress = dailyHabits.length > 0 ? (completedDaily / dailyHabits.length) * 100 : 0;
+  const weeklyProgress = weeklyHabits.length > 0 ? (completedWeekly / weeklyHabits.length) * 100 : 0;
 
   useEffect(() => {
     setIsClient(true);
@@ -120,91 +124,115 @@ export default function DashboardPage() {
         title="Dashboard de Bienestar"
         description={
           isClient
-            ? `Tu resumen emocional para hoy, ${todayString}.`
-            : 'Tu resumen emocional.'
+            ? `Tu resumen de hoy, ${todayString}.`
+            : 'Tu resumen de hoy.'
         }
       />
       
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CalendarDays className="size-5" />
-              <span>Historial de Ánimo</span>
-            </CardTitle>
-            <CardDescription>Tu registro emocional de la semana.</CardDescription>
-          </CardHeader>
-          <CardContent>
-             {moodsLoading && <p>Cargando historial de ánimo...</p>}
-             <div className="grid grid-cols-7 gap-2">
-                {weekDays.map((day, index) => {
-                  const moodEntry = getMoodForDay(day);
-                  const isFuture = day > today && !isSameDay(day, today);
-                  return (
-                    <div
-                      key={day.toISOString()}
-                      className="flex aspect-square flex-col items-center justify-center rounded-lg border bg-card p-2 text-center"
-                    >
-                      <span className="text-sm text-muted-foreground">{dayLabels[index]}</span>
-                      <span className="text-2xl mt-1">
-                        {moodEntry
-                          ? moodEntry.emoji
-                          : !isFuture ? '⚪' : ''}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-          </CardContent>
-        </Card>
-        
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                    <Heart className="size-5 text-red-500"/>
-                    Sentimientos Frecuentes del Mes
+                    <Activity className="size-5"/>
+                    Progreso de Hábitos Diarios
                 </CardTitle>
-                 <CardDescription>Los sentimientos que más has registrado.</CardDescription>
             </CardHeader>
             <CardContent>
-                {moodsLoading && <p>Cargando...</p>}
-                {feelingStats.length > 0 ? (
-                     <ul className="space-y-2">
-                        {feelingStats.map(([feeling, count]) => (
-                            <li key={feeling} className="flex justify-between items-center text-sm">
-                                <span>{feeling}</span>
-                                <Badge variant="secondary">{count} {count > 1 ? 'veces' : 'vez'}</Badge>
-                            </li>
-                        ))}
-                    </ul>
-                ) : (
-                    !moodsLoading && <p className="text-sm text-muted-foreground">No hay suficientes datos este mes.</p>
-                )}
+                <Progress value={dailyProgress} className="mb-2"/>
+                <p className="text-sm text-muted-foreground">{completedDaily} de {dailyHabits.length} completados hoy.</p>
             </CardContent>
         </Card>
-
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                    <CalendarDays className="size-5"/>
+                    Progreso de Hábitos Semanales
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Progress value={weeklyProgress} className="mb-2"/>
+                <p className="text-sm text-muted-foreground">{completedWeekly} de {weeklyHabits.length} completados esta semana.</p>
+            </CardContent>
+        </Card>
          <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                    <Wind className="size-5 text-blue-500"/>
-                    Influencias Comunes del Mes
+                    <Flame className="size-5 text-orange-500"/>
+                    Racha Actual
                 </CardTitle>
-                <CardDescription>Lo que más ha impactado tu ánimo.</CardDescription>
             </CardHeader>
             <CardContent>
-                {moodsLoading && <p>Cargando...</p>}
-                {influenceStats.length > 0 ? (
-                    <ul className="space-y-2">
-                        {influenceStats.map(([influence, count]) => (
-                            <li key={influence} className="flex justify-between items-center text-sm">
-                                <span>{influence}</span>
-                                <Badge variant="secondary">{count} {count > 1 ? 'veces' : 'vez'}</Badge>
+                <p className="text-2xl font-bold">{longestCurrentStreak} días</p>
+                <p className="text-sm text-muted-foreground">Tu mejor racha activa.</p>
+            </CardContent>
+        </Card>
+         <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                    <Trophy className="size-5 text-yellow-500"/>
+                    Racha Más Larga
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-2xl font-bold">{longestStreak} días</p>
+                 <p className="text-sm text-muted-foreground">Tu récord histórico.</p>
+            </CardContent>
+        </Card>
+      </div>
+
+       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="md:col-span-2">
+             <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                    <ListTodo className="size-5"/>
+                    Tareas Pendientes
+                </CardTitle>
+                 <CardDescription>Tus tareas más próximas a vencer.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {tasksLoading && <p>Cargando tareas...</p>}
+                {tasks && tasks.length > 0 ? (
+                    <ul className="space-y-3">
+                        {tasks.map(task => (
+                             <li key={task.id} className="flex items-center justify-between">
+                                <div>
+                                    <p className="font-medium">{task.name}</p>
+                                    <p className="text-sm text-muted-foreground">Vence: {task.dueDate ? task.dueDate.toDate().toLocaleDateString() : 'N/A'}</p>
+                                </div>
+                                <Badge variant={task.priority === 'high' ? 'destructive' : 'secondary'}>{task.priority || 'normal'}</Badge>
                             </li>
                         ))}
                     </ul>
                 ) : (
-                    !moodsLoading && <p className="text-sm text-muted-foreground">No hay suficientes datos este mes.</p>
+                    !tasksLoading && <p className="text-sm text-muted-foreground">No tienes tareas pendientes.</p>
                 )}
+            </CardContent>
+          </Card>
+           <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                    <Smile className="size-5"/>
+                    Resumen Emocional de Hoy
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center text-center">
+                 {moodsLoading && <p>Cargando ánimo...</p>}
+                 {todayMood ? (
+                    <>
+                        <p className="text-5xl">{todayMood.emoji}</p>
+                        <p className="text-lg font-semibold mt-2">{todayMood.moodLabel}</p>
+                    </>
+                 ) : (
+                    !moodsLoading && (
+                        <>
+                            <p className="text-5xl">⚪</p>
+                            <p className="text-muted-foreground mt-2">Sin registrar</p>
+                        </>
+                    )
+                 )}
+                 <Button variant="link" asChild className="mt-2">
+                    <Link href="/mood-tracker">Ver detalles y tendencias</Link>
+                 </Button>
             </CardContent>
         </Card>
       </div>
