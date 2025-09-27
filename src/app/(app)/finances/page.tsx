@@ -597,8 +597,8 @@ export default function FinancesPage() {
             </CardContent>
           </Card>
         </div>
-
-         {pendingRecurringExpenses.length > 0 && (
+        
+        {pendingRecurringExpenses.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Gastos Recurrentes Pendientes</CardTitle>
