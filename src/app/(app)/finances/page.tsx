@@ -520,8 +520,8 @@ export default function FinancesPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Descripción</TableHead>
-                      <TableHead>Categoría</TableHead>
-                      <TableHead>Fecha</TableHead>
+                      <TableHead className="hidden sm:table-cell">Categoría</TableHead>
+                      <TableHead className="hidden md:table-cell">Fecha</TableHead>
                       <TableHead className="text-right">Monto</TableHead>
                       <TableHead className="w-[50px] text-right">Acciones</TableHead>
                     </TableRow>
@@ -531,14 +531,14 @@ export default function FinancesPage() {
                       <TableRow key={t.id}>
                         <TableCell className="font-medium flex items-center gap-2">
                           {t.type === 'income' ? (
-                            <ArrowUpCircle className="h-5 w-5 text-emerald-500" />
+                            <ArrowUpCircle className="h-5 w-5 text-emerald-500 shrink-0" />
                           ) : (
-                            <ArrowDownCircle className="h-5 w-5 text-red-500" />
+                            <ArrowDownCircle className="h-5 w-5 text-red-500 shrink-0" />
                           )}
-                          {t.description}
+                          <span className="truncate">{t.description}</span>
                         </TableCell>
-                        <TableCell>{t.category}</TableCell>
-                        <TableCell>
+                        <TableCell className="hidden sm:table-cell">{t.category}</TableCell>
+                        <TableCell className="hidden md:table-cell">
                           {new Date(t.date).toLocaleString('es-ES', {
                             day: 'numeric',
                             month: 'short',

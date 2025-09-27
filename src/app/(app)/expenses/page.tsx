@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -202,8 +203,10 @@ export default function ExpensesPage() {
   }, [lists]);
 
   const expenseCategories = useMemo(() => {
-    return lists?.map((l) => l.name) ?? [];
-  }, [lists]);
+    const fromShoppingLists = lists?.map((l) => l.name) ?? [];
+    const fromBudgets = budgets?.map(b => b.categoryName) ?? [];
+    return [...new Set([...fromShoppingLists, ...fromBudgets])].filter(Boolean);
+  }, [lists, budgets]);
   
   const uniqueExpenseCategories = [...new Set(expenseCategories)].filter(
     Boolean
@@ -339,20 +342,23 @@ export default function ExpensesPage() {
       const listDocRef = doc(listsColRef);
       batch.set(listDocRef, newList);
 
-      const newBudget = {
-        categoryName: categoryName,
-        monthlyLimit: 1000000,
-        currentSpend: 0,
-        userId: user.uid,
-      };
-      const budgetsColRef = collection(
-        firestore,
-        'users',
-        user.uid,
-        'budgets'
-      );
-      const budgetDocRef = doc(budgetsColRef);
-      batch.set(budgetDocRef, newBudget);
+      const existingBudget = budgets?.find(b => b.categoryName === categoryName);
+      if (!existingBudget) {
+        const newBudget = {
+          categoryName: categoryName,
+          monthlyLimit: 1000000,
+          currentSpend: 0,
+          userId: user.uid,
+        };
+        const budgetsColRef = collection(
+          firestore,
+          'users',
+          user.uid,
+          'budgets'
+        );
+        const budgetDocRef = doc(budgetsColRef);
+        batch.set(budgetDocRef, newBudget);
+      }
       
       try {
         await batch.commit();
@@ -380,14 +386,7 @@ export default function ExpensesPage() {
     const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
     batch.delete(listRef);
 
-    const budgetsQuery = query(
-      collection(firestore, 'users', user.uid, 'budgets'),
-      where('categoryName', '==', listToDelete.name)
-    );
-    const budgetSnapshot = await getDocs(budgetsQuery);
-    budgetSnapshot.forEach((doc) => {
-      batch.delete(doc.ref);
-    });
+    // We don't delete the budget automatically anymore, user can do it from finances page.
     
     try {
         await batch.commit();
@@ -395,7 +394,7 @@ export default function ExpensesPage() {
           setSelectedListId(sortedLists?.[0]?.id ?? null);
         }
     } catch(error) {
-        console.error("Error deleting list and budget:", error);
+        console.error("Error deleting list:", error);
         toast({
             variant: "destructive",
             title: "Error",
@@ -762,7 +761,16 @@ export default function ExpensesPage() {
         const transactionSnap = await getDoc(transactionRef);
         
         if (!transactionSnap.exists()) {
-            toast({ variant: "destructive", title: "Error", description: "La transacción original no se encontró." });
+            // If transaction doesn't exist, just revert the recurring expense state
+            const expenseRef = doc(firestore, 'users', user.uid, 'recurringExpenses', expense.id);
+            await updateDocumentNonBlocking(expenseRef, {
+                lastInstanceCreated: null,
+                lastTransactionId: null,
+            });
+            toast({
+                title: 'Pago Revertido',
+                description: `Se ha deshecho el pago de ${expense.name}. La transacción original no se encontró.`,
+            });
             return;
         }
         
@@ -859,19 +867,21 @@ export default function ExpensesPage() {
           </TabsList>
           <TabsContent value="shopping" className="mt-6">
             <div className="md:hidden">
-              <Tabs
+              <Select
                 value={String(selectedListId)}
                 onValueChange={(val) => setSelectedListId(val)}
-                className="w-full"
               >
-                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                  {sortedLists?.map((list) => (
-                    <TabsTrigger key={list.id} value={String(list.id)}>
-                      {list.name}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
+                <SelectTrigger className="w-full mb-4">
+                    <SelectValue placeholder="Selecciona una categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                    {sortedLists?.map((list) => (
+                      <SelectItem key={list.id} value={String(list.id)}>
+                        {list.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
             </div>
             
             {listsLoading && <p>Cargando categorías...</p>}
@@ -1102,17 +1112,19 @@ export default function ExpensesPage() {
                     </CardContent>
                   </Card>
                 ) : (
-                  <Card className="flex flex-col items-center justify-center p-10 text-center md:h-full">
-                    <CardHeader>
-                      <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground" />
-                      <CardTitle className="mt-4">
-                        No hay categorías de gastos
-                      </CardTitle>
-                      <CardDescription>
-                        Crea una categoría para empezar a registrar gastos.
-                      </CardDescription>
-                    </CardHeader>
-                  </Card>
+                   !listsLoading && (
+                    <Card className="flex flex-col items-center justify-center p-10 text-center md:min-h-96">
+                        <CardHeader>
+                        <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground" />
+                        <CardTitle className="mt-4">
+                            No hay categorías de gastos
+                        </CardTitle>
+                        <CardDescription>
+                            Crea una categoría para empezar a registrar gastos.
+                        </CardDescription>
+                        </CardHeader>
+                    </Card>
+                   )
                 )}
               </div>
             </div>
@@ -1136,7 +1148,7 @@ export default function ExpensesPage() {
                             {pendingRecurringExpenses.map((expense) => (
                             <div
                                 key={expense.id}
-                                className="flex items-center justify-between p-3 rounded-lg border bg-card shadow-sm"
+                                className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 rounded-lg border bg-card shadow-sm gap-2"
                             >
                                 <div>
                                 <p className="font-semibold">{expense.name}</p>
@@ -1149,6 +1161,7 @@ export default function ExpensesPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handlePayRecurringExpense(expense)}
+                                className="w-full sm:w-auto"
                                 >
                                 <CheckCircle className="mr-2 h-4 w-4" />
                                 Pagar
@@ -1182,7 +1195,7 @@ export default function ExpensesPage() {
                             {paidRecurringExpenses.map((expense) => (
                             <div
                                 key={expense.id}
-                                className="flex items-center justify-between p-3 rounded-lg border bg-muted/50"
+                                className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 rounded-lg border bg-muted/50 gap-2"
                             >
                                 <div>
                                 <p className="font-semibold text-muted-foreground line-through">{expense.name}</p>
@@ -1195,6 +1208,7 @@ export default function ExpensesPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleRevertPayment(expense)}
+                                className="w-full sm:w-auto"
                                 >
                                 <Undo2 className="mr-2 h-4 w-4" />
                                 Revertir
@@ -1343,13 +1357,13 @@ export default function ExpensesPage() {
                         key={expense.id}
                         className="flex items-center justify-between p-2 rounded-md border"
                       >
-                        <div className="flex items-center gap-2">
-                          <WalletCards className="h-5 w-5 text-muted-foreground" />
-                          <div>
-                            <p className="font-medium text-sm">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <WalletCards className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                          <div className="truncate">
+                            <p className="font-medium text-sm truncate">
                               {expense.name}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground truncate">
                               {expense.category} &middot; Día {expense.dayOfMonth}{' '}
                               de cada mes
                             </p>
@@ -1359,13 +1373,13 @@ export default function ExpensesPage() {
                           <span className="font-semibold text-sm">
                             {formatCurrency(expense.amount)}
                           </span>
-                          <AlertDialog>
+                          <AlertDialog onOpenChange={(open) => !open && setRecurringExpenseToDelete(null)}>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8"
+                                    className="h-8 w-8 flex-shrink-0"
                                 >
                                     <MoreHorizontal className="h-4 w-4" />
                                 </Button>

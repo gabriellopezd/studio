@@ -153,7 +153,7 @@ export default function DashboardPage() {
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <Progress value={dailyProgress} className="h-3 mb-2"/>
+                <Progress value={dailyProgress} className="mb-2 h-4"/>
                 <p className="text-sm text-muted-foreground">{completedDaily} de {dailyHabits.length} completados.</p>
             </CardContent>
         </Card>
@@ -165,7 +165,7 @@ export default function DashboardPage() {
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <Progress value={weeklyProgress} className="h-3 mb-2"/>
+                <Progress value={weeklyProgress} className="mb-2 h-4"/>
                 <p className="text-sm text-muted-foreground">{completedWeekly} de {weeklyHabits.length} completados.</p>
             </CardContent>
         </Card>
@@ -209,12 +209,12 @@ export default function DashboardPage() {
                 {pendingTasks && pendingTasks.length > 0 ? (
                     <ul className="space-y-4">
                         {pendingTasks.slice(0, 5).map(task => (
-                             <li key={task.id} className="flex items-center justify-between">
+                             <li key={task.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
                                 <div>
                                     <p className="font-medium">{task.name}</p>
                                     <p className="text-sm text-muted-foreground">Vence: {task.dueDate ? new Date(task.dueDate.seconds * 1000).toLocaleDateString() : 'N/A'}</p>
                                 </div>
-                                <Badge variant={task.priority === 'high' ? 'destructive' : 'secondary'}>{task.priority || 'normal'}</Badge>
+                                <Badge variant={task.priority === 'high' ? 'destructive' : 'secondary'} className="mt-2 sm:mt-0">{task.priority || 'normal'}</Badge>
                             </li>
                         ))}
                     </ul>
@@ -260,7 +260,7 @@ export default function DashboardPage() {
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <Progress value={weeklyTasksProgress} className="h-3 mb-2"/>
+                <Progress value={weeklyTasksProgress} className="mb-2 h-4"/>
                 <p className="text-sm text-muted-foreground">{completedWeeklyTasks} de {totalWeeklyTasks} tareas completadas esta semana.</p>
             </CardContent>
         </Card>

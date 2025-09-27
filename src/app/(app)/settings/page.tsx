@@ -1,3 +1,4 @@
+
 'use client';
 
 import PageHeader from '@/components/page-header';
@@ -80,14 +81,14 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4 md:gap-6">
+    <div className="flex flex-col gap-8">
       <PageHeader
         title="CONFIGURACIÓN"
         description="Gestiona tu perfil, cuenta y preferencias."
       />
 
-      <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-1 flex flex-col gap-4 md:gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-1 flex flex-col gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Información de Usuario</CardTitle>
@@ -96,7 +97,7 @@ export default function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-center gap-4">
                 <Avatar className="h-20 w-20">
                    {user?.photoURL ? (
                     <AvatarImage src={user.photoURL} alt={displayName} />
@@ -109,7 +110,7 @@ export default function SettingsPage() {
                   ) : null }
                   <AvatarFallback>{displayName.charAt(0) || user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
-                <Button variant="outline" size="sm">
+                <Button variant="outline">
                   <Upload className="mr-2 h-4 w-4" />
                   Cambiar Foto
                 </Button>
@@ -136,7 +137,7 @@ export default function SettingsPage() {
           </Card>
         </div>
 
-        <div className="lg:col-span-2 flex flex-col gap-4 md:gap-6">
+        <div className="lg:col-span-2 flex flex-col gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Configuración de Cuenta</CardTitle>
@@ -169,7 +170,7 @@ export default function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-lg border p-4 gap-4">
                 <div>
                   <Label htmlFor="theme-select">Tema</Label>
                   <p className="text-sm text-muted-foreground">
@@ -177,7 +178,7 @@ export default function SettingsPage() {
                   </p>
                 </div>
                 <Select value={theme} onValueChange={setTheme}>
-                  <SelectTrigger className="w-[180px]" id="theme-select">
+                  <SelectTrigger className="w-full sm:w-[180px]" id="theme-select">
                     <SelectValue placeholder="Seleccionar tema" />
                   </SelectTrigger>
                   <SelectContent>
@@ -187,7 +188,7 @@ export default function SettingsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-lg border p-4 gap-4">
                 <div>
                   <Label htmlFor="notifications">Notificaciones Push</Label>
                   <p className="text-sm text-muted-foreground">
