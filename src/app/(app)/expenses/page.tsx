@@ -76,6 +76,7 @@ import {
   writeBatch,
   getDocs,
   where,
+  Timestamp,
 } from 'firebase/firestore';
 import {
   DndContext,
@@ -185,7 +186,7 @@ export default function ExpensesPage() {
   const recurringExpensesQuery = useMemo(
     () =>
       user
-        ? collection(firestore, 'users', user.uid, 'recurringExpenses')
+        ? query(collection(firestore, 'users', user.uid, 'recurringExpenses'), orderBy('dayOfMonth'))
         : null,
     [firestore, user]
   );
@@ -198,9 +199,10 @@ export default function ExpensesPage() {
     return lists ? [...lists].sort((a, b) => a.order - b.order) : [];
   }, [lists]);
 
-  const expenseCategories = [
-    ...new Set(budgets?.map((b) => b.categoryName) ?? []),
-  ];
+  const expenseCategories = useMemo(() => {
+    return lists?.map((l) => l.name) ?? [];
+  }, [lists]);
+  
   const uniqueExpenseCategories = [...new Set(expenseCategories)].filter(
     Boolean
   );
@@ -216,9 +218,9 @@ export default function ExpensesPage() {
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
 
-    if (active.id !== over?.id && user) {
+    if (active.id !== over?.id && user && over) {
       const oldIndex = sortedLists.findIndex((list) => list.id === active.id);
-      const newIndex = sortedLists.findIndex((list) => list.id === over!.id);
+      const newIndex = sortedLists.findIndex((list) => list.id === over.id);
 
       const newOrder = arrayMove(sortedLists, oldIndex, newIndex);
 
@@ -234,7 +236,16 @@ export default function ExpensesPage() {
         batch.update(listRef, { order: index });
       });
 
-      await batch.commit();
+      try {
+        await batch.commit();
+      } catch (error) {
+        console.error("Error updating list order:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudo actualizar el orden de las categorías.",
+        });
+      }
     }
   };
 
@@ -247,49 +258,62 @@ export default function ExpensesPage() {
 
   const addTransaction = async (newTransaction: any) => {
     if (!user) return null;
-    const transactionsColRef = collection(
-      firestore,
-      'users',
-      user.uid,
-      'transactions'
-    );
-    const docRef = await addDocumentNonBlocking(transactionsColRef, {
-      ...newTransaction,
-      userId: user.uid,
-      createdAt: serverTimestamp(),
-    });
-
-    if (newTransaction.type === 'expense') {
-      const budget = budgets?.find(
-        (b) => b.categoryName === newTransaction.category
+    try {
+      const transactionsColRef = collection(
+        firestore,
+        'users',
+        user.uid,
+        'transactions'
       );
-      if (budget) {
-        const budgetRef = doc(
-          firestore,
-          'users',
-          user.uid,
-          'budgets',
-          budget.id
+      const docRef = await addDocumentNonBlocking(transactionsColRef, {
+        ...newTransaction,
+        userId: user.uid,
+        createdAt: serverTimestamp(),
+      });
+  
+      if (newTransaction.type === 'expense') {
+        const budget = budgets?.find(
+          (b) => b.categoryName === newTransaction.category
         );
-        const newSpend = (budget.currentSpend || 0) + newTransaction.amount;
-        updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
+        if (budget) {
+          const budgetRef = doc(
+            firestore,
+            'users',
+            user.uid,
+            'budgets',
+            budget.id
+          );
+          const newSpend = (budget.currentSpend || 0) + newTransaction.amount;
+          updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
+        }
       }
+  
+      toast({
+        title: 'Gasto Registrado',
+        description: `${
+          newTransaction.description
+        } por ${formatCurrency(
+          newTransaction.amount
+        )} ha sido añadido a tus finanzas.`,
+      });
+      return docRef;
+    } catch (error) {
+        console.error("Error adding transaction:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudo registrar la transacción.",
+        });
+        return null;
     }
-
-    toast({
-      title: 'Gasto Registrado',
-      description: `${
-        newTransaction.description
-      } por ${formatCurrency(
-        newTransaction.amount
-      )} ha sido añadido a tus finanzas.`,
-    });
-    return docRef;
   };
 
   const handleCreateList = async () => {
     if (newListName.trim() && user) {
       const categoryName = newListName.trim();
+
+      const batch = writeBatch(firestore);
+      
       const newList = {
         name: categoryName,
         createdAt: serverTimestamp(),
@@ -303,7 +327,8 @@ export default function ExpensesPage() {
         user.uid,
         'shoppingLists'
       );
-      const docRef = await addDocumentNonBlocking(listsColRef, newList);
+      const listDocRef = doc(listsColRef);
+      batch.set(listDocRef, newList);
 
       const newBudget = {
         categoryName: categoryName,
@@ -317,12 +342,21 @@ export default function ExpensesPage() {
         user.uid,
         'budgets'
       );
-      await addDocumentNonBlocking(budgetsColRef, newBudget);
-
-      if (docRef) {
-        setSelectedListId(docRef.id);
+      const budgetDocRef = doc(budgetsColRef);
+      batch.set(budgetDocRef, newBudget);
+      
+      try {
+        await batch.commit();
+        setSelectedListId(listDocRef.id);
+        setNewListName('');
+      } catch (error) {
+         console.error("Error creating list and budget:", error);
+         toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudo crear la categoría de compra.",
+        });
       }
-      setNewListName('');
     }
   };
 
@@ -331,23 +365,33 @@ export default function ExpensesPage() {
 
     const listToDelete = lists?.find((l) => l.id === listId);
     if (!listToDelete) return;
-
+    
+    const batch = writeBatch(firestore);
+    
     const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
-    await deleteDocumentNonBlocking(listRef);
+    batch.delete(listRef);
 
     const budgetsQuery = query(
       collection(firestore, 'users', user.uid, 'budgets'),
       where('categoryName', '==', listToDelete.name)
     );
     const budgetSnapshot = await getDocs(budgetsQuery);
-    const batch = writeBatch(firestore);
     budgetSnapshot.forEach((doc) => {
       batch.delete(doc.ref);
     });
-    await batch.commit();
-
-    if (selectedListId === listId) {
-      setSelectedListId(lists?.[0]?.id ?? null);
+    
+    try {
+        await batch.commit();
+        if (selectedListId === listId) {
+          setSelectedListId(sortedLists?.[0]?.id ?? null);
+        }
+    } catch(error) {
+        console.error("Error deleting list and budget:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudo eliminar la categoría.",
+        });
     }
   };
 
@@ -388,7 +432,10 @@ export default function ExpensesPage() {
         itemName: item.name,
       });
     } else {
+      // Logic to "un-purchase" an item
       if (item.transactionId) {
+        const batch = writeBatch(firestore);
+        
         const transactionRef = doc(
           firestore,
           'users',
@@ -396,7 +443,7 @@ export default function ExpensesPage() {
           'transactions',
           item.transactionId
         );
-        deleteDocumentNonBlocking(transactionRef);
+        batch.delete(transactionRef);
 
         const budget = budgets?.find((b) => b.categoryName === list.name);
         if (budget && item.price) {
@@ -408,25 +455,36 @@ export default function ExpensesPage() {
             budget.id
           );
           const newSpend = Math.max(0, (budget.currentSpend || 0) - item.price);
-          updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
+          batch.update(budgetRef, { currentSpend: newSpend });
+        }
+        
+        const updatedItems = list.items.map((i: any) => {
+            if (i.itemId === itemId) {
+                const { price, transactionId, ...rest } = i;
+                return { ...rest, isPurchased: false };
+            }
+            return i;
+        });
+        const listRef = doc(
+            firestore,
+            'users',
+            user.uid,
+            'shoppingLists',
+            selectedListId!
+        );
+        batch.update(listRef, { items: updatedItems });
+        
+        try {
+            await batch.commit();
+        } catch (error) {
+            console.error("Error un-purchasing item:", error);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "No se pudo deshacer la compra.",
+            });
         }
       }
-
-      const updatedItems = list.items.map((i: any) => {
-        if (i.itemId === itemId) {
-          const { price, transactionId, ...rest } = i;
-          return { ...rest, isPurchased: false };
-        }
-        return i;
-      });
-      const listRef = doc(
-        firestore,
-        'users',
-        user.uid,
-        'shoppingLists',
-        selectedListId!
-      );
-      updateDocumentNonBlocking(listRef, { items: updatedItems });
     }
   };
 
@@ -478,6 +536,8 @@ export default function ExpensesPage() {
     const itemToDelete = selectedList.items.find(
       (item: any) => item.itemId === itemId
     );
+    
+    const batch = writeBatch(firestore);
 
     if (itemToDelete && itemToDelete.transactionId) {
       const transactionRef = doc(
@@ -487,7 +547,7 @@ export default function ExpensesPage() {
         'transactions',
         itemToDelete.transactionId
       );
-      deleteDocumentNonBlocking(transactionRef);
+      batch.delete(transactionRef);
 
       const budget = budgets?.find(
         (b) => b.categoryName === selectedList.name
@@ -504,7 +564,7 @@ export default function ExpensesPage() {
           0,
           (budget.currentSpend || 0) - itemToDelete.price
         );
-        updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
+        batch.update(budgetRef, { currentSpend: newSpend });
       }
     }
 
@@ -518,7 +578,16 @@ export default function ExpensesPage() {
       'shoppingLists',
       selectedListId!
     );
-    updateDocumentNonBlocking(listRef, { items: updatedItems });
+    batch.update(listRef, { items: updatedItems });
+    
+    batch.commit().catch(error => {
+        console.error("Error deleting item:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudo eliminar el gasto.",
+        });
+    });
   };
 
   // Recurring Expenses Handlers
@@ -546,13 +615,17 @@ export default function ExpensesPage() {
       !newRecurringExpenseAmount ||
       !newRecurringExpenseCategory ||
       !newRecurringExpenseDay
-    )
-      return;
+    ) {
+        toast({ variant: "destructive", title: "Error", description: "Todos los campos son obligatorios." });
+        return;
+    }
 
     const amount = parseFloat(newRecurringExpenseAmount);
     const dayOfMonth = parseInt(newRecurringExpenseDay, 10);
-    if (isNaN(amount) || isNaN(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31)
-      return;
+    if (isNaN(amount) || isNaN(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) {
+        toast({ variant: "destructive", title: "Error", description: "El monto o día del mes no son válidos." });
+        return;
+    }
 
     const expenseData = {
       name: newRecurringExpenseName,
@@ -562,25 +635,30 @@ export default function ExpensesPage() {
       userId: user.uid,
     };
 
-    if (recurringExpenseToEdit) {
-      const expenseRef = doc(
-        firestore,
-        'users',
-        user.uid,
-        'recurringExpenses',
-        recurringExpenseToEdit.id
-      );
-      await updateDocumentNonBlocking(expenseRef, expenseData);
-    } else {
-      const expensesColRef = collection(
-        firestore,
-        'users',
-        user.uid,
-        'recurringExpenses'
-      );
-      await addDocumentNonBlocking(expensesColRef, expenseData);
+    try {
+        if (recurringExpenseToEdit) {
+            const expenseRef = doc(
+                firestore,
+                'users',
+                user.uid,
+                'recurringExpenses',
+                recurringExpenseToEdit.id
+            );
+            await updateDocumentNonBlocking(expenseRef, expenseData);
+        } else {
+            const expensesColRef = collection(
+                firestore,
+                'users',
+                user.uid,
+                'recurringExpenses'
+            );
+            await addDocumentNonBlocking(expensesColRef, expenseData);
+        }
+        setRecurringExpenseDialogOpen(false);
+    } catch(error) {
+        console.error("Error saving recurring expense:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudo guardar el gasto recurrente." });
     }
-    setRecurringExpenseDialogOpen(false);
   };
 
   const handleDeleteRecurringExpense = async () => {
@@ -611,18 +689,16 @@ export default function ExpensesPage() {
         expense.dayOfMonth
       ).toISOString(),
       amount: expense.amount,
+      userId: user.uid,
+      createdAt: serverTimestamp(),
     };
 
     const batch = writeBatch(firestore);
 
-    // Add transaction non-blockingly and get ref
+    // Add transaction
     const transactionsColRef = collection(firestore, 'users', user.uid, 'transactions');
     const newTransactionRef = doc(transactionsColRef);
-    batch.set(newTransactionRef, {
-      ...newTransaction,
-      userId: user.uid,
-      createdAt: serverTimestamp(),
-    });
+    batch.set(newTransactionRef, newTransaction);
 
 
     // Update budget
@@ -649,24 +725,31 @@ export default function ExpensesPage() {
     );
     batch.update(expenseRef, { lastInstanceCreated: currentMonthYear });
 
-    await batch.commit();
-
-    toast({
-      title: 'Gasto Recurrente Pagado',
-      description: `${expense.name} por ${formatCurrency(
-        expense.amount
-      )} ha sido registrado.`,
-    });
+    try {
+        await batch.commit();
+        toast({
+          title: 'Gasto Recurrente Pagado',
+          description: `${expense.name} por ${formatCurrency(
+            expense.amount
+          )} ha sido registrado.`,
+        });
+    } catch(error) {
+        console.error("Error paying recurring expense:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudo registrar el pago del gasto recurrente.",
+        });
+    }
   };
 
   // General Logic
-  if (listsLoading) {
-    return <p>Cargando listas...</p>;
-  }
-
-  if (!selectedListId && lists && lists.length > 0) {
-    setSelectedListId(lists[0].id);
-  }
+  useEffect(() => {
+    if (!listsLoading && !selectedListId && sortedLists && sortedLists.length > 0) {
+      setSelectedListId(sortedLists[0].id);
+    }
+  }, [lists, listsLoading, selectedListId, sortedLists]);
+  
 
   return (
     <>
@@ -722,7 +805,7 @@ export default function ExpensesPage() {
                 onValueChange={(val) => setSelectedListId(val)}
                 className="w-full"
               >
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3">
+                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                   {sortedLists?.map((list) => (
                     <TabsTrigger key={list.id} value={String(list.id)}>
                       {list.name}
@@ -731,40 +814,44 @@ export default function ExpensesPage() {
                 </TabsList>
               </Tabs>
             </div>
+            
+            {listsLoading && <p>Cargando categorías...</p>}
 
             <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-4 mt-6 md:mt-0">
               <div className="hidden md:block md:col-span-1">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Categorías de Compra</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-2">
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={handleDragEnd}
-                    >
-                      <SortableContext
-                        items={sortedLists.map((list) => list.id)}
-                        strategy={verticalListSortingStrategy}
+                 { !listsLoading && sortedLists.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Categorías de Compra</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-2">
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
                       >
-                        <ul className="space-y-1">
-                          {sortedLists.map((list) => (
-                            <SortableListItem
-                              key={list.id}
-                              list={list}
-                              selectedListId={selectedListId}
-                              setSelectedListId={setSelectedListId}
-                            >
-                              <ShoppingCart className="mr-2 h-4 w-4" />
-                              {list.name}
-                            </SortableListItem>
-                          ))}
-                        </ul>
-                      </SortableContext>
-                    </DndContext>
-                  </CardContent>
-                </Card>
+                        <SortableContext
+                          items={sortedLists.map((list) => list.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          <ul className="space-y-1">
+                            {sortedLists.map((list) => (
+                              <SortableListItem
+                                key={list.id}
+                                list={list}
+                                selectedListId={selectedListId}
+                                setSelectedListId={setSelectedListId}
+                              >
+                                <ShoppingCart className="mr-2 h-4 w-4" />
+                                {list.name}
+                              </SortableListItem>
+                            ))}
+                          </ul>
+                        </SortableContext>
+                      </DndContext>
+                    </CardContent>
+                  </Card>
+                 )}
               </div>
 
               <div className="md:col-span-3">
@@ -918,7 +1005,7 @@ export default function ExpensesPage() {
                                       ({item.quantity})
                                     </span>
                                   </label>
-                                  {item.price && (
+                                  {item.price != null && (
                                     <p className="text-sm font-semibold text-primary">
                                       {formatCurrency(item.price)}
                                     </p>
@@ -974,54 +1061,53 @@ export default function ExpensesPage() {
           <TabsContent value="recurring" className="mt-6">
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               <div className="lg:col-span-2">
-                {pendingRecurringExpenses.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Gastos Recurrentes Pendientes</CardTitle>
-                      <CardDescription>
-                        Estos gastos fijos están pendientes de pago para este
-                        mes.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {pendingRecurringExpenses.map((expense) => (
-                          <div
-                            key={expense.id}
-                            className="flex items-center justify-between p-3 rounded-lg border bg-card"
-                          >
-                            <div>
-                              <p className="font-semibold">{expense.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {expense.category} -{' '}
-                                {formatCurrency(expense.amount)}
-                              </p>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handlePayRecurringExpense(expense)}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Gastos Recurrentes Pendientes</CardTitle>
+                    <CardDescription>
+                      Estos gastos fijos están pendientes de pago para este
+                      mes.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {recurringExpensesLoading ? (
+                        <p>Cargando...</p>
+                    ) : pendingRecurringExpenses.length > 0 ? (
+                        <div className="space-y-3">
+                            {pendingRecurringExpenses.map((expense) => (
+                            <div
+                                key={expense.id}
+                                className="flex items-center justify-between p-3 rounded-lg border bg-card"
                             >
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                              Pagar
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-                 {pendingRecurringExpenses.length === 0 && !recurringExpensesLoading && (
-                  <Card className="flex flex-col items-center justify-center p-10 text-center">
-                     <CardHeader>
-                        <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
-                        <CardTitle className="mt-4">Todo al día</CardTitle>
-                        <CardDescription>
-                            No tienes gastos recurrentes pendientes para este mes.
-                        </CardDescription>
-                    </CardHeader>
-                  </Card>
-                 )}
+                                <div>
+                                <p className="font-semibold">{expense.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                    {expense.category} -{' '}
+                                    {formatCurrency(expense.amount)} - Vence el {expense.dayOfMonth}
+                                </p>
+                                </div>
+                                <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePayRecurringExpense(expense)}
+                                >
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Pagar
+                                </Button>
+                            </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-10 text-center">
+                            <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
+                            <h3 className="mt-4 text-lg font-semibold text-muted-foreground">Todo al día</h3>
+                            <p className="mt-2 text-sm text-muted-foreground">
+                                No tienes gastos recurrentes pendientes para este mes.
+                            </p>
+                        </div>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
               <div className="lg:col-span-1">
                 <Card>
@@ -1191,15 +1277,16 @@ export default function ExpensesPage() {
                                 <Pencil className="mr-2 h-4 w-4" />
                                 Editar
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  setRecurringExpenseToDelete(expense)
-                                }
-                                className="text-red-500 focus:text-red-500"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Eliminar
-                              </DropdownMenuItem>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem
+                                    onSelect={(e) => e.preventDefault()}
+                                    onClick={() => setRecurringExpenseToDelete(expense)}
+                                    className="text-red-500 focus:text-red-500"
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Eliminar
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>

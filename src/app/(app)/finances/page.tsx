@@ -29,6 +29,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
   ArrowDownCircle,
@@ -37,6 +38,8 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
+  WalletCards,
+  CheckCircle,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import {
@@ -78,6 +81,8 @@ import {
   query,
   where,
   getDocs,
+  Timestamp,
+  orderBy
 } from 'firebase/firestore';
 
 export default function FinancesPage() {
@@ -103,10 +108,13 @@ export default function FinancesPage() {
     null
   );
 
+  const [currentMonthYear, setCurrentMonthYear] = useState('');
+
   useEffect(() => {
     const now = new Date();
     const monthName = now.toLocaleDateString('es-ES', { month: 'long' });
     setCurrentMonthName(monthName.charAt(0).toUpperCase() + monthName.slice(1));
+    setCurrentMonthYear(`${now.getFullYear()}-${now.getMonth()}`);
   }, []);
 
   const transactionsQuery = useMemo(() => {
@@ -118,7 +126,8 @@ export default function FinancesPage() {
     return query(
         collection(firestore, 'users', user.uid, 'transactions'),
         where('date', '>=', startOfMonth.toISOString()),
-        where('date', '<=', endOfMonth.toISOString())
+        where('date', '<=', endOfMonth.toISOString()),
+        orderBy('date', 'desc')
     );
   }, [firestore, user]);
 
@@ -238,62 +247,54 @@ export default function FinancesPage() {
     const originalTransaction = transactions?.find(t => t.id === transactionToEdit.id);
     if (!originalTransaction) return;
     
-    const amountDifference = amount - originalTransaction.amount;
+    const batch = writeBatch(firestore);
 
-    const transactionRef = doc(
-      firestore,
-      'users',
-      user.uid,
-      'transactions',
-      transactionToEdit.id
-    );
-    await updateDocumentNonBlocking(transactionRef, {
+    // Update transaction
+    const transactionRef = doc(firestore, 'users', user.uid, 'transactions', transactionToEdit.id);
+    batch.update(transactionRef, {
       description: transactionToEdit.description,
       amount: amount,
       category: transactionToEdit.category,
       type: transactionToEdit.type,
     });
     
-    const batch = writeBatch(firestore);
-    
+    // Revert old budget spend
     if (originalTransaction.type === 'expense') {
       const oldBudget = budgets?.find(b => b.categoryName === originalTransaction.category);
       if (oldBudget) {
         const oldBudgetRef = doc(firestore, 'users', user.uid, 'budgets', oldBudget.id);
-        batch.update(oldBudgetRef, { currentSpend: Math.max(0, (oldBudget.currentSpend || 0) - originalTransaction.amount) });
+        const revertedSpend = (oldBudget.currentSpend || 0) - originalTransaction.amount;
+        batch.update(oldBudgetRef, { currentSpend: Math.max(0, revertedSpend) });
       }
     }
 
+    await batch.commit();
+
+    // Apply new budget spend in a separate step to ensure reverted spend is committed
+    const secondBatch = writeBatch(firestore);
     if (transactionToEdit.type === 'expense') {
       const newBudget = budgets?.find(b => b.categoryName === transactionToEdit.category);
       if (newBudget) {
-         const updatedOldBudget = budgets?.find(b => b.id === newBudget.id);
-         const spendAfterRevert = updatedOldBudget ? (updatedOldBudget.currentSpend || 0) - (originalTransaction.category === transactionToEdit.category ? originalTransaction.amount : 0) : 0;
-         const newSpend = spendAfterRevert + amount;
-
-        const newBudgetRef = doc(firestore, 'users', user.uid, 'budgets', newBudget.id);
-        batch.update(newBudgetRef, { currentSpend: Math.max(0, (newBudget.currentSpend || 0) - (originalTransaction.category === newBudget.categoryName ? originalTransaction.amount : 0) + amount) });
+         const newBudgetRef = doc(firestore, 'users', user.uid, 'budgets', newBudget.id);
+         const currentBudgetDoc = await getDocs(query(collection(firestore, 'users', user.uid, 'budgets'), where('categoryName', '==', newBudget.categoryName)));
+         const currentBudgetData = currentBudgetDoc.docs[0].data();
+         const newSpend = (currentBudgetData.currentSpend || 0) + amount;
+         secondBatch.update(newBudgetRef, { currentSpend: newSpend });
       }
     }
-    
-    await batch.commit();
+
+    await secondBatch.commit();
 
     setTransactionToEdit(null);
   };
 
   const handleDeleteTransaction = async () => {
     if (!transactionToDelete || !user) return;
-
-    const transactionRef = doc(
-      firestore,
-      'users',
-      user.uid,
-      'transactions',
-      transactionToDelete.id
-    );
-    await deleteDocumentNonBlocking(transactionRef);
-
+    
     const batch = writeBatch(firestore);
+
+    const transactionRef = doc(firestore, 'users', user.uid, 'transactions', transactionToDelete.id);
+    batch.delete(transactionRef);
 
     if (transactionToDelete.type === 'expense') {
       const shoppingListsQuery = query(
@@ -335,16 +336,13 @@ export default function FinancesPage() {
     setTransactionToEdit({ ...transaction, amount: transaction.amount.toString() });
   };
 
-  const expenseCategories = [
-    ...new Set(
-      budgets?.map(b => b.categoryName) ?? []
-    ),
-    ...new Set(
-      transactions
+  const expenseCategories = useMemo(() => {
+    const fromBudgets = budgets?.map(b => b.categoryName) ?? [];
+    const fromTransactions = transactions
         ?.filter((t) => t.type === 'expense')
-        .map((t) => t.category) ?? []
-    ),
-  ];
+        .map((t) => t.category) ?? [];
+    return [...new Set([...fromBudgets, ...fromTransactions])];
+  }, [budgets, transactions]);
   
   const uniqueExpenseCategories = [...new Set(expenseCategories)].filter(Boolean);
 
@@ -543,13 +541,16 @@ export default function FinancesPage() {
                                 <Pencil className="mr-2 h-4 w-4" />
                                 Editar
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => setTransactionToDelete(t)}
-                                className="text-red-500 focus:text-red-500"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Eliminar
-                              </DropdownMenuItem>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem
+                                  onSelect={(e) => e.preventDefault()}
+                                  onClick={() => setTransactionToDelete(t)}
+                                  className="text-red-500 focus:text-red-500"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Eliminar
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -788,9 +789,7 @@ export default function FinancesPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setTransactionToDelete(null)}>
-              Cancelar
-            </AlertDialogCancel>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteTransaction}
               className="bg-destructive hover:bg-destructive/90"
