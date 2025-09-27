@@ -651,6 +651,17 @@
         }
       },
       {
+        "path": "/users/{userId}/tasks",
+        "definition": {
+          "description": "Collection of tasks for a user.",
+           "rules": {
+            "allow": {
+              "list": "if request.auth != null && request.auth.uid == userId;"
+            }
+          }
+        }
+      },
+      {
         "path": "/users/{userId}/tasks/{taskId}",
         "definition": {
           "entityName": "Task",
@@ -670,7 +681,6 @@
           ],
           "rules": {
             "allow": {
-              "list": "if request.auth != null && request.auth.uid == userId;",
               "read": "if request.auth != null && request.auth.uid == userId;",
               "create": "if request.auth != null && request.auth.uid == userId;",
               "update": "if request.auth != null && request.auth.uid == userId;",
