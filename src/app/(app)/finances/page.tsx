@@ -151,6 +151,52 @@ export default function FinancesPage() {
   const { data: recurringExpenses, isLoading: recurringExpensesLoading } =
     useCollection(recurringExpensesQuery);
 
+  useEffect(() => {
+    if (recurringExpenses && user) {
+        const checkAndCreateRecurringTransactions = async () => {
+            const now = new Date();
+            const currentMonthYear = `${now.getFullYear()}-${now.getMonth()}`;
+            const batch = writeBatch(firestore);
+
+            for (const expense of recurringExpenses) {
+                const lastInstance = expense.lastInstanceCreated;
+                
+                if (lastInstance !== currentMonthYear) {
+                    // Create a new transaction
+                    const newTransaction = {
+                        type: 'expense' as const,
+                        description: expense.name,
+                        category: expense.category,
+                        date: new Date(now.getFullYear(), now.getMonth(), expense.dayOfMonth).toISOString(),
+                        amount: expense.amount,
+                        createdAt: serverTimestamp(),
+                        userId: user.uid,
+                    };
+
+                    const transactionsColRef = collection(firestore, 'users', user.uid, 'transactions');
+                    batch.set(doc(transactionsColRef), newTransaction);
+
+                    // Update the budget
+                    const budget = budgets?.find(b => b.categoryName === expense.category);
+                    if (budget) {
+                        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+                        const newSpend = (budget.currentSpend || 0) + expense.amount;
+                        batch.update(budgetRef, { currentSpend: newSpend });
+                    }
+
+                    // Update the recurring expense's lastInstanceCreated
+                    const expenseRef = doc(firestore, 'users', user.uid, 'recurringExpenses', expense.id);
+                    batch.update(expenseRef, { lastInstanceCreated: currentMonthYear });
+                }
+            }
+            await batch.commit();
+        };
+
+        checkAndCreateRecurringTransactions();
+    }
+  }, [recurringExpenses, user, firestore, budgets]);
+
+
   const monthlyIncome =
     transactions
       ?.filter((t) => t.type === 'income')
@@ -997,5 +1043,6 @@ export default function FinancesPage() {
   );
 }
 
+    
     
     
