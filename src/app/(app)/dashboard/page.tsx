@@ -12,6 +12,8 @@ import {
   CalendarClock,
   CalendarCheck,
   Trophy,
+  Heart,
+  Wind,
 } from 'lucide-react';
 import {
   Card,
@@ -130,18 +132,44 @@ export default function DashboardPage() {
 
   const moodsQuery = useMemo(() => {
     if (!user) return null;
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999);
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    endOfMonth.setHours(23, 59, 59, 999);
     
     return query(
       collection(firestore, 'users', user.uid, 'moods'),
-      where('date', '>=', startOfWeek.toISOString()),
-      where('date', '<=', endOfWeek.toISOString())
+      where('date', '>=', startOfMonth.toISOString()),
+      where('date', '<=', endOfMonth.toISOString())
     );
-  }, [firestore, user, startOfWeek]);
+  }, [firestore, user]);
 
   const { data: moods, isLoading: moodsLoading } = useCollection(moodsQuery);
+  
+  const feelingStats = useMemo(() => {
+    if (!moods) return [];
+    const counts = moods.flatMap(m => m.feelings).reduce((acc, feeling) => {
+        acc[feeling] = (acc[feeling] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(counts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5);
+  }, [moods]);
+
+  const influenceStats = useMemo(() => {
+      if (!moods) return [];
+      const counts = moods.flatMap(m => m.influences).reduce((acc, influence) => {
+          acc[influence] = (acc[influence] || 0) + 1;
+          return acc;
+      }, {} as Record<string, number>);
+
+      return Object.entries(counts)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 5);
+  }, [moods]);
 
   const weekDays = useMemo(() => {
     const days = [];
@@ -202,7 +230,7 @@ export default function DashboardPage() {
         }
       />
       
-      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">Hábitos Diarios</CardTitle>
@@ -237,9 +265,23 @@ export default function DashboardPage() {
             </p>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Metas</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {completedGoals} de {totalGoals}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Metas completadas
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -343,6 +385,54 @@ export default function DashboardPage() {
               </div>
           </CardContent>
         </Card>
+        <div className="flex flex-col gap-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                        <Heart className="size-5 text-red-500"/>
+                        Sentimientos Frecuentes del Mes
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {moodsLoading && <p>Cargando...</p>}
+                    {feelingStats.length > 0 ? (
+                         <ul className="space-y-2">
+                            {feelingStats.map(([feeling, count]) => (
+                                <li key={feeling} className="flex justify-between items-center text-sm">
+                                    <span>{feeling}</span>
+                                    <Badge variant="secondary">{count} {count > 1 ? 'veces' : 'vez'}</Badge>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        !moodsLoading && <p className="text-sm text-muted-foreground">No hay suficientes datos este mes.</p>
+                    )}
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                        <Wind className="size-5 text-blue-500"/>
+                        Influencias Comunes del Mes
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {moodsLoading && <p>Cargando...</p>}
+                    {influenceStats.length > 0 ? (
+                        <ul className="space-y-2">
+                            {influenceStats.map(([influence, count]) => (
+                                <li key={influence} className="flex justify-between items-center text-sm">
+                                    <span>{influence}</span>
+                                    <Badge variant="secondary">{count} {count > 1 ? 'veces' : 'vez'}</Badge>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        !moodsLoading && <p className="text-sm text-muted-foreground">No hay suficientes datos este mes.</p>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
       </div>
     </div>
   );
