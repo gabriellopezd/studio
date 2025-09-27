@@ -65,28 +65,19 @@
           "type": "string",
           "description": "Name of the habit."
         },
-        "description": {
-          "type": "string",
-          "description": "Description of the habit."
-        },
         "icon": {
           "type": "string",
-          "description": "Icon representing the habit (emoji/URL)."
-        },
-        "color": {
-          "type": "string",
-          "description": "Hex color code for the habit."
+          "description": "Icon representing the habit (emoji)."
         },
         "frequency": {
           "type": "string",
-          "description": "Frequency of the habit (e.g., 'daily', 'weekly', 'custom')."
-        },
-        "reminderTime": {
-          "type": "string",
-          "description": "Time of day to send a reminder for the habit (HH:MM)."
+          "description": "Frequency of the habit (e.g., 'daily', 'weekly')."
         },
         "lastCompletedAt": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Timestamp of the last time the habit was completed.",
           "format": "date-time"
         },
@@ -123,7 +114,10 @@
             "Conocimiento",
             "Social",
             "Físico",
-            "Espiritual"
+            "Espiritual",
+            "Hogar",
+            "Profesional",
+            "Relaciones Personales"
           ]
         }
       },
@@ -131,6 +125,7 @@
         "id",
         "userId",
         "name",
+        "icon",
         "frequency",
         "createdAt",
         "category"
@@ -197,12 +192,11 @@
           "type": "string",
           "description": "Name of the task."
         },
-        "description": {
-          "type": "string",
-          "description": "Description of the task."
-        },
         "dueDate": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Timestamp indicating when the task is due.",
           "format": "date-time"
         },
@@ -210,25 +204,10 @@
           "type": "boolean",
           "description": "Indicates whether the task has been completed."
         },
-        "subtasks": {
-          "type": "array",
-          "description": "List of subtasks associated with the task.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "notes": {
-          "type": "string",
-          "description": "Additional notes related to the task."
-        },
         "createdAt": {
           "type": "string",
           "description": "Timestamp indicating when the task was created.",
           "format": "date-time"
-        },
-        "goalId": {
-          "type": "string",
-          "description": "Reference to Goal. (Relationship: Goal 1:N Task) (Optional)"
         },
         "priority": {
           "type": "string",
@@ -284,7 +263,10 @@
           "description": "Unit of measurement for the goal."
         },
         "dueDate": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Timestamp indicating when the goal is due.",
           "format": "date-time"
         },
@@ -296,13 +278,6 @@
           "type": "string",
           "description": "Timestamp indicating when the goal was created.",
           "format": "date-time"
-        },
-        "progressHistory": {
-          "type": "array",
-          "description": "History of progress towards the goal.",
-          "items": {
-            "type": "string"
-          }
         }
       },
       "required": [
@@ -311,7 +286,6 @@
         "name",
         "targetValue",
         "currentValue",
-        "dueDate",
         "isCompleted",
         "createdAt"
       ]
@@ -360,10 +334,6 @@
           "items": {
             "type": "string"
           }
-        },
-        "notes": {
-          "type": "string",
-          "description": "Additional notes related to the mood entry."
         }
       },
       "required": [
@@ -459,7 +429,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ShoppingList",
       "type": "object",
-      "description": "Represents a shopping list.",
+      "description": "Represents a shopping list which is a category of expenses.",
       "properties": {
         "id": {
           "type": "string",
@@ -471,7 +441,7 @@
         },
         "name": {
           "type": "string",
-          "description": "Name of the shopping list."
+          "description": "Name of the shopping list, which corresponds to an expense category."
         },
         "createdAt": {
           "type": "string",
@@ -482,7 +452,27 @@
           "type": "array",
           "description": "List of items in the shopping list.",
           "items": {
-            "type": "string"
+            "type": "object",
+            "properties": {
+              "itemId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "quantity": {
+                "type": "string"
+              },
+              "isPurchased": {
+                "type": "boolean"
+              },
+              "price": {
+                "type": "number"
+              },
+              "transactionId": {
+                "type": "string"
+              }
+            }
           }
         },
         "order": {
