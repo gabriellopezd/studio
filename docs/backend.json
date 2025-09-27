@@ -488,6 +488,51 @@
         "order"
       ]
     },
+    "RecurringExpense": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RecurringExpense",
+      "type": "object",
+      "description": "Represents a recurring monthly expense.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the recurring expense."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N RecurringExpense)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the expense (e.g., 'Netflix Subscription')."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount of the expense."
+        },
+        "category": {
+          "type": "string",
+          "description": "Category of the expense."
+        },
+        "dayOfMonth": {
+          "type": "number",
+          "description": "The day of the month the expense is due (1-31)."
+        },
+        "lastInstanceCreated": {
+          "type": "string",
+          "description": "Timestamp indicating the last time a transaction instance was created for this expense (e.g., '2024-07').",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "amount",
+        "category",
+        "dayOfMonth"
+      ]
+    },
     "PurchaseHistory": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "PurchaseHistory",
@@ -839,6 +884,35 @@
         }
       },
       {
+        "path": "/users/{userId}/recurringExpenses/{recurringExpenseId}",
+        "definition": {
+          "entityName": "RecurringExpense",
+          "schema": {
+            "$ref": "#/backend/entities/RecurringExpense"
+          },
+          "description": "Stores recurring expenses for a specific user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "recurringExpenseId",
+              "description": "The unique identifier for the recurring expense."
+            }
+          ],
+          "rules": {
+            "allow": {
+              "create": "if request.auth != null && request.auth.uid == userId;",
+              "read": "if request.auth != null && request.auth.uid == userId;",
+              "update": "if request.auth != null && request.auth.uid == userId;",
+              "delete": "if request.auth != null && request.auth.uid == userId;",
+              "list": "if request.auth != null && request.auth.uid == userId;"
+            }
+          }
+        }
+      },
+      {
         "path": "/users/{userId}/purchaseHistory/{purchaseHistoryId}",
         "definition": {
           "entityName": "PurchaseHistory",
@@ -900,3 +974,5 @@
     "reasoning": "The Firestore structure is designed to ensure data isolation and efficient querying, leveraging subcollections for user-specific data and denormalization for authorization independence. The core principle is that all data related to a user is stored under their respective user document, fostering clear ownership and simplifies security rules. This approach avoids complex queries across collections and maintains data integrity. The design adheres to structural segregation by keeping data with similar access needs in the same collection.\n\nAuthorization Independence is achieved by storing all data belonging to a user under the `/users/{userId}` path. This allows security rules to be written based on `request.auth.uid` and the path, without needing to `get()` data from other documents.\n\nThe data structure supports required QAPs (Rules are not Filters) by employing path-based ownership and structural segregation, allowing secure `list` operations, so a user can only list documents under its user id, not other user's documents."
   }
 }
+
+    
