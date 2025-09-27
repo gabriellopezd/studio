@@ -29,7 +29,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
   ArrowDownCircle,
@@ -40,6 +39,9 @@ import {
   Trash2,
   WalletCards,
   CheckCircle,
+  Undo2,
+  TrendingDown,
+  TrendingUp,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import {
@@ -81,9 +83,12 @@ import {
   query,
   where,
   getDocs,
+  getDoc,
   Timestamp,
   orderBy
 } from 'firebase/firestore';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
 
 export default function FinancesPage() {
   const { firestore, user } = useFirebase();
@@ -109,6 +114,18 @@ export default function FinancesPage() {
   );
 
   const [currentMonthYear, setCurrentMonthYear] = useState('');
+
+  // State for Recurring Incomes/Expenses
+  const [isRecurringDialogOpen, setRecurringDialogOpen] = useState(false);
+  const [recurringToEdit, setRecurringToEdit] = useState<any | null>(null);
+  const [recurringToDelete, setRecurringToDelete] = useState<any | null>(null);
+  const [recurringType, setRecurringType] = useState<'income' | 'expense'>('expense');
+  const [newRecurringName, setNewRecurringName] = useState('');
+  const [newRecurringAmount, setNewRecurringAmount] = useState('');
+  const [newRecurringCategory, setNewRecurringCategory] = useState('');
+  const [newRecurringDay, setNewRecurringDay] = useState('');
+
+  const { toast } = useToast();
 
   useEffect(() => {
     const now = new Date();
@@ -140,22 +157,39 @@ export default function FinancesPage() {
   );
   const { data: budgets, isLoading: budgetsLoading } =
     useCollection(budgetsQuery);
-
-  const recurringExpensesQuery = useMemo(
-    () =>
-      user
-        ? query(collection(firestore, 'users', user.uid, 'recurringExpenses'))
-        : null,
+    
+  const recurringExpensesQuery = useMemo(() =>
+    user ? query(collection(firestore, 'users', user.uid, 'recurringExpenses'), orderBy('dayOfMonth')) : null,
     [firestore, user]
   );
-  const { data: recurringExpenses } = useCollection(recurringExpensesQuery);
+  const { data: recurringExpenses, isLoading: recurringExpensesLoading } = useCollection(recurringExpensesQuery);
 
-  const pendingRecurringExpensesTotal = useMemo(() => {
-    if (!recurringExpenses) return 0;
-    return recurringExpenses
-      .filter((expense) => expense.lastInstanceCreated !== currentMonthYear)
-      .reduce((total, expense) => total + expense.amount, 0);
+  const recurringIncomesQuery = useMemo(() =>
+    user ? query(collection(firestore, 'users', user.uid, 'recurringIncomes'), orderBy('dayOfMonth')) : null,
+    [firestore, user]
+  );
+  const { data: recurringIncomes, isLoading: recurringIncomesLoading } = useCollection(recurringIncomesQuery);
+
+
+  const pendingRecurringExpenses = useMemo(() => {
+    if (!recurringExpenses) return [];
+    return recurringExpenses.filter(expense => expense.lastInstanceCreated !== currentMonthYear);
   }, [recurringExpenses, currentMonthYear]);
+  
+  const paidRecurringExpenses = useMemo(() => {
+    if (!recurringExpenses) return [];
+    return recurringExpenses.filter(expense => expense.lastInstanceCreated === currentMonthYear);
+  }, [recurringExpenses, currentMonthYear]);
+
+  const pendingRecurringIncomes = useMemo(() => {
+    if (!recurringIncomes) return [];
+    return recurringIncomes.filter(income => income.lastInstanceCreated !== currentMonthYear);
+  }, [recurringIncomes, currentMonthYear]);
+
+  const receivedRecurringIncomes = useMemo(() => {
+    if (!recurringIncomes) return [];
+    return recurringIncomes.filter(income => income.lastInstanceCreated === currentMonthYear);
+  }, [recurringIncomes, currentMonthYear]);
 
 
   const monthlyIncome =
@@ -352,6 +386,129 @@ export default function FinancesPage() {
   const openEditDialog = (transaction: any) => {
     setTransactionToEdit({ ...transaction, amount: transaction.amount.toString() });
   };
+  
+    const openRecurringDialog = (type: 'income' | 'expense', item?: any) => {
+    setRecurringType(type);
+    if (item) {
+      setRecurringToEdit(item);
+      setNewRecurringName(item.name);
+      setNewRecurringAmount(item.amount.toString());
+      setNewRecurringCategory(item.category);
+      setNewRecurringDay(item.dayOfMonth.toString());
+    } else {
+      setRecurringToEdit(null);
+      setNewRecurringName('');
+      setNewRecurringAmount('');
+      setNewRecurringCategory('');
+      setNewRecurringDay('');
+    }
+    setRecurringDialogOpen(true);
+  };
+
+  const handleSaveRecurringItem = async () => {
+    if (!user || !newRecurringName || !newRecurringAmount || !newRecurringCategory || !newRecurringDay) {
+        toast({ variant: "destructive", title: "Error", description: "Todos los campos son obligatorios." });
+        return;
+    }
+    const amount = parseFloat(newRecurringAmount);
+    const dayOfMonth = parseInt(newRecurringDay, 10);
+
+    const data = {
+      name: newRecurringName,
+      amount,
+      category: newRecurringCategory,
+      dayOfMonth,
+      userId: user.uid,
+    };
+    const collectionName = recurringType === 'income' ? 'recurringIncomes' : 'recurringExpenses';
+
+    if (recurringToEdit) {
+      const itemRef = doc(firestore, 'users', user.uid, collectionName, recurringToEdit.id);
+      await updateDocumentNonBlocking(itemRef, data);
+    } else {
+      const colRef = collection(firestore, 'users', user.uid, collectionName);
+      await addDocumentNonBlocking(colRef, data);
+    }
+    setRecurringDialogOpen(false);
+  };
+
+  const handleDeleteRecurringItem = async () => {
+    if (!recurringToDelete || !user) return;
+    const collectionName = recurringToDelete.type === 'income' ? 'recurringIncomes' : 'recurringExpenses';
+    const itemRef = doc(firestore, 'users', user.uid, collectionName, recurringToDelete.id);
+    await deleteDocumentNonBlocking(itemRef);
+    setRecurringToDelete(null);
+  };
+
+  const handlePayRecurringItem = async (item: any, type: 'income' | 'expense') => {
+    if (!user) return;
+
+    const transactionData = {
+      type: type,
+      description: item.name,
+      category: item.category,
+      date: new Date().toISOString(),
+      amount: item.amount,
+    };
+
+    const batch = writeBatch(firestore);
+    const newTransactionRef = doc(collection(firestore, 'users', user.uid, 'transactions'));
+    batch.set(newTransactionRef, transactionData);
+
+    if (type === 'expense') {
+      const budget = budgets?.find(b => b.categoryName === item.category);
+      if (budget) {
+        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+        const newSpend = (budget.currentSpend || 0) + item.amount;
+        batch.update(budgetRef, { currentSpend: newSpend });
+      }
+    }
+
+    const collectionName = type === 'income' ? 'recurringIncomes' : 'recurringExpenses';
+    const itemRef = doc(firestore, 'users', user.uid, collectionName, item.id);
+    batch.update(itemRef, {
+      lastInstanceCreated: currentMonthYear,
+      lastTransactionId: newTransactionRef.id,
+    });
+
+    await batch.commit();
+    toast({ title: `Registro exitoso`, description: `${item.name} ha sido registrado.` });
+  };
+  
+  const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') => {
+    if (!user || !item.lastTransactionId) return;
+
+    const transactionRef = doc(firestore, 'users', user.uid, 'transactions', item.lastTransactionId);
+    const transactionSnap = await getDoc(transactionRef);
+    if (!transactionSnap.exists()) {
+      toast({ variant: "destructive", title: "Error", description: "La transacción original no se encontró." });
+      return;
+    }
+    const transactionData = transactionSnap.data();
+
+    const batch = writeBatch(firestore);
+    batch.delete(transactionRef);
+
+    if (type === 'expense') {
+      const budget = budgets?.find(b => b.categoryName === transactionData.category);
+      if (budget) {
+        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+        const newSpend = Math.max(0, (budget.currentSpend || 0) - transactionData.amount);
+        batch.update(budgetRef, { currentSpend: newSpend });
+      }
+    }
+    
+    const collectionName = type === 'income' ? 'recurringIncomes' : 'recurringExpenses';
+    const itemRef = doc(firestore, 'users', user.uid, collectionName, item.id);
+    batch.update(itemRef, {
+      lastInstanceCreated: null,
+      lastTransactionId: null,
+    });
+    
+    await batch.commit();
+    toast({ title: 'Reversión exitosa', description: `Se ha deshecho el registro de ${item.name}.` });
+  };
+
 
   const expenseCategories = useMemo(() => {
     const fromBudgets = budgets?.map(b => b.categoryName) ?? [];
@@ -361,7 +518,15 @@ export default function FinancesPage() {
     return [...new Set([...fromBudgets, ...fromTransactions])];
   }, [budgets, transactions]);
   
+  const incomeCategories = useMemo(() => {
+    const fromTransactions = transactions
+        ?.filter((t) => t.type === 'income')
+        .map((t) => t.category) ?? [];
+    return ["Salario", "Bonificación", "Otro", ...fromTransactions];
+  }, [transactions]);
+
   const uniqueExpenseCategories = [...new Set(expenseCategories)].filter(Boolean);
+  const uniqueIncomeCategories = [...new Set(incomeCategories)].filter(Boolean);
 
   const categoriesWithoutBudget = uniqueExpenseCategories.filter(
     (cat) => !budgets?.some((b) => b.categoryName === cat)
@@ -369,7 +534,7 @@ export default function FinancesPage() {
 
   return (
     <>
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-6">
         <PageHeader
           title="FINANZAS"
           description="Controla tus ingresos, gastos y presupuestos."
@@ -440,13 +605,18 @@ export default function FinancesPage() {
                       <SelectValue placeholder="Selecciona una categoría" />
                     </SelectTrigger>
                     <SelectContent>
-                      {newTransactionType === 'expense' ? uniqueExpenseCategories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
-                      )) : null}
-                      <SelectItem value="Salario">Salario</SelectItem>
-                      <SelectItem value="Otro">Otro</SelectItem>
+                      {newTransactionType === 'expense' 
+                        ? uniqueExpenseCategories.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        )) 
+                        : uniqueIncomeCategories.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        ))
+                      }
                     </SelectContent>
                   </Select>
                 </div>
@@ -462,254 +632,437 @@ export default function FinancesPage() {
             </DialogContent>
           </Dialog>
         </PageHeader>
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Ingresos del Mes</CardTitle>
-              <CardDescription>Total de ingresos en {currentMonthName}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-emerald-500">
-                {formatCurrency(monthlyIncome)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Gastos del Mes</CardTitle>
-              <CardDescription>Total de gastos en {currentMonthName}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-red-500">
-                {formatCurrency(monthlyExpenses)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Gastos Pendientes</CardTitle>
-              <CardDescription>Total de gastos recurrentes por pagar</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <p className="text-3xl font-bold text-amber-500">
-                    {formatCurrency(pendingRecurringExpensesTotal)}
+        
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <Card>
+                <CardHeader>
+                <CardTitle>Ingresos del Mes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                <p className="text-2xl font-bold text-emerald-500">
+                    {formatCurrency(monthlyIncome)}
                 </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Balance</CardTitle>
-              <CardDescription>Balance actual de {currentMonthName}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{formatCurrency(balance)}</p>
-            </CardContent>
-          </Card>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                <CardTitle>Gastos del Mes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                <p className="text-2xl font-bold text-red-500">
+                    {formatCurrency(monthlyExpenses)}
+                </p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                <CardTitle>Balance del Mes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                <p className="text-2xl font-bold">{formatCurrency(balance)}</p>
+                </CardContent>
+            </Card>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Transacciones Recientes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {transactionsLoading && <p>Cargando transacciones...</p>}
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Descripción</TableHead>
-                      <TableHead className="hidden sm:table-cell">Categoría</TableHead>
-                      <TableHead className="hidden md:table-cell">Fecha</TableHead>
-                      <TableHead className="text-right">Monto</TableHead>
-                      <TableHead className="w-[50px] text-right">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {transactions?.map((t) => (
-                      <TableRow key={t.id}>
-                        <TableCell className="font-medium flex items-center gap-2">
-                          {t.type === 'income' ? (
-                            <ArrowUpCircle className="h-5 w-5 text-emerald-500 shrink-0" />
-                          ) : (
-                            <ArrowDownCircle className="h-5 w-5 text-red-500 shrink-0" />
-                          )}
-                          <span className="truncate">{t.description}</span>
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell">{t.category}</TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          {new Date(t.date).toLocaleString('es-ES', {
-                            day: 'numeric',
-                            month: 'short',
-                            hour: 'numeric',
-                            minute: 'numeric',
-                            hour12: true,
-                          })}
-                        </TableCell>
-                        <TableCell
-                          className={`text-right font-semibold ${
-                            t.type === 'income'
-                              ? 'text-emerald-500'
-                              : 'text-red-500'
-                          }`}
-                        >
-                          {t.type === 'income' ? '+' : '-'}
-                          {formatCurrency(t.amount)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <AlertDialog>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent>
-                                <DropdownMenuItem onClick={() => openEditDialog(t)}>
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  Editar
-                                </DropdownMenuItem>
-                                <AlertDialogTrigger asChild>
-                                  <DropdownMenuItem
-                                    onSelect={(e) => e.preventDefault()}
-                                    onClick={() => setTransactionToDelete(t)}
-                                    className="text-red-500 focus:text-red-500"
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Eliminar
-                                  </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Esta acción no se puede deshacer. Esto eliminará permanentemente
-                                  la transacción.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel onClick={() => setTransactionToDelete(null)}>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={handleDeleteTransaction}
-                                  className="bg-destructive hover:bg-destructive/90"
+
+        <Tabs defaultValue="transactions">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="transactions">Transacciones del Mes</TabsTrigger>
+            <TabsTrigger value="recurring">Ingresos y Gastos Fijos</TabsTrigger>
+          </TabsList>
+          <TabsContent value="transactions" className="mt-4">
+             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <Card className="lg:col-span-2">
+                    <CardHeader>
+                    <CardTitle>Transacciones Recientes</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                    {transactionsLoading && <p>Cargando transacciones...</p>}
+                    <div className="overflow-x-auto">
+                        <Table>
+                        <TableHeader>
+                            <TableRow>
+                            <TableHead>Descripción</TableHead>
+                            <TableHead className="hidden sm:table-cell">Categoría</TableHead>
+                            <TableHead className="hidden md:table-cell">Fecha</TableHead>
+                            <TableHead className="text-right">Monto</TableHead>
+                            <TableHead className="w-[50px] text-right">Acciones</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {transactions?.map((t) => (
+                            <TableRow key={t.id}>
+                                <TableCell className="font-medium flex items-center gap-2">
+                                {t.type === 'income' ? (
+                                    <ArrowUpCircle className="h-5 w-5 text-emerald-500 shrink-0" />
+                                ) : (
+                                    <ArrowDownCircle className="h-5 w-5 text-red-500 shrink-0" />
+                                )}
+                                <span className="truncate">{t.description}</span>
+                                </TableCell>
+                                <TableCell className="hidden sm:table-cell">{t.category}</TableCell>
+                                <TableCell className="hidden md:table-cell">
+                                {new Date(t.date).toLocaleString('es-ES', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                })}
+                                </TableCell>
+                                <TableCell
+                                className={`text-right font-semibold ${
+                                    t.type === 'income'
+                                    ? 'text-emerald-500'
+                                    : 'text-red-500'
+                                }`}
                                 >
-                                  Eliminar
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Presupuestos</CardTitle>
-                 <Dialog open={isBudgetDialogOpen} onOpenChange={(open) => {
-                    setBudgetDialogOpen(open);
-                    if (!open) setBudgetToEdit(null);
-                }}>
-                    <DialogTrigger asChild>
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openBudgetDialog()}>
-                        <PlusCircle className="h-4 w-4" />
-                    </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{budgetToEdit ? 'Editar Presupuesto' : 'Añadir Presupuesto'}</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="budget-category" className="text-right">
-                            Categoría
-                        </Label>
-                        <Select
-                            value={newBudgetCategory}
-                            onValueChange={setNewBudgetCategory}
-                            disabled={!!budgetToEdit}
-                        >
-                            <SelectTrigger className="col-span-3">
-                            <SelectValue placeholder="Selecciona una categoría" />
-                            </SelectTrigger>
-                            <SelectContent>
-                            {budgetToEdit ? (
-                                <SelectItem value={budgetToEdit.categoryName}>{budgetToEdit.categoryName}</SelectItem>
-                            ) : categoriesWithoutBudget.map((cat) => (
-                                <SelectItem key={cat} value={cat}>
-                                {cat}
-                                </SelectItem>
+                                {t.type === 'income' ? '+' : '-'}
+                                {formatCurrency(t.amount)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                <AlertDialog>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                    <DropdownMenuItem onClick={() => openEditDialog(t)}>
+                                        <Pencil className="mr-2 h-4 w-4" />
+                                        Editar
+                                    </DropdownMenuItem>
+                                    <AlertDialogTrigger asChild>
+                                        <DropdownMenuItem
+                                        onSelect={(e) => e.preventDefault()}
+                                        onClick={() => setTransactionToDelete(t)}
+                                        className="text-red-500 focus:text-red-500"
+                                        >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Eliminar
+                                        </DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Esta acción no se puede deshacer. Esto eliminará permanentemente
+                                        la transacción.
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel onClick={() => setTransactionToDelete(null)}>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        onClick={handleDeleteTransaction}
+                                        className="bg-destructive hover:bg-destructive/90"
+                                    >
+                                        Eliminar
+                                    </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                                </AlertDialog>
+                                </TableCell>
+                            </TableRow>
                             ))}
-                            </SelectContent>
-                        </Select>
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="budget-limit" className="text-right">
-                            Límite Mensual
-                        </Label>
-                        <Input
-                            id="budget-limit"
-                            type="number"
-                            value={newBudgetLimit}
-                            onChange={(e) => setNewBudgetLimit(e.target.value)}
-                            className="col-span-3"
-                        />
-                        </div>
+                        </TableBody>
+                        </Table>
                     </div>
-                    <DialogFooter>
-                        <DialogClose asChild>
-                        <Button type="button" variant="outline">Cancelar</Button>
-                        </DialogClose>
-                        <Button type="submit" onClick={handleSaveBudget}>
-                        {budgetToEdit ? 'Guardar Cambios' : 'Guardar Presupuesto'}
-                        </Button>
-                    </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
-                    {budgetsLoading && <p>Cargando presupuestos...</p>}
-                    {budgets?.map((b) => {
-                        const currentSpend = b.currentSpend || 0;
-                        const progress = (currentSpend / b.monthlyLimit) * 100;
-
-                        return (
-                        <div key={b.id}>
-                            <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium">
-                                {b.categoryName}
-                            </span>
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm text-muted-foreground">
-                                {formatCurrency(currentSpend)} /{' '}
-                                {formatCurrency(b.monthlyLimit)}
-                                </span>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openBudgetDialog(b)}>
-                                <Pencil className="h-3 w-3" />
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle>Presupuestos</CardTitle>
+                        <Dialog open={isBudgetDialogOpen} onOpenChange={(open) => {
+                            setBudgetDialogOpen(open);
+                            if (!open) setBudgetToEdit(null);
+                        }}>
+                            <DialogTrigger asChild>
+                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openBudgetDialog()}>
+                                <PlusCircle className="h-4 w-4" />
+                            </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>{budgetToEdit ? 'Editar Presupuesto' : 'Añadir Presupuesto'}</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="budget-category" className="text-right">
+                                    Categoría
+                                </Label>
+                                <Select
+                                    value={newBudgetCategory}
+                                    onValueChange={setNewBudgetCategory}
+                                    disabled={!!budgetToEdit}
+                                >
+                                    <SelectTrigger className="col-span-3">
+                                    <SelectValue placeholder="Selecciona una categoría" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                    {budgetToEdit ? (
+                                        <SelectItem value={budgetToEdit.categoryName}>{budgetToEdit.categoryName}</SelectItem>
+                                    ) : categoriesWithoutBudget.map((cat) => (
+                                        <SelectItem key={cat} value={cat}>
+                                        {cat}
+                                        </SelectItem>
+                                    ))}
+                                    </SelectContent>
+                                </Select>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="budget-limit" className="text-right">
+                                    Límite Mensual
+                                </Label>
+                                <Input
+                                    id="budget-limit"
+                                    type="number"
+                                    value={newBudgetLimit}
+                                    onChange={(e) => setNewBudgetLimit(e.target.value)}
+                                    className="col-span-3"
+                                />
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <DialogClose asChild>
+                                <Button type="button" variant="outline">Cancelar</Button>
+                                </DialogClose>
+                                <Button type="submit" onClick={handleSaveBudget}>
+                                {budgetToEdit ? 'Guardar Cambios' : 'Guardar Presupuesto'}
                                 </Button>
-                            </div>
-                            </div>
-                            <Progress value={progress} />
+                            </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {budgetsLoading && <p>Cargando presupuestos...</p>}
+                            {budgets?.map((b) => {
+                                const currentSpend = b.currentSpend || 0;
+                                const progress = (currentSpend / b.monthlyLimit) * 100;
+
+                                return (
+                                <div key={b.id}>
+                                    <div className="flex justify-between items-center mb-1">
+                                    <span className="text-sm font-medium">
+                                        {b.categoryName}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-muted-foreground">
+                                        {formatCurrency(currentSpend)} /{' '}
+                                        {formatCurrency(b.monthlyLimit)}
+                                        </span>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openBudgetDialog(b)}>
+                                        <Pencil className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                    </div>
+                                    <Progress value={progress} />
+                                </div>
+                                );
+                            })}
+                            {budgets?.length === 0 && !budgetsLoading && (
+                                <p className="text-sm text-muted-foreground text-center pt-4">
+                                    No has creado ningún presupuesto.
+                                </p>
+                                )}
                         </div>
-                        );
-                    })}
-                    {budgets?.length === 0 && !budgetsLoading && (
-                        <p className="text-sm text-muted-foreground text-center pt-4">
-                            No has creado ningún presupuesto.
-                        </p>
-                        )}
+                    </CardContent>
+                </Card>
                 </div>
-            </CardContent>
-          </Card>
-        </div>
+          </TabsContent>
+          <TabsContent value="recurring" className="mt-4">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Recurring Incomes Column */}
+                <div className="space-y-6">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle>Ingresos Fijos Definidos</CardTitle>
+                             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openRecurringDialog('income')}>
+                                <PlusCircle className="h-4 w-4" />
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                           {recurringIncomes?.map(income => (
+                             <div key={income.id} className="flex items-center justify-between rounded-lg border p-3">
+                                <div>
+                                    <p className="font-semibold">{income.name}</p>
+                                    <p className="text-sm text-muted-foreground">{formatCurrency(income.amount)} - Día {income.dayOfMonth}</p>
+                                </div>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                        <DropdownMenuItem onClick={() => openRecurringDialog('income', income)}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setRecurringToDelete({ ...income, type: 'income' })} className="text-red-500"><Trash2 className="mr-2 h-4 w-4" />Eliminar</DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                           ))}
+                           {recurringIncomes?.length === 0 && <p className="text-sm text-muted-foreground text-center pt-4">No has definido ingresos fijos.</p>}
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Ingresos Recurrentes Pendientes</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            {pendingRecurringIncomes.map(income => (
+                                <div key={income.id} className="flex items-center justify-between rounded-lg border bg-card p-3 shadow-sm">
+                                    <div>
+                                        <p className="font-semibold">{income.name}</p>
+                                        <p className="text-sm text-muted-foreground">{formatCurrency(income.amount)}</p>
+                                    </div>
+                                    <Button onClick={() => handlePayRecurringItem(income, 'income')}><CheckCircle className="mr-2 h-4 w-4" />Recibir</Button>
+                                </div>
+                            ))}
+                            {pendingRecurringIncomes.length === 0 && <p className="text-sm text-muted-foreground text-center">No tienes ingresos pendientes este mes.</p>}
+                        </CardContent>
+                    </Card>
+                    
+                    <Card>
+                        <CardHeader><CardTitle>Ingresos Recibidos este Mes</CardTitle></CardHeader>
+                        <CardContent className="space-y-3">
+                            {receivedRecurringIncomes.map(income => (
+                                <div key={income.id} className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
+                                     <div>
+                                        <p className="font-semibold text-muted-foreground line-through">{income.name}</p>
+                                        <p className="text-sm text-muted-foreground">{formatCurrency(income.amount)}</p>
+                                    </div>
+                                    <Button variant="ghost" onClick={() => handleRevertRecurringItem(income, 'income')}><Undo2 className="mr-2 h-4 w-4" />Revertir</Button>
+                                </div>
+                            ))}
+                             {receivedRecurringIncomes.length === 0 && <p className="text-sm text-muted-foreground text-center">No has recibido ingresos fijos este mes.</p>}
+                        </CardContent>
+                    </Card>
+                </div>
+                
+                {/* Recurring Expenses Column */}
+                <div className="space-y-6">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle>Gastos Fijos Definidos</CardTitle>
+                             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openRecurringDialog('expense')}>
+                                <PlusCircle className="h-4 w-4" />
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                           {recurringExpenses?.map(expense => (
+                             <div key={expense.id} className="flex items-center justify-between rounded-lg border p-3">
+                                <div>
+                                    <p className="font-semibold">{expense.name}</p>
+                                    <p className="text-sm text-muted-foreground">{formatCurrency(expense.amount)} - Día {expense.dayOfMonth}</p>
+                                </div>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                        <DropdownMenuItem onClick={() => openRecurringDialog('expense', expense)}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setRecurringToDelete({ ...expense, type: 'expense' })} className="text-red-500"><Trash2 className="mr-2 h-4 w-4" />Eliminar</DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                           ))}
+                           {recurringExpenses?.length === 0 && <p className="text-sm text-muted-foreground text-center">No has definido gastos fijos.</p>}
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Gastos Recurrentes Pendientes</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            {pendingRecurringExpenses.map(expense => (
+                                <div key={expense.id} className="flex items-center justify-between rounded-lg border bg-card p-3 shadow-sm">
+                                    <div>
+                                        <p className="font-semibold">{expense.name}</p>
+                                        <p className="text-sm text-muted-foreground">{formatCurrency(expense.amount)}</p>
+                                    </div>
+                                    <Button onClick={() => handlePayRecurringItem(expense, 'expense')}><CheckCircle className="mr-2 h-4 w-4" />Pagar</Button>
+                                </div>
+                            ))}
+                            {pendingRecurringExpenses.length === 0 && <p className="text-sm text-muted-foreground text-center">No tienes gastos pendientes este mes.</p>}
+                        </CardContent>
+                    </Card>
+
+                     <Card>
+                        <CardHeader><CardTitle>Gastos Pagados este Mes</CardTitle></CardHeader>
+                        <CardContent className="space-y-3">
+                            {paidRecurringExpenses.map(expense => (
+                                <div key={expense.id} className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
+                                     <div>
+                                        <p className="font-semibold text-muted-foreground line-through">{expense.name}</p>
+                                        <p className="text-sm text-muted-foreground">{formatCurrency(expense.amount)}</p>
+                                    </div>
+                                    <Button variant="ghost" onClick={() => handleRevertRecurringItem(expense, 'expense')}><Undo2 className="mr-2 h-4 w-4" />Revertir</Button>
+                                </div>
+                            ))}
+                            {paidRecurringExpenses.length === 0 && <p className="text-sm text-muted-foreground text-center">No has pagado gastos fijos este mes.</p>}
+                        </CardContent>
+                    </Card>
+                </div>
+
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
+
+       {/* Recurring Item Dialog */}
+      <Dialog open={isRecurringDialogOpen} onOpenChange={setRecurringDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>{recurringToEdit ? 'Editar' : 'Añadir'} {recurringType === 'income' ? 'Ingreso' : 'Gasto'} Fijo</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                    <Label htmlFor="recurring-name">Descripción</Label>
+                    <Input id="recurring-name" value={newRecurringName} onChange={(e) => setNewRecurringName(e.target.value)} />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="recurring-amount">Monto</Label>
+                    <Input id="recurring-amount" type="number" value={newRecurringAmount} onChange={(e) => setNewRecurringAmount(e.target.value)} />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="recurring-category">Categoría</Label>
+                    <Select value={newRecurringCategory} onValueChange={setNewRecurringCategory}>
+                        <SelectTrigger><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
+                        <SelectContent>
+                             {recurringType === 'expense' 
+                                ? uniqueExpenseCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>)) 
+                                : uniqueIncomeCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))
+                            }
+                        </SelectContent>
+                    </Select>
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="recurring-day">Día del Mes (1-31)</Label>
+                    <Input id="recurring-day" type="number" min="1" max="31" value={newRecurringDay} onChange={(e) => setNewRecurringDay(e.target.value)} />
+                </div>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                <Button onClick={handleSaveRecurringItem}>{recurringToEdit ? 'Guardar Cambios' : 'Guardar'}</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Recurring Item Confirmation */}
+      <AlertDialog open={!!recurringToDelete} onOpenChange={(open) => !open && setRecurringToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará "{recurringToDelete?.name}" permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteRecurringItem} className="bg-destructive hover:bg-destructive/90">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Edit Transaction Dialog */}
       <Dialog
         open={!!transactionToEdit}
@@ -823,30 +1176,8 @@ export default function FinancesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={!!transactionToDelete}
-        onOpenChange={(open) => !open && setTransactionToDelete(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción no se puede deshacer. Esto eliminará permanentemente
-              la transacción.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteTransaction}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Eliminar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
+
+    
