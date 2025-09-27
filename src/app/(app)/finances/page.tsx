@@ -530,29 +530,49 @@ export default function FinancesPage() {
                           {formatCurrency(t.amount)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                              <DropdownMenuItem onClick={() => openEditDialog(t)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Editar
-                              </DropdownMenuItem>
-                              <AlertDialogTrigger asChild>
-                                <DropdownMenuItem
-                                  onSelect={(e) => e.preventDefault()}
-                                  onClick={() => setTransactionToDelete(t)}
-                                  className="text-red-500 focus:text-red-500"
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Eliminar
+                          <AlertDialog>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent>
+                                <DropdownMenuItem onClick={() => openEditDialog(t)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Editar
                                 </DropdownMenuItem>
-                              </AlertDialogTrigger>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                                <AlertDialogTrigger asChild>
+                                  <DropdownMenuItem
+                                    onSelect={(e) => e.preventDefault()}
+                                    onClick={() => setTransactionToDelete(t)}
+                                    className="text-red-500 focus:text-red-500"
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Eliminar
+                                  </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta acción no se puede deshacer. Esto eliminará permanentemente
+                                  la transacción.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel onClick={() => setTransactionToDelete(null)}>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={handleDeleteTransaction}
+                                  className="bg-destructive hover:bg-destructive/90"
+                                >
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -802,3 +822,5 @@ export default function FinancesPage() {
     </>
   );
 }
+
+    
