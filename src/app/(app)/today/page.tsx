@@ -174,10 +174,8 @@ function TodaysMoodCard() {
         const existingDocRef = doc(firestore, 'users', user.uid, 'moods', todayEntry.id);
         await updateDocumentNonBlocking(existingDocRef, moodData);
     } else {
-        const newDocRef = doc(collection(firestore, 'users', user.uid, 'moods'));
-        await addDocumentNonBlocking(newDocRef, {
+        await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'moods'), {
             ...moodData,
-            id: newDocRef.id,
             createdAt: serverTimestamp(),
         });
     }
@@ -506,7 +504,7 @@ export default function TodayPage() {
             : 'Resumen de tu actividad para hoy.'
         }
       />
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         <div className="lg:col-span-2 flex flex-col gap-6">
             <Card>
             <CardHeader>

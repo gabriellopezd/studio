@@ -111,10 +111,8 @@ export default function MoodTrackerPage() {
         await updateDocumentNonBlocking(existingDocRef, moodData);
       } else {
         // Create a new document for today
-        const newDocRef = doc(moodsColRef);
         await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'moods'), {
           ...moodData,
-          id: newDocRef.id,
           createdAt: serverTimestamp(),
         });
       }
@@ -260,7 +258,7 @@ export default function MoodTrackerPage() {
                 </Button>
              )}
              {step < 3 && (
-                <Button onClick={() => setStep(s => s + 1)} disabled={step === 1 && !selectedMood || step === 2 && selectedFeelings.length === 0}>
+                <Button onClick={() => setStep(s => s + 1)} disabled={(step === 1 && !selectedMood) || (step === 2 && selectedFeelings.length === 0)}>
                     Siguiente
                 </Button>
              )}
