@@ -5,7 +5,7 @@ import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, MoreHorizontal, Pencil, Trash2, CalendarIcon } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Pencil, Trash2, CalendarIcon, ListTodo, CheckCircle2, PieChart } from 'lucide-react';
 import {
   useFirebase,
   useCollection,
@@ -53,6 +53,14 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 
 const taskCategories = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro"];
 
@@ -73,11 +81,20 @@ export default function TasksPage() {
     if (!user) return null;
     return query(
       collection(firestore, 'users', user.uid, 'tasks'),
-      where('userId', '==', user.uid)
     );
   }, [firestore, user]);
 
   const { data: allTasks, isLoading: tasksLoading } = useCollection(tasksQuery);
+
+  const stats = useMemo(() => {
+    if (!allTasks) return { pending: 0, completed: 0, total: 0, completionRate: 0 };
+    const completed = allTasks.filter(t => t.isCompleted).length;
+    const total = allTasks.length;
+    const pending = total - completed;
+    const completionRate = total > 0 ? (completed / total) * 100 : 0;
+    return { pending, completed, total, completionRate };
+  }, [allTasks]);
+
 
   const filteredTasks = useMemo(() => {
     if (!allTasks) return { byCategory: {}, all: [] };
@@ -300,6 +317,40 @@ export default function TasksPage() {
           </Button>
         </PageHeader>
 
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Tareas Pendientes</CardTitle>
+              <ListTodo className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.pending}</div>
+              <p className="text-xs text-muted-foreground">Total de tareas por completar</p>
+            </CardContent>
+          </Card>
+           <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Tareas Completadas</CardTitle>
+              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.completed}</div>
+              <p className="text-xs text-muted-foreground">Total de tareas finalizadas</p>
+            </CardContent>
+          </Card>
+           <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Tasa de Finalización</CardTitle>
+              <PieChart className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.completionRate.toFixed(1)}%</div>
+              <Progress value={stats.completionRate} className="mt-2 h-2" />
+            </CardContent>
+          </Card>
+        </div>
+
+
         <Tabs defaultValue="all" onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="all">Pendientes</TabsTrigger>
@@ -406,5 +457,3 @@ export default function TasksPage() {
     </>
   );
 }
-
-    
