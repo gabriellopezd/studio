@@ -69,7 +69,9 @@ export default function TasksPage() {
 
   const tasksQuery = useMemo(() => {
     if (!user) return null;
-    return query(collection(firestore, 'users', user.uid, 'tasks'));
+    return query(
+      collection(firestore, 'users', user.uid, 'tasks')
+    );
   }, [firestore, user]);
 
   const { data: allTasks, isLoading: tasksLoading } = useCollection(tasksQuery);
@@ -354,3 +356,5 @@ export default function TasksPage() {
     </>
   );
 }
+
+    

@@ -30,6 +30,7 @@ import {
   where,
   limit,
   Timestamp,
+  orderBy,
 } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -74,11 +75,11 @@ export default function DashboardPage() {
         ? query(
             collection(firestore, 'users', user.uid, 'tasks'),
             where('isCompleted', '==', false),
-            where('dueDate', '<=', new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString()), // Today + 24h
+            orderBy('createdAt', 'desc'),
             limit(5)
           )
         : null,
-    [firestore, user, today]
+    [firestore, user]
   );
   const { data: tasks, isLoading: tasksLoading } = useCollection(tasksQuery);
 
@@ -197,7 +198,7 @@ export default function DashboardPage() {
                              <li key={task.id} className="flex items-center justify-between">
                                 <div>
                                     <p className="font-medium">{task.name}</p>
-                                    <p className="text-sm text-muted-foreground">Vence: {task.dueDate ? task.dueDate.toDate().toLocaleDateString() : 'N/A'}</p>
+                                    <p className="text-sm text-muted-foreground">Vence: {task.dueDate ? new Date(task.dueDate.seconds * 1000).toLocaleDateString() : 'N/A'}</p>
                                 </div>
                                 <Badge variant={task.priority === 'high' ? 'destructive' : 'secondary'}>{task.priority || 'normal'}</Badge>
                             </li>
@@ -239,3 +240,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
