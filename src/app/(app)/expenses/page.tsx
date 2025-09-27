@@ -756,49 +756,49 @@ export default function ExpensesPage() {
 
   const handleRevertPayment = async (expense: any) => {
     if (!user || !expense.lastTransactionId) return;
-  
+
     try {
-      const transactionRef = doc(firestore, 'users', user.uid, 'transactions', expense.lastTransactionId);
-      const transactionSnap = await getDoc(transactionRef);
-      
-      if (!transactionSnap.exists()) {
-        toast({ variant: "destructive", title: "Error", description: "La transacción original no se encontró." });
-        return;
-      }
-      
-      const transactionData = transactionSnap.data();
-      const batch = writeBatch(firestore);
-  
-      // 1. Delete the transaction
-      batch.delete(transactionRef);
-  
-      // 2. Revert the budget
-      const budgetToRevert = budgets?.find(b => b.categoryName === transactionData.category);
-      if (budgetToRevert) {
-          const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budgetToRevert.id);
-          const newSpend = Math.max(0, (budgetToRevert.currentSpend || 0) - transactionData.amount);
-          batch.update(budgetRef, { currentSpend: newSpend });
-      }
-  
-      // 3. Revert the recurring expense
-      const expenseRef = doc(firestore, 'users', user.uid, 'recurringExpenses', expense.id);
-      batch.update(expenseRef, {
-        lastInstanceCreated: null,
-        lastTransactionId: null,
-      });
-  
-      await batch.commit();
-      toast({
-        title: 'Pago Revertido',
-        description: `Se ha deshecho el pago de ${expense.name}.`,
-      });
+        const transactionRef = doc(firestore, 'users', user.uid, 'transactions', expense.lastTransactionId);
+        const transactionSnap = await getDoc(transactionRef);
+        
+        if (!transactionSnap.exists()) {
+            toast({ variant: "destructive", title: "Error", description: "La transacción original no se encontró." });
+            return;
+        }
+        
+        const transactionData = transactionSnap.data();
+        const batch = writeBatch(firestore);
+
+        // 1. Delete the transaction
+        batch.delete(transactionRef);
+
+        // 2. Revert the budget
+        const budgetToRevert = budgets?.find(b => b.categoryName === transactionData.category);
+        if (budgetToRevert) {
+            const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budgetToRevert.id);
+            const newSpend = Math.max(0, (budgetToRevert.currentSpend || 0) - transactionData.amount);
+            batch.update(budgetRef, { currentSpend: newSpend });
+        }
+
+        // 3. Revert the recurring expense
+        const expenseRef = doc(firestore, 'users', user.uid, 'recurringExpenses', expense.id);
+        batch.update(expenseRef, {
+            lastInstanceCreated: null,
+            lastTransactionId: null,
+        });
+
+        await batch.commit();
+        toast({
+            title: 'Pago Revertido',
+            description: `Se ha deshecho el pago de ${expense.name}.`,
+        });
     } catch (error) {
-      console.error("Error reverting payment:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No se pudo revertir el pago.",
-      });
+        console.error("Error reverting payment:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudo revertir el pago.",
+        });
     }
   };
 
@@ -812,7 +812,7 @@ export default function ExpensesPage() {
 
   return (
     <>
-      <div className="flex flex-col gap-4 md:gap-6">
+      <div className="flex flex-col gap-8">
         <PageHeader
           title="REGISTRO DE GASTOS"
           description="Organiza tus compras y gestiona tus pagos recurrentes."
@@ -876,12 +876,12 @@ export default function ExpensesPage() {
             
             {listsLoading && <p>Cargando categorías...</p>}
 
-            <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-4 mt-6 md:mt-0">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-4 mt-6 md:mt-0">
               <div className="hidden md:block md:col-span-1">
                  { !listsLoading && sortedLists.length > 0 && (
                   <Card>
                     <CardHeader>
-                      <CardTitle>Categorías de Compra</CardTitle>
+                      <CardTitle>Categorías</CardTitle>
                     </CardHeader>
                     <CardContent className="p-2">
                       <DndContext
@@ -1136,7 +1136,7 @@ export default function ExpensesPage() {
                             {pendingRecurringExpenses.map((expense) => (
                             <div
                                 key={expense.id}
-                                className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                                className="flex items-center justify-between p-3 rounded-lg border bg-card shadow-sm"
                             >
                                 <div>
                                 <p className="font-semibold">{expense.name}</p>
@@ -1182,7 +1182,7 @@ export default function ExpensesPage() {
                             {paidRecurringExpenses.map((expense) => (
                             <div
                                 key={expense.id}
-                                className="flex items-center justify-between p-3 rounded-lg border bg-card/50"
+                                className="flex items-center justify-between p-3 rounded-lg border bg-muted/50"
                             >
                                 <div>
                                 <p className="font-semibold text-muted-foreground line-through">{expense.name}</p>
@@ -1359,7 +1359,7 @@ export default function ExpensesPage() {
                           <span className="font-semibold text-sm">
                             {formatCurrency(expense.amount)}
                           </span>
-                           <AlertDialog>
+                          <AlertDialog>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                 <Button
@@ -1409,7 +1409,7 @@ export default function ExpensesPage() {
                                     </AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
-                           </AlertDialog>
+                          </AlertDialog>
                         </div>
                       </div>
                     ))}

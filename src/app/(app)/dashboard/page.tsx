@@ -134,7 +134,7 @@ export default function DashboardPage() {
   });
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <PageHeader
         title="Dashboard de Bienestar"
         description={
@@ -147,49 +147,49 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
+                <CardTitle className="flex items-center gap-2">
                     <Activity className="size-5"/>
-                    Progreso de Hábitos Diarios
+                    Progreso Diario
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <Progress value={dailyProgress} className="mb-2"/>
-                <p className="text-sm text-muted-foreground">{completedDaily} de {dailyHabits.length} completados hoy.</p>
+                <Progress value={dailyProgress} className="h-3 mb-2"/>
+                <p className="text-sm text-muted-foreground">{completedDaily} de {dailyHabits.length} completados.</p>
             </CardContent>
         </Card>
         <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
+                <CardTitle className="flex items-center gap-2">
                     <CalendarDays className="size-5"/>
-                    Progreso de Hábitos Semanales
+                    Progreso Semanal
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <Progress value={weeklyProgress} className="mb-2"/>
-                <p className="text-sm text-muted-foreground">{completedWeekly} de {weeklyHabits.length} completados esta semana.</p>
+                <Progress value={weeklyProgress} className="h-3 mb-2"/>
+                <p className="text-sm text-muted-foreground">{completedWeekly} de {weeklyHabits.length} completados.</p>
             </CardContent>
         </Card>
          <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
+                <CardTitle className="flex items-center gap-2">
                     <Flame className="size-5 text-orange-500"/>
                     Racha Actual
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <p className="text-2xl font-bold">{longestCurrentStreak} días</p>
+                <p className="text-3xl font-bold">{longestCurrentStreak} días</p>
                 <p className="text-sm text-muted-foreground">Tu mejor racha activa.</p>
             </CardContent>
         </Card>
          <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
+                <CardTitle className="flex items-center gap-2">
                     <Trophy className="size-5 text-yellow-500"/>
-                    Racha Más Larga
+                    Racha Récord
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <p className="text-2xl font-bold">{longestStreak} días</p>
+                <p className="text-3xl font-bold">{longestStreak} días</p>
                  <p className="text-sm text-muted-foreground">Tu récord histórico.</p>
             </CardContent>
         </Card>
@@ -198,7 +198,7 @@ export default function DashboardPage() {
        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="md:col-span-2">
              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
+                <CardTitle className="flex items-center gap-2">
                     <ListTodo className="size-5"/>
                     Tareas Pendientes de la Semana
                 </CardTitle>
@@ -207,7 +207,7 @@ export default function DashboardPage() {
             <CardContent>
                 {tasksLoading && <p>Cargando tareas...</p>}
                 {pendingTasks && pendingTasks.length > 0 ? (
-                    <ul className="space-y-3">
+                    <ul className="space-y-4">
                         {pendingTasks.slice(0, 5).map(task => (
                              <li key={task.id} className="flex items-center justify-between">
                                 <div>
@@ -225,27 +225,27 @@ export default function DashboardPage() {
           </Card>
            <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
+                <CardTitle className="flex items-center gap-2">
                     <Smile className="size-5"/>
-                    Resumen Emocional de Hoy
+                    Ánimo de Hoy
                 </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center justify-center text-center">
                  {moodsLoading && <p>Cargando ánimo...</p>}
                  {todayMood ? (
                     <>
-                        <p className="text-5xl">{todayMood.emoji}</p>
-                        <p className="text-lg font-semibold mt-2">{todayMood.moodLabel}</p>
+                        <p className="text-6xl">{todayMood.emoji}</p>
+                        <p className="text-xl font-semibold mt-2">{todayMood.moodLabel}</p>
                     </>
                  ) : (
                     !moodsLoading && (
                         <>
-                            <p className="text-5xl">⚪</p>
+                            <p className="text-6xl">⚪</p>
                             <p className="text-muted-foreground mt-2">Sin registrar</p>
                         </>
                     )
                  )}
-                 <Button variant="link" asChild className="mt-2">
+                 <Button variant="link" asChild className="mt-4">
                     <Link href="/mood-tracker">Ver detalles y tendencias</Link>
                  </Button>
             </CardContent>
@@ -254,13 +254,13 @@ export default function DashboardPage() {
        <div className="grid grid-cols-1 gap-6">
         <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
+                <CardTitle className="flex items-center gap-2">
                     <SquareCheck className="size-5"/>
                     Progreso de Tareas Semanales
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <Progress value={weeklyTasksProgress} className="mb-2"/>
+                <Progress value={weeklyTasksProgress} className="h-3 mb-2"/>
                 <p className="text-sm text-muted-foreground">{completedWeeklyTasks} de {totalWeeklyTasks} tareas completadas esta semana.</p>
             </CardContent>
         </Card>

@@ -369,7 +369,7 @@ export default function FinancesPage() {
 
   return (
     <>
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-8">
         <PageHeader
           title="FINANZAS"
           description="Controla tus ingresos, gastos y presupuestos."
@@ -850,5 +850,3 @@ export default function FinancesPage() {
     </>
   );
 }
-
-    
