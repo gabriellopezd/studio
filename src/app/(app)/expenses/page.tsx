@@ -773,11 +773,11 @@ export default function ExpensesPage() {
       batch.delete(transactionRef);
   
       // 2. Revert the budget
-      const budget = budgets?.find((b) => b.categoryName === transactionData.category);
-      if (budget) {
-        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-        const newSpend = Math.max(0, (budget.currentSpend || 0) - transactionData.amount);
-        batch.update(budgetRef, { currentSpend: newSpend });
+      const budgetToRevert = budgets?.find(b => b.categoryName === transactionData.category);
+      if (budgetToRevert) {
+          const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budgetToRevert.id);
+          const newSpend = Math.max(0, (budgetToRevert.currentSpend || 0) - transactionData.amount);
+          batch.update(budgetRef, { currentSpend: newSpend });
       }
   
       // 3. Revert the recurring expense
