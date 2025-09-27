@@ -205,7 +205,7 @@ export default function ExpensesPage() {
   const expenseCategories = useMemo(() => {
     const fromShoppingLists = lists?.map((l) => l.name) ?? [];
     const fromBudgets = budgets?.map(b => b.categoryName) ?? [];
-    return [...new Set([...fromShoppingLists, ...fromBudgets])].filter(Boolean);
+    return ["Arriendo", ...new Set([...fromShoppingLists, ...fromBudgets])].filter(Boolean);
   }, [lists, budgets]);
   
   const uniqueExpenseCategories = [...new Set(expenseCategories)].filter(
@@ -1489,3 +1489,5 @@ export default function ExpensesPage() {
     </>
   );
 }
+
+    

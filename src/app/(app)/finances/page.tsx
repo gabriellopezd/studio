@@ -521,7 +521,7 @@ export default function FinancesPage() {
     const fromTransactions = transactions
         ?.filter((t) => t.type === 'expense')
         .map((t) => t.category) ?? [];
-    return [...new Set([...fromBudgets, ...fromTransactions])];
+    return ["Arriendo", ...new Set([...fromBudgets, ...fromTransactions])];
   }, [budgets, transactions]);
   
   const incomeCategories = useMemo(() => {
@@ -1195,3 +1195,5 @@ export default function FinancesPage() {
     </>
   );
 }
+
+    
