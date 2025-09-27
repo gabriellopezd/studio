@@ -83,6 +83,8 @@ const isPreviousWeek = (d1: Date, d2: Date) => {
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
 
+const today = new Date();
+
 function TodaysMoodCard() {
   const { firestore, user } = useFirebase();
 
@@ -346,7 +348,6 @@ export default function TodayPage() {
   const { data: allHabits, isLoading: habitsLoading } =
     useCollection(habitsQuery);
 
-  const today = useMemo(() => new Date(), []);
     
   const habitsForToday = useMemo(() => {
     if (!allHabits) return [];
@@ -368,7 +369,7 @@ export default function TodayPage() {
       }
       return !isCompletedInCurrentPeriod;
     });
-  }, [allHabits, today]);
+  }, [allHabits]);
     
   const groupedHabits = useMemo(() => {
     if (!habitsForToday) return {};
