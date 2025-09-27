@@ -233,7 +233,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Goal",
       "type": "object",
-      "description": "Represents a long-term goal.",
+      "description": "Represents a long-term goal. Can be generic, for savings, or for debt amortization.",
       "properties": {
         "id": {
           "type": "string",
@@ -251,6 +251,11 @@
           "type": "string",
           "description": "Description of the goal."
         },
+        "type": {
+          "type": "string",
+          "description": "The type of the goal.",
+          "enum": ["generic", "savings", "debt"]
+        },
         "targetValue": {
           "type": "number",
           "description": "Target value for the goal."
@@ -259,16 +264,20 @@
           "type": "number",
           "description": "Current value towards the goal."
         },
+        "monthlyContribution": {
+          "type": ["number", "null"],
+          "description": "The planned monthly contribution for savings or debt goals."
+        },
         "unit": {
           "type": "string",
-          "description": "Unit of measurement for the goal."
+          "description": "Unit of measurement for the goal (e.g., 'kms', 'books', 'COP')."
         },
         "dueDate": {
           "type": [
             "string",
             "null"
           ],
-          "description": "Timestamp indicating when the goal is due.",
+          "description": "Timestamp indicating when the goal is due (primarily for generic goals).",
           "format": "date-time"
         },
         "isCompleted": {
@@ -285,6 +294,7 @@
         "id",
         "userId",
         "name",
+        "type",
         "targetValue",
         "currentValue",
         "isCompleted",
@@ -1061,5 +1071,3 @@
     "reasoning": "The Firestore structure is designed to ensure data isolation and efficient querying, leveraging subcollections for user-specific data and denormalization for authorization independence. The core principle is that all data related to a user is stored under their respective user document, fostering clear ownership and simplifies security rules. This approach avoids complex queries across collections and maintains data integrity. The design adheres to structural segregation by keeping data with similar access needs in the same collection.\n\nAuthorization Independence is achieved by storing all data belonging to a user under the `/users/{userId}` path. This allows security rules to be written based on `request.auth.uid` and the path, without needing to `get()` data from other documents.\n\nThe data structure supports required QAPs (Rules are not Filters) by employing path-based ownership and structural segregation, allowing secure `list` operations, so a user can only list documents under its user id, not other user's documents."
   }
 }
-
-    

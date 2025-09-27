@@ -43,6 +43,9 @@ import {
   Undo2,
   TrendingDown,
   TrendingUp,
+  Landmark,
+  PiggyBank,
+  Heart,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import {
@@ -91,6 +94,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 
+const needsCategories = ["Arriendo", "Servicios", "Supermercado", "Transporte", "Salud"];
+const wantsCategories = ["Restaurantes", "Entretenimiento", "Hobbies", "Compras"];
+
+
 export default function FinancesPage() {
   const { firestore, user } = useFirebase();
   const [currentMonthName, setCurrentMonthName] = useState('');
@@ -116,7 +123,6 @@ export default function FinancesPage() {
 
   const [currentMonthYear, setCurrentMonthYear] = useState('');
 
-  // State for Recurring Incomes/Expenses
   const [isRecurringDialogOpen, setRecurringDialogOpen] = useState(false);
   const [recurringToEdit, setRecurringToEdit] = useState<any | null>(null);
   const [recurringToDelete, setRecurringToDelete] = useState<any | null>(null);
@@ -209,6 +215,24 @@ export default function FinancesPage() {
       .reduce((sum, t) => sum + t.amount, 0) ?? 0;
 
   const balance = monthlyIncome - monthlyExpenses;
+
+  const budget503020 = useMemo(() => {
+    if (monthlyIncome === 0) return null;
+    
+    const needsBudget = monthlyIncome * 0.5;
+    const wantsBudget = monthlyIncome * 0.3;
+    const savingsBudget = monthlyIncome * 0.2;
+
+    const needsSpend = transactions?.filter(t => t.type === 'expense' && needsCategories.includes(t.category)).reduce((sum, t) => sum + t.amount, 0) ?? 0;
+    const wantsSpend = transactions?.filter(t => t.type === 'expense' && wantsCategories.includes(t.category)).reduce((sum, t) => sum + t.amount, 0) ?? 0;
+    const savingsSpend = transactions?.filter(t => t.type === 'expense' && !needsCategories.includes(t.category) && !wantsCategories.includes(t.category)).reduce((sum, t) => sum + t.amount, 0) ?? 0;
+
+    return {
+        needs: { budget: needsBudget, spend: needsSpend, progress: (needsSpend/needsBudget)*100 },
+        wants: { budget: wantsBudget, spend: wantsSpend, progress: (wantsSpend/wantsBudget)*100 },
+        savings: { budget: savingsBudget, spend: savingsSpend, progress: (savingsSpend/savingsBudget)*100 },
+    };
+  }, [monthlyIncome, transactions]);
 
   const handleAddTransaction = async () => {
     if (
@@ -455,6 +479,8 @@ export default function FinancesPage() {
       category: item.category,
       date: new Date().toISOString(),
       amount: item.amount,
+      userId: user.uid,
+      createdAt: serverTimestamp(),
     };
 
     const batch = writeBatch(firestore);
@@ -679,6 +705,38 @@ export default function FinancesPage() {
                 </CardContent>
             </Card>
         </div>
+
+         {budget503020 && (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Presupuesto 50/30/20</CardTitle>
+                    <CardDescription>Una guía para distribuir tus ingresos: 50% Necesidades, 30% Deseos, 20% Ahorros y Deudas.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div>
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-medium flex items-center gap-2"><Landmark className="h-4 w-4 text-red-500" />Necesidades</span>
+                            <span className="text-sm text-muted-foreground">{formatCurrency(budget503020.needs.spend)} / {formatCurrency(budget503020.needs.budget)}</span>
+                        </div>
+                        <Progress value={budget503020.needs.progress} className="[&>div]:bg-red-500" />
+                    </div>
+                     <div>
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-medium flex items-center gap-2"><Heart className="h-4 w-4 text-amber-500" />Deseos</span>
+                            <span className="text-sm text-muted-foreground">{formatCurrency(budget503020.wants.spend)} / {formatCurrency(budget503020.wants.budget)}</span>
+                        </div>
+                        <Progress value={budget503020.wants.progress} className="[&>div]:bg-amber-500" />
+                    </div>
+                     <div>
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-medium flex items-center gap-2"><PiggyBank className="h-4 w-4 text-emerald-500" />Ahorros y Deudas</span>
+                            <span className="text-sm text-muted-foreground">{formatCurrency(budget503020.savings.spend)} / {formatCurrency(budget503020.savings.budget)}</span>
+                        </div>
+                        <Progress value={budget503020.savings.progress} className="[&>div]:bg-emerald-500" />
+                    </div>
+                </CardContent>
+            </Card>
+        )}
 
 
         <Tabs defaultValue="transactions">
@@ -1195,5 +1253,3 @@ export default function FinancesPage() {
     </>
   );
 }
-
-    
