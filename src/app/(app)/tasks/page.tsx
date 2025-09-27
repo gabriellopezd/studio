@@ -13,7 +13,7 @@ import {
   addDocumentNonBlocking,
   deleteDocumentNonBlocking
 } from '@/firebase';
-import { collection, doc, query, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, query, Timestamp, serverTimestamp, where } from 'firebase/firestore';
 import {
   Dialog,
   DialogContent,
