@@ -30,7 +30,6 @@ import {
   where,
   limit,
   Timestamp,
-  orderBy,
 } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -75,7 +74,6 @@ export default function DashboardPage() {
         ? query(
             collection(firestore, 'users', user.uid, 'tasks'),
             where('isCompleted', '==', false),
-            orderBy('createdAt', 'desc'),
             limit(5)
           )
         : null,
@@ -240,5 +238,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
