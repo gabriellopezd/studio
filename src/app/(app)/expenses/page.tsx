@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -63,6 +64,7 @@ import {
   orderBy,
   writeBatch,
   getDoc,
+  increment,
 } from 'firebase/firestore';
 import {
   DndContext,
@@ -193,59 +195,6 @@ export default function ExpensesPage() {
 
   const selectedList = lists?.find((list) => list.id === selectedListId);
 
-
-  const addTransaction = async (newTransaction: any) => {
-    if (!user) return null;
-    try {
-      const transactionsColRef = collection(
-        firestore,
-        'users',
-        user.uid,
-        'transactions'
-      );
-      const docRef = await addDocumentNonBlocking(transactionsColRef, {
-        ...newTransaction,
-        userId: user.uid,
-        date: new Date().toISOString(),
-        createdAt: serverTimestamp(),
-      });
-  
-      if (newTransaction.type === 'expense') {
-        const budget = budgets?.find(
-          (b) => b.categoryName === newTransaction.category
-        );
-        if (budget) {
-          const budgetRef = doc(
-            firestore,
-            'users',
-            user.uid,
-            'budgets',
-            budget.id
-          );
-          const newSpend = (budget.currentSpend || 0) + newTransaction.amount;
-          updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
-        }
-      }
-  
-      toast({
-        title: 'Gasto Registrado',
-        description: `${
-          newTransaction.description
-        } por ${formatCurrency(
-          newTransaction.amount
-        )} ha sido añadido a tus finanzas.`,
-      });
-      return docRef;
-    } catch (error) {
-        console.error("Error adding transaction:", error);
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "No se pudo registrar la transacción.",
-        });
-        return null;
-    }
-  };
 
   const handleCreateList = async () => {
     if (newListName.trim() && user) {
@@ -381,12 +330,12 @@ export default function ExpensesPage() {
                   const budget = budgets?.find(b => b.categoryName === transactionData.category);
                   if (budget) {
                       const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-                      const newSpend = Math.max(0, (budget.currentSpend || 0) - transactionData.amount);
-                      batch.update(budgetRef, { currentSpend: newSpend });
+                      batch.update(budgetRef, { currentSpend: increment(-transactionData.amount) });
                   }
               }
           }
           await batch.commit();
+          toast({ title: "Gasto revertido" });
 
       } else { // Purchasing
           setItemToPurchase(item);
@@ -403,23 +352,46 @@ export default function ExpensesPage() {
         toast({ variant: 'destructive', title: 'Error', description: 'El precio debe ser un número válido.' });
         return;
     }
+    
+    const batch = writeBatch(firestore);
 
-    const transactionDoc = await addTransaction({
+    // 1. Create new transaction document
+    const newTransactionRef = doc(collection(firestore, 'users', user.uid, 'transactions'));
+    batch.set(newTransactionRef, {
         type: 'expense',
         description: itemToPurchase.name,
         category: selectedList.name,
         amount: finalPrice,
         budgetFocus: selectedList.budgetFocus,
+        date: new Date().toISOString(),
+        userId: user.uid,
+        createdAt: serverTimestamp(),
     });
 
-    if (!transactionDoc) return; // Stop if transaction failed
-
+    // 2. Update the item in the shopping list
     const updatedItems = selectedList.items.map((i: any) =>
-        i.itemId === itemToPurchase.itemId ? { ...i, isPurchased: true, price: finalPrice, transactionId: transactionDoc.id } : i
+        i.itemId === itemToPurchase.itemId ? { ...i, isPurchased: true, price: finalPrice, transactionId: newTransactionRef.id } : i
     );
-    
     const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', selectedListId!);
-    await updateDocumentNonBlocking(listRef, { items: updatedItems });
+    batch.update(listRef, { items: updatedItems });
+    
+    // 3. Update the budget
+    const budget = budgets?.find(b => b.categoryName === selectedList.name);
+    if (budget) {
+        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+        batch.update(budgetRef, { currentSpend: increment(finalPrice) });
+    }
+
+    try {
+        await batch.commit();
+        toast({
+            title: 'Gasto Registrado',
+            description: `${itemToPurchase.name} por ${formatCurrency(finalPrice)} ha sido registrado.`,
+        });
+    } catch(error) {
+        console.error("Error confirming purchase:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo registrar el gasto.' });
+    }
 
     setPurchaseDialogOpen(false);
     setItemToPurchase(null);
@@ -456,11 +428,7 @@ export default function ExpensesPage() {
           'budgets',
           budget.id
         );
-        const newSpend = Math.max(
-          0,
-          (budget.currentSpend || 0) - itemToDelete.price
-        );
-        batch.update(budgetRef, { currentSpend: newSpend });
+        batch.update(budgetRef, { currentSpend: increment(-itemToDelete.price) });
       }
     }
 

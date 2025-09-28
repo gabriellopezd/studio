@@ -1,3 +1,4 @@
+
 'use client';
     
 import {
@@ -8,6 +9,9 @@ import {
   CollectionReference,
   DocumentReference,
   SetOptions,
+  writeBatch,
+  WriteBatch,
+  increment,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import {FirestorePermissionError} from '@/firebase/errors';
@@ -87,3 +91,7 @@ export function deleteDocumentNonBlocking(docRef: DocumentReference) {
       )
     });
 }
+
+// Export `increment` and `writeBatch` to be used in components
+export { increment, writeBatch };
+export type { WriteBatch };
