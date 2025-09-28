@@ -94,9 +94,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 
-const needsCategories = ["Arriendo", "Servicios", "Supermercado", "Transporte", "Salud"];
-const wantsCategories = ["Restaurantes", "Entretenimiento", "Hobbies", "Compras"];
-
+const needsCategories = ["Arriendo", "Servicios", "Transporte", "Salud"];
 
 export default function FinancesPage() {
   const { firestore, user } = useFirebase();
@@ -177,6 +175,17 @@ export default function FinancesPage() {
   );
   const { data: recurringIncomes, isLoading: recurringIncomesLoading } = useCollection(recurringIncomesQuery);
 
+  const shoppingListsQuery = useMemo(
+    () => user ? query(collection(firestore, 'users', user.uid, 'shoppingLists')) : null,
+    [firestore, user]
+  );
+  const { data: shoppingLists } = useCollection(shoppingListsQuery);
+
+  const wantsCategories = useMemo(() => {
+    const fromShoppingLists = shoppingLists?.map((l) => l.name) ?? [];
+    return ["Restaurantes", "Entretenimiento", "Hobbies", ...fromShoppingLists];
+  }, [shoppingLists]);
+
 
   const pendingRecurringExpenses = useMemo(() => {
     if (!recurringExpenses) return [];
@@ -232,7 +241,7 @@ export default function FinancesPage() {
         wants: { budget: wantsBudget, spend: wantsSpend, progress: (wantsSpend/wantsBudget)*100 },
         savings: { budget: savingsBudget, spend: savingsSpend, progress: (savingsSpend/savingsBudget)*100 },
     };
-  }, [monthlyIncome, transactions]);
+  }, [monthlyIncome, transactions, wantsCategories]);
 
   const handleAddTransaction = async () => {
     if (
@@ -1253,3 +1262,5 @@ export default function FinancesPage() {
     </>
   );
 }
+
+    
