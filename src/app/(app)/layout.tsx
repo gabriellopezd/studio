@@ -47,8 +47,8 @@ import { Logo } from '@/components/icons';
 import { useUser, useAuth, useFirebase, addDocumentNonBlocking } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { collection, Timestamp, serverTimestamp } from 'firebase/firestore';
-import { useHabits } from './habits/_components/HabitsProvider';
-import { useTasks } from './tasks/_components/TasksProvider';
+import { HabitsProvider, useHabits } from './habits/_components/HabitsProvider';
+import { TasksProvider, useTasks } from './tasks/_components/TasksProvider';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -59,7 +59,7 @@ const navItems = [
   { href: '/goals', icon: Target, label: 'Metas' },
   { href: '/mood-tracker', icon: Smile, label: 'Ánimo' },
   { href: '/finances', icon: CircleDollarSign, label: 'Finanzas' },
-  { href '/expenses', icon: ShoppingCart, label: 'Gastos' },
+  { href: '/expenses', icon: ShoppingCart, label: 'Gastos' },
   { href: '/analytics', icon: LineChart, label: 'Análisis' },
 ];
 
@@ -95,6 +95,7 @@ function TimerProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
         if (activeSession) {
+            setElapsedTime(Math.floor((Date.now() - activeSession.startTime) / 1000));
             interval = setInterval(() => {
                 setElapsedTime(Math.floor((Date.now() - activeSession.startTime) / 1000));
             }, 1000);
@@ -127,9 +128,9 @@ function TimerProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (activeSession.type === 'habit') {
-            handleToggleHabit(activeSession.id, false); // Mark as complete
+            handleToggleHabit(activeSession.id);
         } else {
-             handleToggleTask(activeSession.id, false); // Mark as complete
+             handleToggleTask(activeSession.id, false);
         }
 
         setActiveSession(null);
