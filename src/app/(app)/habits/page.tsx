@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -36,7 +35,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -47,7 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Check, Flame, MoreHorizontal, Pencil, PlusCircle, Trash2, Trophy } from 'lucide-react';
+import { Check, Flame, MoreHorizontal, Pencil, PlusCircle, Trash2, Trophy, RotateCcw } from 'lucide-react';
 import {
   useFirebase,
   useCollection,
@@ -57,36 +55,7 @@ import {
 } from '@/firebase';
 import { collection, doc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
-
-
-const getStartOfWeek = (date: Date) => {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-  return new Date(d.setDate(diff));
-};
-
-const isSameDay = (d1: Date, d2: Date) => {
-  return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
-};
-
-const isSameWeek = (d1: Date, d2: Date) => {
-  const startOfWeek1 = getStartOfWeek(d1);
-  const startOfWeek2 = getStartOfWeek(d2);
-  return isSameDay(startOfWeek1, startOfWeek2);
-};
-
-const isPreviousDay = (d1: Date, d2: Date) => {
-  const yesterday = new Date(d1);
-  yesterday.setDate(d1.getDate() - 1);
-  return isSameDay(d2, yesterday);
-};
-
-const isPreviousWeek = (d1: Date, d2: Date) => {
-  const lastWeek = new Date(d1);
-  lastWeek.setDate(d1.getDate() - 7);
-  return isSameWeek(d2, lastWeek);
-};
+import { calculateStreak, isHabitCompletedToday, resetStreak } from '@/lib/habits';
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
 
@@ -102,6 +71,8 @@ export default function HabitsPage() {
   const [newHabitIcon, setNewHabitIcon] = useState('');
   const [newHabitFrequency, setNewHabitFrequency] = useState('Diario');
   const [newHabitCategory, setNewHabitCategory] = useState('');
+  
+  const [habitToReset, setHabitToReset] = useState<any | null>(null);
 
   const habitsQuery = useMemo(
     () => (user ? collection(firestore, 'users', user.uid, 'habits') : null),
@@ -139,7 +110,7 @@ export default function HabitsPage() {
     setNewHabitFrequency('Diario');
     setNewHabitCategory('');
   };
-
+  
   const handleToggleHabit = (habitId: string) => {
     if (!user || !allHabits) return;
 
@@ -147,26 +118,10 @@ export default function HabitsPage() {
     if (!habit) return;
 
     const habitRef = doc(firestore, 'users', user.uid, 'habits', habitId);
-    const today = new Date();
 
-    const lastCompletedDate = habit.lastCompletedAt
-      ? (habit.lastCompletedAt as Timestamp).toDate()
-      : null;
+    const isCompleted = isHabitCompletedToday(habit);
 
-    let isCompletedInCurrentPeriod = false;
-    if (lastCompletedDate) {
-      switch (habit.frequency) {
-        case 'Semanal':
-          isCompletedInCurrentPeriod = isSameWeek(lastCompletedDate, today);
-          break;
-        case 'Diario':
-        default:
-          isCompletedInCurrentPeriod = isSameDay(lastCompletedDate, today);
-          break;
-      }
-    }
-
-    if (isCompletedInCurrentPeriod) {
+    if (isCompleted) {
       // Reverting completion. Restore the previous state.
       updateDocumentNonBlocking(habitRef, {
         lastCompletedAt: habit.previousLastCompletedAt ?? null,
@@ -175,40 +130,14 @@ export default function HabitsPage() {
         previousLastCompletedAt: null,
       });
     } else {
-      // Completing the habit.
-      const currentStreak = habit.currentStreak || 0;
-      let longestStreak = habit.longestStreak || 0;
-      let newStreak = 1;
-      let isConsecutive = false;
-
-      if (lastCompletedDate) {
-        switch(habit.frequency) {
-          case 'Semanal':
-            isConsecutive = isPreviousWeek(today, lastCompletedDate);
-            break;
-          case 'Diario':
-          default:
-            isConsecutive = isPreviousDay(today, lastCompletedDate);
-            break;
-        }
-
-        if (isConsecutive) {
-          newStreak = currentStreak + 1;
-        }
-
-        // Update longest streak based on the *previous* streak before this completion
-        if (currentStreak > longestStreak) {
-            longestStreak = currentStreak;
-        }
-      }
+      const streakData = calculateStreak(habit);
       
       // Save the current state before updating, so we can revert if needed.
       updateDocumentNonBlocking(habitRef, {
-        lastCompletedAt: Timestamp.fromDate(today),
-        currentStreak: newStreak,
-        longestStreak: Math.max(longestStreak, newStreak),
-        previousStreak: currentStreak,
-        previousLastCompletedAt: habit.lastCompletedAt,
+        lastCompletedAt: Timestamp.fromDate(new Date()),
+        ...streakData,
+        previousStreak: habit.currentStreak || 0,
+        previousLastCompletedAt: habit.lastCompletedAt ?? null,
       });
     }
   };
@@ -261,6 +190,13 @@ export default function HabitsPage() {
     setNewHabitCategory(habit.category);
     setEditDialogOpen(true);
   };
+  
+  const handleResetStreak = async () => {
+    if (!habitToReset || !user) return;
+    const habitRef = doc(firestore, 'users', user.uid, 'habits', habitToReset.id);
+    await updateDocumentNonBlocking(habitRef, resetStreak());
+    setHabitToReset(null);
+  };
 
   const handleOpenCreateDialog = () => {
     resetForm();
@@ -292,22 +228,7 @@ export default function HabitsPage() {
                 </h2>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {groupedHabits[category].map((habit: any) => {
-                    const lastCompletedDate = habit.lastCompletedAt
-                      ? (habit.lastCompletedAt as Timestamp).toDate()
-                      : null;
-                      
-                    let isCompleted = false;
-                    if (lastCompletedDate) {
-                      switch (habit.frequency) {
-                        case 'Semanal':
-                          isCompleted = isSameWeek(lastCompletedDate, new Date());
-                          break;
-                        case 'Diario':
-                        default:
-                          isCompleted = isSameDay(lastCompletedDate, new Date());
-                          break;
-                      }
-                    }
+                    const isCompleted = isHabitCompletedToday(habit);
 
                     return (
                       <Card key={habit.id} className="flex flex-col">
@@ -321,7 +242,7 @@ export default function HabitsPage() {
                               </div>
                             </div>
                              <div className="flex flex-col items-end gap-1 text-right">
-                              <div className="flex items-center gap-1 text-orange-500">
+                              <div className="flex items-center gap-1 text-accent">
                                 <Flame className="h-5 w-5" />
                                 <span className="font-bold">{habit.currentStreak || 0}</span>
                               </div>
@@ -345,6 +266,10 @@ export default function HabitsPage() {
                                 <DropdownMenuItem onClick={() => handleOpenEditDialog(habit)}>
                                   <Pencil className="mr-2 h-4 w-4" />
                                   Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setHabitToReset(habit)}>
+                                  <RotateCcw className="mr-2 h-4 w-4" />
+                                  Reiniciar Racha
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => setHabitToDelete(habit)}
@@ -557,6 +482,24 @@ export default function HabitsPage() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteHabit} className="bg-destructive hover:bg-destructive/90">
               Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Reset Streak Confirmation Dialog */}
+      <AlertDialog open={!!habitToReset} onOpenChange={(open) => !open && setHabitToReset(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Reiniciar Racha?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esto reiniciará la racha actual y el récord del hábito "{habitToReset?.name}" a cero. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetStreak} className="bg-destructive hover:bg-destructive/90">
+              Reiniciar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

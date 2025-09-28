@@ -38,302 +38,12 @@ import {
   serverTimestamp,
   getDocs,
 } from 'firebase/firestore';
-import { moodLevels, feelings, influences } from '@/lib/moods';
-import Link from 'next/link';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-
-const getStartOfWeek = (date: Date) => {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-  return new Date(d.setDate(diff));
-};
-
-const isSameDay = (d1: Date, d2: Date) => {
-  return (
-    d1.getFullYear() === d2.getFullYear() &&
-    d1.getMonth() === d2.getMonth() &&
-    d1.getDate() === d2.getDate()
-  );
-};
-
-const isSameWeek = (d1: Date, d2: Date) => {
-  const startOfWeek1 = getStartOfWeek(d1);
-  const startOfWeek2 = getStartOfWeek(d2);
-  return isSameDay(startOfWeek1, startOfWeek2);
-};
-
-const isPreviousDay = (d1: Date, d2: Date) => {
-  const yesterday = new Date(d1);
-  yesterday.setDate(d1.getDate() - 1);
-  return isSameDay(d2, yesterday);
-};
-
-const isPreviousWeek = (d1: Date, d2: Date) => {
-  const lastWeek = new Date(d1);
-  lastWeek.setDate(d1.getDate() - 7);
-  return isSameWeek(d2, lastWeek);
-};
+import { TodaysMoodCard } from './_components/TodaysMoodCard';
+import { calculateStreak, isHabitCompletedToday } from '@/lib/habits';
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
 
 const today = new Date();
-
-function TodaysMoodCard() {
-  const { firestore, user } = useFirebase();
-
-  const [isDialogOpen, setDialogOpen] = useState(false);
-  const [step, setStep] = useState(1);
-
-  const [selectedMood, setSelectedMood] = useState<{
-    level: number;
-    emoji: string;
-    label: string;
-  } | null>(null);
-  const [selectedFeelings, setSelectedFeelings] = useState<string[]>([]);
-  const [selectedInfluences, setSelectedInfluences] = useState<string[]>([]);
-  
-  const todayISO = useMemo(() => new Date().toISOString().split('T')[0], []);
-
-  const moodsQuery = useMemo(() => {
-    if (!user) return null;
-    return query(
-      collection(firestore, 'users', user.uid, 'moods'),
-      where('date', '>=', `${todayISO}T00:00:00.000Z`),
-      where('date', '<=', `${todayISO}T23:59:59.999Z`),
-      limit(1)
-    );
-  }, [firestore, user, todayISO]);
-  
-  const { data: moods } = useCollection(moodsQuery);
-  const todayEntry = moods?.[0];
-
-  const resetForm = () => {
-    setStep(1);
-    setSelectedMood(null);
-    setSelectedFeelings([]);
-    setSelectedInfluences([]);
-    setDialogOpen(false);
-  };
-
-  const handleStartMoodRegistration = () => {
-    if (todayEntry) {
-      const mood = moodLevels.find(m => m.level === todayEntry.moodLevel);
-      setSelectedMood(mood || null);
-      setSelectedFeelings(todayEntry.feelings || []);
-      setSelectedInfluences(todayEntry.influences || []);
-    } else {
-      // Clear selections when starting a new entry
-      setSelectedMood(null);
-      setSelectedFeelings([]);
-      setSelectedInfluences([]);
-    }
-    setStep(1);
-    setDialogOpen(true);
-  };
-
-  const handleMoodSelect = (mood: {
-    level: number;
-    emoji: string;
-    label: string;
-  }) => {
-    setSelectedMood(mood);
-    setStep(2);
-  };
-
-  const handleToggleSelection = (
-    item: string,
-    selection: string[],
-    setSelection: React.Dispatch<React.SetStateAction<string[]>>
-  ) => {
-    setSelection((prev) =>
-      prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]
-    );
-  };
-
-  const handleSaveMood = async () => {
-    if (!user || !selectedMood) return;
-
-    const moodData = {
-      moodLevel: selectedMood.level,
-      moodLabel: selectedMood.label,
-      emoji: selectedMood.emoji,
-      feelings: selectedFeelings,
-      influences: selectedInfluences,
-      date: new Date().toISOString(),
-      userId: user.uid,
-    };
-    
-    if (todayEntry) {
-        const existingDocRef = doc(firestore, 'users', user.uid, 'moods', todayEntry.id);
-        await updateDocumentNonBlocking(existingDocRef, moodData);
-    } else {
-        await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'moods'), {
-            ...moodData,
-            createdAt: serverTimestamp(),
-        });
-    }
-    
-    resetForm();
-  };
-
-  return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Smile className="size-5" />
-            <span>¿Cómo te sientes?</span>
-          </CardTitle>
-          <CardDescription>Registra tu estado de ánimo de hoy.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={handleStartMoodRegistration} className="w-full mb-4">
-            {todayEntry ? (
-              <>
-                <span className="mr-2 text-lg">{todayEntry.emoji}</span>
-                Actualizar mi día
-              </>
-            ) : (
-              'Registrar mi día'
-            )}
-          </Button>
-          {todayEntry && (
-            <div className="space-y-4 text-sm">
-                <div>
-                    <h4 className="font-medium mb-2">Sentimientos:</h4>
-                    <div className="flex flex-wrap gap-1">
-                        {todayEntry.feelings.map((feeling: string) => (
-                            <Badge key={feeling} variant="secondary">{feeling}</Badge>
-                        ))}
-                    </div>
-                </div>
-                 <div>
-                    <h4 className="font-medium mb-2">Influencias:</h4>
-                    <div className="flex flex-wrap gap-1">
-                        {todayEntry.influences.map((influence: string) => (
-                            <Badge key={influence} variant="secondary">{influence}</Badge>
-                        ))}
-                    </div>
-                </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      <Dialog open={isDialogOpen} onOpenChange={(open) => { if (!open) resetForm() }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {step === 1 && '¿Cómo te sientes hoy?'}
-              {step === 2 && '¿Qué características describen mejor lo que sientes?'}
-              {step === 3 && '¿Qué es lo que más está influyendo en tu ánimo?'}
-            </DialogTitle>
-          </DialogHeader>
-
-          {step === 1 && (
-            <div className="flex justify-around py-6">
-              {moodLevels.map((mood) => (
-                <Button
-                  key={mood.level}
-                  variant={selectedMood?.level === mood.level ? 'secondary' : 'ghost'}
-                  size="icon"
-                  onClick={() => handleMoodSelect(mood)}
-                  className="h-20 w-20 rounded-full"
-                >
-                  <div className="flex flex-col items-center gap-1">
-                    <span className="text-4xl">{mood.emoji}</span>
-                    <span className="text-xs text-muted-foreground text-center">
-                      {mood.label}
-                    </span>
-                  </div>
-                </Button>
-              ))}
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="flex flex-wrap gap-2 justify-center py-4">
-              {feelings.map((feeling) => (
-                <Button
-                  key={feeling}
-                  variant={
-                    selectedFeelings.includes(feeling) ? 'secondary' : 'outline'
-                  }
-                  onClick={() =>
-                    handleToggleSelection(
-                      feeling,
-                      selectedFeelings,
-                      setSelectedFeelings
-                    )
-                  }
-                >
-                  {feeling}
-                </Button>
-              ))}
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="flex flex-wrap gap-2 justify-center py-4">
-              {influences.map((influence) => (
-                <Button
-                  key={influence}
-                  variant={
-                    selectedInfluences.includes(influence)
-                      ? 'secondary'
-                      : 'outline'
-                  }
-                  onClick={() =>
-                    handleToggleSelection(
-                      influence,
-                      selectedInfluences,
-                      setSelectedInfluences
-                    )
-                  }
-                >
-                  {influence}
-                </Button>
-              ))}
-            </div>
-          )}
-
-          <DialogFooter>
-            {step > 1 && (
-              <Button variant="outline" onClick={() => setStep((s) => s - 1)}>
-                Atrás
-              </Button>
-            )}
-            {step < 3 && (
-              <Button
-                onClick={() => setStep((s) => s + 1)}
-                disabled={(step === 1 && !selectedMood) || (step === 2 && selectedFeelings.length === 0)}
-              >
-                Siguiente
-              </Button>
-            )}
-            {step === 3 && (
-              <Button
-                onClick={handleSaveMood}
-                disabled={selectedInfluences.length === 0}
-              >
-                Guardar Registro
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-}
 
 export default function TodayPage() {
   const [isClient, setIsClient] = useState(false);
@@ -373,22 +83,7 @@ export default function TodayPage() {
   const habitsForToday = useMemo(() => {
     if (!allHabits) return [];
     return allHabits.filter(habit => {
-      const lastCompletedDate = habit.lastCompletedAt ? (habit.lastCompletedAt as Timestamp).toDate() : null;
-      
-      let isCompletedInCurrentPeriod = false;
-      if (lastCompletedDate) {
-        switch (habit.frequency) {
-          case 'Diario':
-            isCompletedInCurrentPeriod = isSameDay(lastCompletedDate, today);
-            break;
-          case 'Semanal':
-            isCompletedInCurrentPeriod = isSameWeek(lastCompletedDate, today);
-            break;
-          default:
-            break;
-        }
-      }
-      return !isCompletedInCurrentPeriod;
+      return !isHabitCompletedToday(habit);
     });
   }, [allHabits]);
     
@@ -422,17 +117,7 @@ export default function TodayPage() {
     setIsClient(true);
   }, []);
 
-  const completedHabits = allHabits?.filter((h) => {
-      if (!h.lastCompletedAt) return false;
-      const lastCompletedDate = (h.lastCompletedAt as Timestamp).toDate();
-      switch (h.frequency) {
-        case 'Semanal':
-          return isSameWeek(lastCompletedDate, today);
-        case 'Diario':
-        default:
-          return isSameDay(lastCompletedDate, today);
-      }
-    }).length ?? 0;
+  const completedHabits = allHabits?.filter((h) => isHabitCompletedToday(h)).length ?? 0;
 
   const totalHabits = allHabits?.length ?? 0;
   const habitsProgress =
@@ -446,25 +131,10 @@ export default function TodayPage() {
 
     const habitRef = doc(firestore, 'users', user.uid, 'habits', habitId);
 
-    const lastCompletedDate = habit.lastCompletedAt
-      ? (habit.lastCompletedAt as Timestamp).toDate()
-      : null;
+    const isCompleted = isHabitCompletedToday(habit);
 
-    let isCompletedInCurrentPeriod = false;
-    if (lastCompletedDate) {
-      switch (habit.frequency) {
-        case 'Semanal':
-          isCompletedInCurrentPeriod = isSameWeek(lastCompletedDate, today);
-          break;
-        case 'Diario':
-        default:
-          isCompletedInCurrentPeriod = isSameDay(lastCompletedDate, today);
-          break;
-      }
-    }
-
-    if (isCompletedInCurrentPeriod) {
-      // Reverting completion. Restore the previous state.
+    if (isCompleted) {
+      // Reverting completion.
       updateDocumentNonBlocking(habitRef, {
         lastCompletedAt: habit.previousLastCompletedAt ?? null,
         currentStreak: habit.previousStreak ?? 0,
@@ -473,37 +143,13 @@ export default function TodayPage() {
       });
     } else {
       // Completing the habit.
-      const currentStreak = habit.currentStreak || 0;
-      let longestStreak = habit.longestStreak || 0;
-      let newStreak = 1;
-      let isConsecutive = false;
-
-      if (lastCompletedDate) {
-        switch (habit.frequency) {
-          case 'Semanal':
-            isConsecutive = isPreviousWeek(today, lastCompletedDate);
-            break;
-          case 'Diario':
-          default:
-            isConsecutive = isPreviousDay(today, lastCompletedDate);
-            break;
-        }
-        
-        if (isConsecutive) {
-          newStreak = currentStreak + 1;
-        }
-
-        if (currentStreak > longestStreak) {
-          longestStreak = currentStreak;
-        }
-      }
+      const streakData = calculateStreak(habit);
       
       updateDocumentNonBlocking(habitRef, {
         lastCompletedAt: Timestamp.fromDate(today),
-        currentStreak: newStreak,
-        longestStreak: Math.max(longestStreak, newStreak),
-        previousStreak: currentStreak,
-        previousLastCompletedAt: habit.lastCompletedAt,
+        ...streakData,
+        previousStreak: habit.currentStreak || 0,
+        previousLastCompletedAt: habit.lastCompletedAt ?? null,
       });
     }
   };
@@ -597,7 +243,7 @@ export default function TodayPage() {
                                         <p className="font-medium">{habit.name}</p>
                                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                         <span className="flex items-center gap-1">
-                                            <Flame className="h-4 w-4 text-orange-500"/> 
+                                            <Flame className="h-4 w-4 text-accent"/> 
                                             {habit.currentStreak || 0}
                                         </span>
                                         <span className="flex items-center gap-1">

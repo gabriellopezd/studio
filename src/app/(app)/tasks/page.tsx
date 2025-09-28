@@ -20,7 +20,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -104,6 +103,13 @@ export default function TasksPage() {
     setIsClient(true);
   }, []);
 
+  const allTasksQuery = useMemo(() => {
+    if (!user) return null;
+    return query(collection(firestore, 'users', user.uid, 'tasks'));
+  }, [firestore, user]);
+
+  const { data: allTasksData, isLoading: allTasksLoading } = useCollection(allTasksQuery);
+
   const tasksQuery = useMemo(() => {
     if (!user) return null;
     let q = query(collection(firestore, 'users', user.uid, 'tasks'));
@@ -115,24 +121,20 @@ export default function TasksPage() {
     return q;
   }, [firestore, user, activeTab]);
 
-  const { data: allTasks, isLoading: tasksLoading } = useCollection(tasksQuery);
+  const { data: tasks, isLoading: tasksLoading } = useCollection(tasksQuery);
 
-  const totalStats = useMemo(() => {
-    if (!allTasks) return { completed: 0, total: 0, completionRate: 0 };
-    
-    const completed = allTasks.filter(t => t.isCompleted).length;
-    const total = allTasks.length;
+  const { totalStats, categoryStats, weeklyTaskStats } = useMemo(() => {
+    if (!allTasksData) return { totalStats: { completed: 0, total: 0, completionRate: 0 }, categoryStats: {}, weeklyTaskStats: [] };
+
+    // Total Stats
+    const completed = allTasksData.filter(t => t.isCompleted).length;
+    const total = allTasksData.length;
     const completionRate = total > 0 ? (completed / total) * 100 : 0;
-    
-    return { completed, total, completionRate };
-  }, [allTasks]);
+    const totalStats = { completed, total, completionRate };
 
-
-  const categoryStats = useMemo(() => {
-    if (!allTasks) return {};
-    
-    const stats = taskCategories.reduce((acc, category) => {
-        const tasksInCategory = allTasks.filter(t => t.category === category);
+    // Category Stats
+    const categoryStats = taskCategories.reduce((acc, category) => {
+        const tasksInCategory = allTasksData.filter(t => t.category === category);
         if (tasksInCategory.length > 0) {
             const completed = tasksInCategory.filter(t => t.isCompleted).length;
             const total = tasksInCategory.length;
@@ -143,21 +145,12 @@ export default function TasksPage() {
         return acc;
     }, {} as Record<string, { completed: number; total: number; completionRate: number; }>);
 
-    return stats;
-  }, [allTasks]);
-
-  const weeklyTaskStats = useMemo(() => {
-    if (!allTasks) return [];
-
+    // Weekly Stats
     const today = new Date();
     const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)); // Lunes como inicio de semana
+    startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
     startOfWeek.setHours(0, 0, 0, 0);
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999);
-
-
+    
     const weekData = Array(7).fill(0).map((_, i) => {
         const day = new Date(startOfWeek);
         day.setDate(startOfWeek.getDate() + i);
@@ -167,24 +160,28 @@ export default function TasksPage() {
         };
     });
 
-    allTasks.forEach(task => {
+    allTasksData.forEach(task => {
         if (task.dueDate && task.dueDate.toDate) {
             const taskDate = task.dueDate.toDate();
-            if (taskDate >= startOfWeek && taskDate <= endOfWeek) {
-                const dayIndex = (taskDate.getDay() + 6) % 7; // Lunes = 0, Domingo = 6
-                if (dayIndex >= 0 && dayIndex < 7) {
+            const dayIndex = (taskDate.getDay() + 6) % 7; 
+            
+            if (dayIndex >= 0 && dayIndex < 7) {
+                const startOfWeekForTask = new Date(taskDate);
+                startOfWeekForTask.setDate(taskDate.getDate() - taskDate.getDay() + (taskDate.getDay() === 0 ? -6 : 1));
+                startOfWeekForTask.setHours(0,0,0,0);
+                
+                if (startOfWeekForTask.getTime() === startOfWeek.getTime()){
                     weekData[dayIndex].tasks++;
                 }
             }
         }
     });
 
-    return weekData;
-  }, [allTasks]);
-
+    return { totalStats, categoryStats, weeklyTaskStats: weekData };
+}, [allTasksData]);
 
   const filteredTasks = useMemo(() => {
-    if (!allTasks) return { byCategory: {}, all: [] };
+    if (!tasks) return { byCategory: {}, all: [] };
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -193,7 +190,7 @@ export default function TasksPage() {
 
     switch (activeTab) {
       case 'today':
-        tasksToShow = allTasks.filter(task => {
+        tasksToShow = tasks.filter(task => {
           if (!task.dueDate) return false;
           const taskDueDate = task.dueDate.toDate();
           taskDueDate.setHours(0,0,0,0);
@@ -203,7 +200,7 @@ export default function TasksPage() {
       case 'upcoming':
         const nextWeek = new Date(today);
         nextWeek.setDate(today.getDate() + 7);
-        tasksToShow = allTasks.filter(task => {
+        tasksToShow = tasks.filter(task => {
             if (!task.dueDate) return false;
             const taskDueDate = task.dueDate.toDate();
             taskDueDate.setHours(0,0,0,0);
@@ -213,7 +210,7 @@ export default function TasksPage() {
       case 'completed':
       case 'all':
       default:
-        tasksToShow = allTasks;
+        tasksToShow = tasks;
         break;
     }
 
@@ -228,7 +225,7 @@ export default function TasksPage() {
 
     return { byCategory, all: tasksToShow };
 
-  }, [allTasks, activeTab]);
+  }, [tasks, activeTab]);
 
   const handleToggleTask = (taskId: string, currentStatus: boolean) => {
     if (!user) return;
@@ -352,15 +349,15 @@ export default function TasksPage() {
   
   const categoryOrder = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro", "Sin Categoría"];
 
-  const renderTaskList = (groupedTasks: Record<string, any[]>, allTasks: any[]) => {
+  const renderTaskList = (groupedTasks: Record<string, any[]>, allTasksInView: any[]) => {
     const sortedCategories = Object.keys(groupedTasks).sort((a, b) => {
         return categoryOrder.indexOf(a) - categoryOrder.indexOf(b);
     });
 
     return (
       <div className="mt-4 space-y-6">
-        {tasksLoading && <p>Cargando tareas...</p>}
-        {!allTasks?.length && !tasksLoading && (
+        {(tasksLoading || allTasksLoading) && <p>Cargando tareas...</p>}
+        {!allTasksInView?.length && !(tasksLoading || allTasksLoading) && (
            <p className="text-muted-foreground text-center p-4">No hay tareas en esta vista.</p>
         )}
         {sortedCategories.map(category => (
@@ -584,7 +581,7 @@ export default function TasksPage() {
             </div>
           </div>
           <DialogFooter>
-            <DialogClose asChild><Button variant="outline" onClick={resetForm}>Cancelar</Button></DialogClose>
+            <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>Cancelar</Button>
             <Button onClick={handleSaveTask}>{taskToEdit ? 'Guardar Cambios' : 'Crear Tarea'}</Button>
           </DialogFooter>
         </DialogContent>

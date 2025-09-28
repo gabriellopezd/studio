@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -29,7 +28,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
   ArrowDownCircle,
@@ -220,15 +218,17 @@ export default function FinancesPage() {
   }, [pendingRecurringExpenses, shoppingLists]);
 
 
-  const monthlyIncome =
+  const monthlyIncome = useMemo(() => 
     transactions
       ?.filter((t) => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0) ?? 0;
+      .reduce((sum, t) => sum + t.amount, 0) ?? 0,
+    [transactions]);
 
-  const monthlyExpenses =
+  const monthlyExpenses = useMemo(() =>
     transactions
       ?.filter((t) => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0) ?? 0;
+      .reduce((sum, t) => sum + t.amount, 0) ?? 0,
+    [transactions]);
 
   const balance = monthlyIncome - monthlyExpenses;
 
@@ -262,6 +262,8 @@ export default function FinancesPage() {
     const amount = parseFloat(newTransactionAmount);
     if (isNaN(amount)) return;
 
+    const batch = writeBatch(firestore);
+    
     const newTransaction = {
       type: newTransactionType,
       description: newTransactionDesc,
@@ -273,15 +275,7 @@ export default function FinancesPage() {
       userId: user.uid,
     };
 
-    const batch = writeBatch(firestore);
-
-    const transactionsColRef = collection(
-      firestore,
-      'users',
-      user.uid,
-      'transactions'
-    );
-    const newTransactionRef = doc(transactionsColRef);
+    const newTransactionRef = doc(collection(firestore, 'users', user.uid, 'transactions'));
     batch.set(newTransactionRef, newTransaction);
     
     if (newTransaction.type === 'expense') {
@@ -501,6 +495,8 @@ export default function FinancesPage() {
 
   const handlePayRecurringItem = async (item: any, type: 'income' | 'expense') => {
     if (!user) return;
+    
+    const batch = writeBatch(firestore);
 
     const transactionData = {
       type: type,
@@ -513,7 +509,6 @@ export default function FinancesPage() {
       createdAt: serverTimestamp(),
     };
 
-    const batch = writeBatch(firestore);
     const newTransactionRef = doc(collection(firestore, 'users', user.uid, 'transactions'));
     batch.set(newTransactionRef, transactionData);
 
@@ -588,9 +583,11 @@ export default function FinancesPage() {
   const uniqueExpenseCategories = [...new Set(expenseCategories)].filter(Boolean);
   const uniqueIncomeCategories = [...new Set(incomeCategories)].filter(Boolean);
 
-  const categoriesWithoutBudget = uniqueExpenseCategories.filter(
-    (cat) => !budgets?.some((b) => b.categoryName === cat)
-  );
+  const categoriesWithoutBudget = useMemo(() => {
+    return uniqueExpenseCategories.filter(
+      (cat) => !budgets?.some((b) => b.categoryName === cat)
+    );
+  }, [uniqueExpenseCategories, budgets]);
 
   return (
     <>

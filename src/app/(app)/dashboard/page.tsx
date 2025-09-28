@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -37,6 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { isHabitCompletedToday } from '@/lib/habits';
 
 const getStartOfWeek = (date: Date) => {
   const d = new Date(date);
@@ -52,16 +52,6 @@ const getEndOfWeek = (date: Date) => {
     end.setDate(start.getDate() + 6);
     end.setHours(23, 59, 59, 999);
     return end;
-};
-
-const isSameDay = (d1: Date, d2: Date) => {
-  return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
-};
-
-const isSameWeek = (d1: Date, d2: Date) => {
-  const startOfWeek1 = getStartOfWeek(d1);
-  const startOfWeek2 = getStartOfWeek(d2);
-  return isSameDay(startOfWeek1, startOfWeek2);
 };
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
@@ -110,12 +100,23 @@ export default function DashboardPage() {
   const { data: moods, isLoading: moodsLoading } = useCollection(moodsQuery);
   const todayMood = moods?.[0];
 
-  const dailyHabits = useMemo(() => allHabits?.filter(h => h.frequency === 'Diario') || [], [allHabits]);
-  const weeklyHabits = useMemo(() => allHabits?.filter(h => h.frequency === 'Semanal') || [], [allHabits]);
-  
-  const completedDaily = useMemo(() => dailyHabits.filter(h => h.lastCompletedAt && isSameDay(h.lastCompletedAt.toDate(), today)).length, [dailyHabits, today]);
-  const completedWeekly = useMemo(() => weeklyHabits.filter(h => h.lastCompletedAt && isSameWeek(h.lastCompletedAt.toDate(), today)).length, [weeklyHabits, today]);
+  const { dailyHabits, weeklyHabits, completedDaily, completedWeekly } = useMemo(() => {
+    if (!allHabits) return { dailyHabits: [], weeklyHabits: [], completedDaily: 0, completedWeekly: 0 };
+    
+    const daily = allHabits.filter(h => h.frequency === 'Diario');
+    const weekly = allHabits.filter(h => h.frequency === 'Semanal');
 
+    const completedD = daily.filter(h => isHabitCompletedToday(h)).length;
+    const completedW = weekly.filter(h => isHabitCompletedToday(h)).length;
+
+    return {
+      dailyHabits: daily,
+      weeklyHabits: weekly,
+      completedDaily: completedD,
+      completedWeekly: completedW
+    };
+  }, [allHabits]);
+  
   const longestStreak = useMemo(() => allHabits?.reduce((max, h) => Math.max(max, h.longestStreak || 0), 0) || 0, [allHabits]);
   const longestCurrentStreak = useMemo(() => allHabits?.reduce((max, h) => Math.max(max, h.currentStreak || 0), 0) || 0, [allHabits]);
   
@@ -172,7 +173,7 @@ export default function DashboardPage() {
          <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                    <Flame className="size-5 text-orange-500"/>
+                    <Flame className="size-5 text-accent"/>
                     Racha Actual
                 </CardTitle>
             </CardHeader>
