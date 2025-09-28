@@ -84,6 +84,7 @@ export default function TasksPage() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [isTimerDialogOpen, setTimerDialogOpen] = useState(false);
+  const [timerStartTime, setTimerStartTime] = useState<number | null>(null);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -318,13 +319,25 @@ export default function TasksPage() {
   const handleStartTimer = (task: any) => {
     setTimerTask(task);
     setElapsedSeconds(0);
-    setIsTimerActive(false);
+    setTimerStartTime(Date.now());
+    setIsTimerActive(true);
     setTimerDialogOpen(true);
   };
   
   const handleStopAndComplete = () => {
-    if (timerTask) {
+    if (timerTask && user && timerStartTime) {
       handleToggleTask(timerTask.id, false); // Mark as complete
+
+      const timeLogsColRef = collection(firestore, 'users', user.uid, 'timeLogs');
+      addDocumentNonBlocking(timeLogsColRef, {
+        referenceId: timerTask.id,
+        referenceType: 'task',
+        startTime: Timestamp.fromMillis(timerStartTime),
+        endTime: Timestamp.now(),
+        durationSeconds: elapsedSeconds,
+        createdAt: serverTimestamp(),
+        userId: user.uid,
+      });
     }
     setIsTimerActive(false);
     setTimerDialogOpen(false);

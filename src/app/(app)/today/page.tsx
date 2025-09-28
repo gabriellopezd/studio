@@ -343,6 +343,7 @@ export default function TodayPage() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [isTimerDialogOpen, setTimerDialogOpen] = useState(false);
+  const [timerStartTime, setTimerStartTime] = useState<number | null>(null);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -510,13 +511,25 @@ export default function TodayPage() {
   const handleStartTimer = (habit: any) => {
     setTimerHabit(habit);
     setElapsedSeconds(0);
-    setIsTimerActive(false);
+    setTimerStartTime(Date.now());
+    setIsTimerActive(true);
     setTimerDialogOpen(true);
   };
   
   const handleStopAndComplete = () => {
-    if (timerHabit) {
+    if (timerHabit && user && timerStartTime) {
       handleToggleHabit(timerHabit.id);
+
+      const timeLogsColRef = collection(firestore, 'users', user.uid, 'timeLogs');
+      addDocumentNonBlocking(timeLogsColRef, {
+        referenceId: timerHabit.id,
+        referenceType: 'habit',
+        startTime: Timestamp.fromMillis(timerStartTime),
+        endTime: Timestamp.now(),
+        durationSeconds: elapsedSeconds,
+        createdAt: serverTimestamp(),
+        userId: user.uid,
+      });
     }
     setIsTimerActive(false);
     setTimerDialogOpen(false);

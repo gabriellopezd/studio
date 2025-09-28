@@ -217,6 +217,10 @@
         "category": {
           "type": "string",
           "description": "The category or project the task belongs to."
+        },
+        "totalTimeSpent": {
+            "type": "number",
+            "description": "The total time spent on the task in seconds."
         }
       },
       "required": [
@@ -702,6 +706,60 @@
         "uploadDate",
         "storageLocation"
       ]
+    },
+    "TimeLog": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "TimeLog",
+        "type": "object",
+        "description": "Represents a log of time spent on a habit or task.",
+        "properties": {
+            "id": {
+                "type": "string",
+                "description": "Unique identifier for the time log."
+            },
+            "userId": {
+                "type": "string",
+                "description": "Reference to User. (Relationship: User 1:N TimeLog)"
+            },
+            "referenceId": {
+                "type": "string",
+                "description": "The ID of the habit or task this log refers to."
+            },
+            "referenceType": {
+                "type": "string",
+                "description": "The type of the reference ('habit' or 'task').",
+                "enum": ["habit", "task"]
+            },
+            "startTime": {
+                "type": "string",
+                "description": "Timestamp indicating when the session started.",
+                "format": "date-time"
+            },
+            "endTime": {
+                "type": "string",
+                "description": "Timestamp indicating when the session ended.",
+                "format": "date-time"
+            },
+            "durationSeconds": {
+                "type": "number",
+                "description": "The duration of the session in seconds."
+            },
+            "createdAt": {
+                "type": "string",
+                "description": "Timestamp indicating when the log was created.",
+                "format": "date-time"
+            }
+        },
+        "required": [
+            "id",
+            "userId",
+            "referenceId",
+            "referenceType",
+            "startTime",
+            "endTime",
+            "durationSeconds",
+            "createdAt"
+        ]
     }
   },
   "auth": {
@@ -1081,6 +1139,35 @@
               "list": "if request.auth != null && request.auth.uid == userId;"
             }
           }
+        }
+      },
+      {
+        "path": "/users/{userId}/timeLogs/{timeLogId}",
+        "definition": {
+            "entityName": "TimeLog",
+            "schema": {
+                "$ref": "#/backend/entities/TimeLog"
+            },
+            "description": "Stores time log entries for habits and tasks.",
+            "params": [
+                {
+                    "name": "userId",
+                    "description": "The unique identifier for the user."
+                },
+                {
+                    "name": "timeLogId",
+                    "description": "The unique identifier for the time log entry."
+                }
+            ],
+            "rules": {
+                "allow": {
+                    "create": "if request.auth != null && request.auth.uid == userId;",
+                    "read": "if request.auth != null && request.auth.uid == userId;",
+                    "update": "if request.auth != null && request.auth.uid == userId;",
+                    "delete": "if request.auth != null && request.auth.uid == userId;",
+                    "list": "if request.auth != null && request.auth.uid == userId;"
+                }
+            }
         }
       }
     ],
