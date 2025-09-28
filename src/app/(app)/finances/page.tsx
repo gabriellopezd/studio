@@ -177,6 +177,15 @@ export default function FinancesPage() {
   );
   const { data: recurringIncomes, isLoading: recurringIncomesLoading } = useCollection(recurringIncomesQuery);
 
+  const shoppingListsQuery = useMemo(
+    () =>
+      user
+        ? query(collection(firestore, 'users', user.uid, 'shoppingLists'))
+        : null,
+    [firestore, user]
+  );
+  const { data: shoppingLists, isLoading: shoppingListsLoading } = useCollection(shoppingListsQuery);
+
 
   const pendingRecurringExpenses = useMemo(() => {
     if (!recurringExpenses) return [];
@@ -199,9 +208,15 @@ export default function FinancesPage() {
   }, [recurringIncomes, currentMonthYear]);
 
   const pendingExpensesTotal = useMemo(() => {
-    if (!pendingRecurringExpenses) return 0;
-    return pendingRecurringExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-  }, [pendingRecurringExpenses]);
+    const recurringTotal = pendingRecurringExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const shoppingListTotal = shoppingLists?.reduce((sum, list) => {
+        const listTotal = list.items
+            .filter((item: any) => !item.isPurchased)
+            .reduce((itemSum: number, item: any) => itemSum + (item.amount || 0), 0);
+        return sum + listTotal;
+    }, 0) || 0;
+    return recurringTotal + shoppingListTotal;
+  }, [pendingRecurringExpenses, shoppingLists]);
 
 
   const monthlyIncome =
