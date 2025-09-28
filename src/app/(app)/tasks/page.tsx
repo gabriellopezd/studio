@@ -133,6 +133,10 @@ export default function TasksPage() {
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)); // Lunes como inicio de semana
     startOfWeek.setHours(0, 0, 0, 0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
 
     const weekData = Array(7).fill(0).map((_, i) => {
         const day = new Date(startOfWeek);
@@ -146,10 +150,11 @@ export default function TasksPage() {
     allTasks.forEach(task => {
         if (task.dueDate && task.dueDate.toDate) {
             const taskDate = task.dueDate.toDate();
-            const dayIndex = taskDate.getDay() - (startOfWeek.getDay() === 0 ? -1 : 1);
-            
-            if (taskDate >= startOfWeek && taskDate <= new Date(startOfWeek.getTime() + 6 * 24 * 60 * 60 * 1000) && dayIndex >= 0 && dayIndex < 7) {
-                 weekData[dayIndex].tasks++;
+            if (taskDate >= startOfWeek && taskDate <= endOfWeek) {
+                const dayIndex = (taskDate.getDay() + 6) % 7; // Lunes = 0, Domingo = 6
+                if (dayIndex >= 0 && dayIndex < 7) {
+                    weekData[dayIndex].tasks++;
+                }
             }
         }
     });
