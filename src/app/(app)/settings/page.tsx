@@ -1,4 +1,3 @@
-
 'use client';
 
 import PageHeader from '@/components/page-header';
@@ -15,9 +14,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { Upload } from 'lucide-react';
+import { Upload, RotateCcw } from 'lucide-react';
 import { useFirebase, useUser, updateDocumentNonBlocking } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { collection, doc, writeBatch, getDocs } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
 import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -29,6 +28,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export default function SettingsPage() {
   const { firestore, auth } = useFirebase();
@@ -79,6 +89,34 @@ export default function SettingsPage() {
       toast({ variant: 'destructive', title: 'Error al cambiar contraseña', description: error.message });
     }
   };
+
+  const handleResetAllStreaks = async () => {
+    if (!user) return;
+
+    try {
+        const batch = writeBatch(firestore);
+        const habitsQuery = collection(firestore, 'users', user.uid, 'habits');
+        const querySnapshot = await getDocs(habitsQuery);
+        
+        querySnapshot.forEach((document) => {
+            const habitRef = doc(firestore, 'users', user.uid, 'habits', document.id);
+            batch.update(habitRef, {
+                currentStreak: 0,
+                longestStreak: 0,
+                lastCompletedAt: null,
+                previousStreak: null,
+                previousLastCompletedAt: null,
+            });
+        });
+        
+        await batch.commit();
+        toast({ title: 'Rachas reiniciadas', description: 'Todas las rachas y récords de tus hábitos han sido reiniciados.' });
+    } catch (error) {
+        console.error("Error resetting streaks:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron reiniciar las rachas.' });
+    }
+  };
+
 
   return (
     <div className="flex flex-col gap-8">
@@ -197,6 +235,43 @@ export default function SettingsPage() {
                 </div>
                 <Switch id="notifications" defaultChecked />
               </div>
+            </CardContent>
+          </Card>
+          
+           <Card>
+            <CardHeader>
+              <CardTitle>Gestión de Datos</CardTitle>
+              <CardDescription>
+                Acciones permanentes sobre los datos de tu cuenta.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive">
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Reiniciar Rachas de Hábitos
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta acción no se puede deshacer. Se reiniciarán las rachas
+                      y récords de **todos** tus hábitos a cero.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleResetAllStreaks}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      Sí, reiniciar todo
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </CardContent>
           </Card>
         </div>
