@@ -1,32 +1,32 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  useFirebase,
-  useCollection,
-  addDocumentNonBlocking,
-  updateDocumentNonBlocking,
-} from '@/firebase';
-import { collection, serverTimestamp, query, where, getDocs, doc } from 'firebase/firestore';
-import { ChevronLeft, ChevronRight, TrendingUp, Heart, Wind } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Heart, Wind } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { moodLevels, feelings, influences } from '@/lib/moods';
+import { MoodsProvider, useMoods } from './_components/MoodsProvider';
 
 
-export default function MoodTrackerPage() {
-  const { firestore, user } = useFirebase();
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+function MoodTrackerContent() {
+  const { 
+    currentMonth, 
+    setCurrentMonth,
+    moods, 
+    moodsLoading,
+    feelingStats,
+    influenceStats,
+    handleSaveMood,
+  } = useMoods();
 
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [step, setStep] = useState(1);
@@ -34,43 +34,6 @@ export default function MoodTrackerPage() {
   const [selectedMood, setSelectedMood] = useState<{ level: number; emoji: string; label: string } | null>(null);
   const [selectedFeelings, setSelectedFeelings] = useState<string[]>([]);
   const [selectedInfluences, setSelectedInfluences] = useState<string[]>([]);
-
-  const moodsQuery = useMemo(() => {
-    if (!user) return null;
-    const start = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-    const end = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-    return query(
-      collection(firestore, 'users', user.uid, 'moods'),
-      where('date', '>=', start.toISOString()),
-      where('date', '<=', end.toISOString())
-    );
-  }, [firestore, user, currentMonth]);
-  
-  const { data: moods, isLoading: moodsLoading } = useCollection(moodsQuery);
-  
-  const feelingStats = useMemo(() => {
-    if (!moods) return [];
-    const counts = moods.flatMap(m => m.feelings).reduce((acc, feeling) => {
-        acc[feeling] = (acc[feeling] || 0) + 1;
-        return acc;
-    }, {} as Record<string, number>);
-
-    return Object.entries(counts)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 5);
-  }, [moods]);
-
-  const influenceStats = useMemo(() => {
-      if (!moods) return [];
-      const counts = moods.flatMap(m => m.influences).reduce((acc, influence) => {
-          acc[influence] = (acc[influence] || 0) + 1;
-          return acc;
-      }, {} as Record<string, number>);
-
-      return Object.entries(counts)
-          .sort(([, a], [, b]) => b - a)
-          .slice(0, 5);
-  }, [moods]);
 
   const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month + 1, 0).getDate();
@@ -107,41 +70,15 @@ export default function MoodTrackerPage() {
     );
   };
 
-  const handleSaveMood = async () => {
-    if (!user || !selectedMood) return;
-
-    const today = new Date();
-    const todayISO = today.toISOString().split('T')[0];
-
-    const moodData = {
+  const onSaveMood = async () => {
+    if (!selectedMood) return;
+    await handleSaveMood({
       moodLevel: selectedMood.level,
       moodLabel: selectedMood.label,
       emoji: selectedMood.emoji,
       feelings: selectedFeelings,
       influences: selectedInfluences,
-      date: new Date().toISOString(),
-      userId: user.uid
-    };
-
-    const moodsColRef = collection(firestore, 'users', user.uid, 'moods');
-    const q = query(moodsColRef, where('date', '>=', `${todayISO}T00:00:00.000Z`), where('date', '<=', `${todayISO}T23:59:59.999Z`));
-
-    try {
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        const existingDocRef = querySnapshot.docs[0].ref;
-        await updateDocumentNonBlocking(existingDocRef, moodData);
-      } else {
-        await addDocumentNonBlocking(moodsColRef, {
-          ...moodData,
-          createdAt: serverTimestamp(),
-        });
-      }
-    } catch (e) {
-      console.error("Error saving mood", e);
-    }
-    
+    });
     resetForm();
   };
 
@@ -335,7 +272,7 @@ export default function MoodTrackerPage() {
                 </Button>
              )}
               {step === 3 && (
-                <Button onClick={handleSaveMood} disabled={selectedInfluences.length === 0}>
+                <Button onClick={onSaveMood} disabled={selectedInfluences.length === 0}>
                     Guardar Registro
                 </Button>
              )}
@@ -344,4 +281,13 @@ export default function MoodTrackerPage() {
       </Dialog>
     </>
   );
+}
+
+
+export default function MoodTrackerPage() {
+  return (
+    <MoodsProvider>
+      <MoodTrackerContent />
+    </MoodsProvider>
+  )
 }

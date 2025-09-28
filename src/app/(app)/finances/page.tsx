@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -71,19 +70,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  useFirebase,
-  useCollection,
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
-  WriteBatch
 } from '@/firebase';
 import {
-  collection,
   doc,
   serverTimestamp,
   writeBatch,
   query,
+  collection,
   where,
   getDocs,
   getDoc,
@@ -98,11 +94,38 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { FinancesProvider, useFinances } from './_components/FinancesProvider';
 
-export default function FinancesPage() {
-  const { firestore, user } = useFirebase();
-  const [currentMonthName, setCurrentMonthName] = useState('');
 
+function FinancesContent() {
+  const {
+    firestore,
+    user,
+    currentMonthName,
+    currentMonthYear,
+    transactions,
+    transactionsLoading,
+    budgets,
+    budgetsLoading,
+    recurringExpenses,
+    recurringExpensesLoading,
+    recurringIncomes,
+    recurringIncomesLoading,
+    shoppingLists,
+    monthlyIncome,
+    monthlyExpenses,
+    balance,
+    budget503020,
+    pendingRecurringExpenses,
+    paidRecurringExpenses,
+    pendingRecurringIncomes,
+    receivedRecurringIncomes,
+    pendingExpensesTotal,
+    expenseCategories,
+    incomeCategories,
+    categoriesWithoutBudget,
+  } = useFinances();
+  
   const [isTransactionDialogOpen, setTransactionDialogOpen] = useState(false);
   const [isBudgetDialogOpen, setBudgetDialogOpen] = useState(false);
 
@@ -121,8 +144,6 @@ export default function FinancesPage() {
   const [transactionToEdit, setTransactionToEdit] = useState<any | null>(null);
   const [transactionToDelete, setTransactionToDelete] = useState<any | null>(null);
 
-  const [currentMonthYear, setCurrentMonthYear] = useState('');
-
   const [isRecurringDialogOpen, setRecurringDialogOpen] = useState(false);
   const [recurringToEdit, setRecurringToEdit] = useState<any | null>(null);
   const [recurringToDelete, setRecurringToDelete] = useState<any | null>(null);
@@ -134,123 +155,6 @@ export default function FinancesPage() {
   const [newRecurringBudgetFocus, setNewRecurringBudgetFocus] = useState('Necesidades');
 
   const { toast } = useToast();
-
-  useEffect(() => {
-    const now = new Date();
-    const monthName = now.toLocaleDateString('es-ES', { month: 'long' });
-    setCurrentMonthName(monthName.charAt(0).toUpperCase() + monthName.slice(1));
-    setCurrentMonthYear(`${now.getFullYear()}-${now.getMonth()}`);
-  }, []);
-
-  const transactionsQuery = useMemo(() => {
-    if (!user) return null;
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    
-    return query(
-        collection(firestore, 'users', user.uid, 'transactions'),
-        where('date', '>=', startOfMonth.toISOString()),
-        where('date', '<=', endOfMonth.toISOString()),
-        orderBy('date', 'desc')
-    );
-  }, [firestore, user]);
-
-  const { data: transactions, isLoading: transactionsLoading } =
-    useCollection(transactionsQuery);
-
-  const budgetsQuery = useMemo(
-    () => (user ? collection(firestore, 'users', user.uid, 'budgets') : null),
-    [firestore, user]
-  );
-  const { data: budgets, isLoading: budgetsLoading } =
-    useCollection(budgetsQuery);
-    
-  const recurringExpensesQuery = useMemo(() =>
-    user ? query(collection(firestore, 'users', user.uid, 'recurringExpenses'), orderBy('dayOfMonth')) : null,
-    [firestore, user]
-  );
-  const { data: recurringExpenses, isLoading: recurringExpensesLoading } = useCollection(recurringExpensesQuery);
-
-  const recurringIncomesQuery = useMemo(() =>
-    user ? query(collection(firestore, 'users', user.uid, 'recurringIncomes'), orderBy('dayOfMonth')) : null,
-    [firestore, user]
-  );
-  const { data: recurringIncomes, isLoading: recurringIncomesLoading } = useCollection(recurringIncomesQuery);
-
-  const shoppingListsQuery = useMemo(
-    () =>
-      user
-        ? query(collection(firestore, 'users', user.uid, 'shoppingLists'))
-        : null,
-    [firestore, user]
-  );
-  const { data: shoppingLists, isLoading: shoppingListsLoading } = useCollection(shoppingListsQuery);
-
-
-  const pendingRecurringExpenses = useMemo(() => {
-    if (!recurringExpenses) return [];
-    return recurringExpenses.filter(expense => expense.lastInstanceCreated !== currentMonthYear);
-  }, [recurringExpenses, currentMonthYear]);
-  
-  const paidRecurringExpenses = useMemo(() => {
-    if (!recurringExpenses) return [];
-    return recurringExpenses.filter(expense => expense.lastInstanceCreated === currentMonthYear);
-  }, [recurringExpenses, currentMonthYear]);
-
-  const pendingRecurringIncomes = useMemo(() => {
-    if (!recurringIncomes) return [];
-    return recurringIncomes.filter(income => income.lastInstanceCreated !== currentMonthYear);
-  }, [recurringIncomes, currentMonthYear]);
-
-  const receivedRecurringIncomes = useMemo(() => {
-    if (!recurringIncomes) return [];
-    return recurringIncomes.filter(income => income.lastInstanceCreated === currentMonthYear);
-  }, [recurringIncomes, currentMonthYear]);
-
-  const pendingExpensesTotal = useMemo(() => {
-    const recurringTotal = pendingRecurringExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-    const shoppingListTotal = shoppingLists?.reduce((sum, list) => {
-        const listTotal = list.items
-            .filter((item: any) => !item.isPurchased)
-            .reduce((itemSum: number, item: any) => itemSum + (item.amount || 0), 0);
-        return sum + listTotal;
-    }, 0) || 0;
-    return recurringTotal + shoppingListTotal;
-  }, [pendingRecurringExpenses, shoppingLists]);
-
-
-  const monthlyIncome = useMemo(() => 
-    transactions
-      ?.filter((t) => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0) ?? 0,
-    [transactions]);
-
-  const monthlyExpenses = useMemo(() =>
-    transactions
-      ?.filter((t) => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0) ?? 0,
-    [transactions]);
-
-  const balance = monthlyIncome - monthlyExpenses;
-
-  const budget503020 = useMemo(() => {
-    if (monthlyIncome === 0) return null;
-    
-    const needsBudget = monthlyIncome * 0.5;
-    const wantsBudget = monthlyIncome * 0.3;
-    const savingsBudget = monthlyIncome * 0.2;
-
-    const needsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Necesidades').reduce((sum, t) => sum + t.amount, 0) ?? 0;
-    const wantsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((sum, t) => sum + t.amount, 0) ?? 0;
-    const savingsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((sum, t) => sum + t.amount, 0) ?? 0;
-
-    return {
-        needs: { budget: needsBudget, spend: needsSpend, progress: (needsSpend/needsBudget)*100 },
-        wants: { budget: wantsBudget, spend: wantsSpend, progress: (wantsSpend/wantsBudget)*100 },
-        savings: { budget: savingsBudget, spend: savingsSpend, progress: (savingsSpend/savingsBudget)*100 },
-    };
-  }, [monthlyIncome, transactions]);
 
   const handleAddTransaction = async () => {
     if (
@@ -567,30 +471,6 @@ export default function FinancesPage() {
   };
 
 
-  const expenseCategories = useMemo(() => {
-    const fromBudgets = budgets?.map(b => b.categoryName) ?? [];
-    const fromTransactions = transactions
-        ?.filter((t) => t.type === 'expense')
-        .map((t) => t.category) ?? [];
-    return ["Arriendo", "Servicios", "Transporte", "Salud", ...new Set([...fromBudgets, ...fromTransactions])];
-  }, [budgets, transactions]);
-  
-  const incomeCategories = useMemo(() => {
-    const fromTransactions = transactions
-        ?.filter((t) => t.type === 'income')
-        .map((t) => t.category) ?? [];
-    return ["Salario", "Bonificación", "Otro", ...fromTransactions];
-  }, [transactions]);
-
-  const uniqueExpenseCategories = [...new Set(expenseCategories)].filter(Boolean);
-  const uniqueIncomeCategories = [...new Set(incomeCategories)].filter(Boolean);
-
-  const categoriesWithoutBudget = useMemo(() => {
-    return uniqueExpenseCategories.filter(
-      (cat) => !budgets?.some((b) => b.categoryName === cat)
-    );
-  }, [uniqueExpenseCategories, budgets]);
-
   return (
     <>
       <div className="flex flex-col gap-8">
@@ -638,8 +518,8 @@ export default function FinancesPage() {
                     <SelectTrigger><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
                     <SelectContent>
                       {newTransactionType === 'expense' 
-                        ? uniqueExpenseCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>)) 
-                        : uniqueIncomeCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))
+                        ? expenseCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>)) 
+                        : incomeCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))
                       }
                     </SelectContent>
                   </Select>
@@ -1120,8 +1000,8 @@ export default function FinancesPage() {
                         <SelectTrigger><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
                         <SelectContent>
                              {recurringType === 'expense' 
-                                ? uniqueExpenseCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>)) 
-                                : uniqueIncomeCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))
+                                ? expenseCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>)) 
+                                : incomeCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))
                             }
                         </SelectContent>
                     </Select>
@@ -1204,9 +1084,9 @@ export default function FinancesPage() {
                 <Select value={transactionToEdit.category} onValueChange={(value) => setTransactionToEdit({...transactionToEdit, category: value,})}>
                   <SelectTrigger><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
                   <SelectContent>
-                      {transactionToEdit.type === 'expense' ? uniqueExpenseCategories.map((cat) => (
+                      {transactionToEdit.type === 'expense' ? expenseCategories.map((cat) => (
                         <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                      )) : uniqueIncomeCategories.map((cat) => (
+                      )) : incomeCategories.map((cat) => (
                         <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                       ))}
                   </SelectContent>
@@ -1249,4 +1129,12 @@ export default function FinancesPage() {
       </Dialog>
     </>
   );
+}
+
+export default function FinancesPage() {
+    return (
+        <FinancesProvider>
+            <FinancesContent />
+        </FinancesProvider>
+    )
 }

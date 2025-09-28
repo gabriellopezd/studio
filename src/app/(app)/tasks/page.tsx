@@ -1,17 +1,13 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, createContext, useContext } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle, MoreHorizontal, Pencil, Trash2, CalendarIcon, Timer, Check } from 'lucide-react';
 import {
-  useFirebase,
-  useCollection,
-  updateDocumentNonBlocking,
-  addDocumentNonBlocking,
-  deleteDocumentNonBlocking
+  addDocumentNonBlocking
 } from '@/firebase';
 import { collection, doc, query, Timestamp, serverTimestamp, where } from 'firebase/firestore';
 import {
@@ -61,14 +57,30 @@ import {
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { TasksProvider, useTasks } from './_components/TasksProvider';
 
 
 const taskCategories = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro"];
 
-export default function TasksPage() {
-  const { firestore, user } = useFirebase();
+
+function TasksContent() {
   const [activeTab, setActiveTab] = useState('all');
   const [isClient, setIsClient] = useState(false);
+
+  const {
+    firestore,
+    user,
+    tasks,
+    tasksLoading,
+    allTasksData,
+    allTasksLoading,
+    totalStats,
+    categoryStats,
+    weeklyTaskStats,
+    handleToggleTask,
+    handleSaveTask,
+    handleDeleteTask
+  } = useTasks();
 
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<any | null>(null);
@@ -102,83 +114,6 @@ export default function TasksPage() {
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  const allTasksQuery = useMemo(() => {
-    if (!user) return null;
-    return query(collection(firestore, 'users', user.uid, 'tasks'));
-  }, [firestore, user]);
-
-  const { data: allTasksData, isLoading: allTasksLoading } = useCollection(allTasksQuery);
-
-  const tasksQuery = useMemo(() => {
-    if (!user) return null;
-    let q = query(collection(firestore, 'users', user.uid, 'tasks'));
-    if (activeTab !== 'completed') {
-      q = query(q, where('isCompleted', '==', false));
-    } else {
-      q = query(q, where('isCompleted', '==', true));
-    }
-    return q;
-  }, [firestore, user, activeTab]);
-
-  const { data: tasks, isLoading: tasksLoading } = useCollection(tasksQuery);
-
-  const { totalStats, categoryStats, weeklyTaskStats } = useMemo(() => {
-    if (!allTasksData) return { totalStats: { completed: 0, total: 0, completionRate: 0 }, categoryStats: {}, weeklyTaskStats: [] };
-
-    // Total Stats
-    const completed = allTasksData.filter(t => t.isCompleted).length;
-    const total = allTasksData.length;
-    const completionRate = total > 0 ? (completed / total) * 100 : 0;
-    const totalStats = { completed, total, completionRate };
-
-    // Category Stats
-    const categoryStats = taskCategories.reduce((acc, category) => {
-        const tasksInCategory = allTasksData.filter(t => t.category === category);
-        if (tasksInCategory.length > 0) {
-            const completed = tasksInCategory.filter(t => t.isCompleted).length;
-            const total = tasksInCategory.length;
-            const completionRate = total > 0 ? (completed / total) * 100 : 0;
-            
-            acc[category] = { completed, total, completionRate };
-        }
-        return acc;
-    }, {} as Record<string, { completed: number; total: number; completionRate: number; }>);
-
-    // Weekly Stats
-    const today = new Date();
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
-    startOfWeek.setHours(0, 0, 0, 0);
-    
-    const weekData = Array(7).fill(0).map((_, i) => {
-        const day = new Date(startOfWeek);
-        day.setDate(startOfWeek.getDate() + i);
-        return {
-            name: day.toLocaleDateString('es-ES', { weekday: 'short' }),
-            tasks: 0,
-        };
-    });
-
-    allTasksData.forEach(task => {
-        if (task.dueDate && task.dueDate.toDate) {
-            const taskDate = task.dueDate.toDate();
-            const dayIndex = (taskDate.getDay() + 6) % 7; 
-            
-            if (dayIndex >= 0 && dayIndex < 7) {
-                const startOfWeekForTask = new Date(taskDate);
-                startOfWeekForTask.setDate(taskDate.getDate() - taskDate.getDay() + (taskDate.getDay() === 0 ? -6 : 1));
-                startOfWeekForTask.setHours(0,0,0,0);
-                
-                if (startOfWeekForTask.getTime() === startOfWeek.getTime()){
-                    weekData[dayIndex].tasks++;
-                }
-            }
-        }
-    });
-
-    return { totalStats, categoryStats, weeklyTaskStats: weekData };
-}, [allTasksData]);
 
   const filteredTasks = useMemo(() => {
     if (!tasks) return { byCategory: {}, all: [] };
@@ -227,12 +162,6 @@ export default function TasksPage() {
 
   }, [tasks, activeTab]);
 
-  const handleToggleTask = (taskId: string, currentStatus: boolean) => {
-    if (!user) return;
-    const taskRef = doc(firestore, 'users', user.uid, 'tasks', taskId);
-    updateDocumentNonBlocking(taskRef, { isCompleted: !currentStatus });
-  };
-  
   const resetForm = () => {
     setName('');
     setDueDate(undefined);
@@ -254,36 +183,21 @@ export default function TasksPage() {
     setDialogOpen(true);
   };
   
-  const handleSaveTask = async () => {
-    if (!user || !name) return;
-  
-    const taskData = {
+  const onSaveTask = async () => {
+    await handleSaveTask({
+      id: taskToEdit?.id,
       name,
-      dueDate: dueDate ? Timestamp.fromDate(dueDate) : null,
+      dueDate,
       priority,
       category,
-      userId: user.uid,
-    };
-  
-    if (taskToEdit) {
-      const taskRef = doc(firestore, 'users', user.uid, 'tasks', taskToEdit.id);
-      await updateDocumentNonBlocking(taskRef, taskData);
-    } else {
-      const tasksColRef = collection(firestore, 'users', user.uid, 'tasks');
-      await addDocumentNonBlocking(tasksColRef, {
-        ...taskData,
-        isCompleted: false,
-        createdAt: serverTimestamp(),
-      });
-    }
+    });
     setDialogOpen(false);
     resetForm();
   };
   
-  const handleDeleteTask = async () => {
-    if (!user || !taskToDelete) return;
-    const taskRef = doc(firestore, 'users', user.uid, 'tasks', taskToDelete.id);
-    await deleteDocumentNonBlocking(taskRef);
+  const onDeleteTask = async () => {
+    if (!taskToDelete) return;
+    await handleDeleteTask(taskToDelete.id);
     setTaskToDelete(null);
   };
 
@@ -439,6 +353,19 @@ export default function TasksPage() {
             Crear Tarea
           </Button>
         </PageHeader>
+        
+        <Tabs defaultValue="all" onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="all">Pendientes</TabsTrigger>
+            <TabsTrigger value="today">Hoy</TabsTrigger>
+            <TabsTrigger value="upcoming">Próximos 7 días</TabsTrigger>
+            <TabsTrigger value="completed">Completadas</TabsTrigger>
+          </TabsList>
+          <TabsContent value="all">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
+          <TabsContent value="today">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
+          <TabsContent value="upcoming">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
+          <TabsContent value="completed">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
+        </Tabs>
 
         <div className="grid grid-cols-1 gap-6">
           <Card>
@@ -453,7 +380,7 @@ export default function TasksPage() {
             </CardContent>
           </Card>
         </div>
-
+        
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {Object.entries(categoryStats).map(([category, stats]) => (
                 <Card key={category}>
@@ -470,19 +397,6 @@ export default function TasksPage() {
             ))}
         </div>
         
-        <Tabs defaultValue="all" onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="all">Pendientes</TabsTrigger>
-            <TabsTrigger value="today">Hoy</TabsTrigger>
-            <TabsTrigger value="upcoming">Próximos 7 días</TabsTrigger>
-            <TabsTrigger value="completed">Completadas</TabsTrigger>
-          </TabsList>
-          <TabsContent value="all">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
-          <TabsContent value="today">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
-          <TabsContent value="upcoming">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
-          <TabsContent value="completed">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
-        </Tabs>
-
         <div className="grid grid-cols-1 gap-6">
           {isClient ? (
             <Card>
@@ -582,7 +496,7 @@ export default function TasksPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>Cancelar</Button>
-            <Button onClick={handleSaveTask}>{taskToEdit ? 'Guardar Cambios' : 'Crear Tarea'}</Button>
+            <Button onClick={onSaveTask}>{taskToEdit ? 'Guardar Cambios' : 'Crear Tarea'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -598,7 +512,7 @@ export default function TasksPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteTask} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction onClick={onDeleteTask} className="bg-destructive hover:bg-destructive/90">
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -632,4 +546,13 @@ export default function TasksPage() {
     </Dialog>
     </>
   );
+}
+
+
+export default function TasksPage() {
+    return (
+        <TasksProvider>
+            <TasksContent />
+        </TasksProvider>
+    )
 }

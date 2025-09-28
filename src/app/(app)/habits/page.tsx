@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,21 +46,25 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Check, Flame, MoreHorizontal, Pencil, PlusCircle, Trash2, Trophy, RotateCcw } from 'lucide-react';
-import {
-  useFirebase,
-  useCollection,
-  updateDocumentNonBlocking,
-  addDocumentNonBlocking,
-  deleteDocumentNonBlocking,
-} from '@/firebase';
-import { collection, doc, serverTimestamp, Timestamp } from 'firebase/firestore';
+
+import { doc, serverTimestamp } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { calculateStreak, isHabitCompletedToday, resetStreak } from '@/lib/habits';
+import { HabitsProvider, useHabits } from './_components/HabitsProvider';
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
 
-export default function HabitsPage() {
-  const { firestore, user } = useFirebase();
+function HabitsContent() {
+  const { 
+    firestore, 
+    user, 
+    groupedHabits, 
+    habitsLoading,
+    handleToggleHabit,
+    handleCreateOrUpdateHabit,
+    handleDeleteHabit,
+    handleResetStreak,
+  } = useHabits();
 
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setEditDialogOpen] = useState(false);
@@ -74,36 +78,6 @@ export default function HabitsPage() {
   
   const [habitToReset, setHabitToReset] = useState<any | null>(null);
 
-  const habitsQuery = useMemo(
-    () => (user ? collection(firestore, 'users', user.uid, 'habits') : null),
-    [firestore, user]
-  );
-  const { data: allHabits, isLoading: habitsLoading } =
-    useCollection(habitsQuery);
-    
-  const groupedHabits = useMemo(() => {
-    if (!allHabits) return {};
-    return allHabits.reduce((acc, habit) => {
-      const category = habit.category || 'Sin Categoría';
-      if (!acc[category]) {
-        acc[category] = [];
-      }
-      acc[category].push(habit);
-      return acc;
-    }, {} as { [key: string]: any[] });
-  }, [allHabits]);
-
-
-  useEffect(() => {
-    if (habitToEdit) {
-      setNewHabitName(habitToEdit.name);
-      setNewHabitIcon(habitToEdit.icon);
-      setNewHabitFrequency(habitToEdit.frequency);
-      setNewHabitCategory(habitToEdit.category);
-      setEditDialogOpen(true);
-    }
-  }, [habitToEdit]);
-
   const resetForm = () => {
     setNewHabitName('');
     setNewHabitIcon('');
@@ -111,76 +85,36 @@ export default function HabitsPage() {
     setNewHabitCategory('');
   };
   
-  const handleToggleHabit = (habitId: string) => {
-    if (!user || !allHabits) return;
-
-    const habit = allHabits.find((h) => h.id === habitId);
-    if (!habit) return;
-
-    const habitRef = doc(firestore, 'users', user.uid, 'habits', habitId);
-
-    const isCompleted = isHabitCompletedToday(habit);
-
-    if (isCompleted) {
-      // Reverting completion. Restore the previous state.
-      updateDocumentNonBlocking(habitRef, {
-        lastCompletedAt: habit.previousLastCompletedAt ?? null,
-        currentStreak: habit.previousStreak ?? 0,
-        previousStreak: null,
-        previousLastCompletedAt: null,
-      });
-    } else {
-      const streakData = calculateStreak(habit);
-      
-      // Save the current state before updating, so we can revert if needed.
-      updateDocumentNonBlocking(habitRef, {
-        lastCompletedAt: Timestamp.fromDate(new Date()),
-        ...streakData,
-        previousStreak: habit.currentStreak || 0,
-        previousLastCompletedAt: habit.lastCompletedAt ?? null,
-      });
-    }
-  };
-
-  const handleCreateOrUpdateHabit = async () => {
-    if (!newHabitName.trim() || !newHabitIcon.trim() || !user || !newHabitCategory) return;
-
+  const onSave = () => {
+    handleCreateOrUpdateHabit({
+      id: habitToEdit?.id,
+      name: newHabitName,
+      icon: newHabitIcon,
+      frequency: newHabitFrequency,
+      category: newHabitCategory,
+    });
     if (habitToEdit) {
-      // Update existing habit
-      const habitRef = doc(firestore, 'users', user.uid, 'habits', habitToEdit.id);
-      await updateDocumentNonBlocking(habitRef, {
-        name: newHabitName,
-        icon: newHabitIcon,
-        frequency: newHabitFrequency,
-        category: newHabitCategory,
-      });
       setEditDialogOpen(false);
       setHabitToEdit(null);
     } else {
-      // Create new habit
-      const habitsColRef = collection(firestore, 'users', user.uid, 'habits');
-      await addDocumentNonBlocking(habitsColRef, {
-        name: newHabitName,
-        icon: newHabitIcon,
-        frequency: newHabitFrequency,
-        category: newHabitCategory,
-        currentStreak: 0,
-        longestStreak: 0,
-        createdAt: serverTimestamp(),
-        lastCompletedAt: null,
-        userId: user.uid,
-      });
       setCreateDialogOpen(false);
     }
     resetForm();
-  };
+  }
 
-  const handleDeleteHabit = async () => {
-    if (!habitToDelete || !user) return;
-    const habitRef = doc(firestore, 'users', user.uid, 'habits', habitToDelete.id);
-    await deleteDocumentNonBlocking(habitRef);
-    setHabitToDelete(null);
-  };
+  const onDelete = () => {
+    if (habitToDelete) {
+      handleDeleteHabit(habitToDelete.id);
+      setHabitToDelete(null);
+    }
+  }
+
+  const onResetStreak = () => {
+    if (habitToReset) {
+      handleResetStreak(habitToReset.id);
+      setHabitToReset(null);
+    }
+  }
   
   const handleOpenEditDialog = (habit: any) => {
     setHabitToEdit(habit);
@@ -189,13 +123,6 @@ export default function HabitsPage() {
     setNewHabitFrequency(habit.frequency);
     setNewHabitCategory(habit.category);
     setEditDialogOpen(true);
-  };
-  
-  const handleResetStreak = async () => {
-    if (!habitToReset || !user) return;
-    const habitRef = doc(firestore, 'users', user.uid, 'habits', habitToReset.id);
-    await updateDocumentNonBlocking(habitRef, resetStreak());
-    setHabitToReset(null);
   };
 
   const handleOpenCreateDialog = () => {
@@ -307,6 +234,8 @@ export default function HabitsPage() {
           if (!open) {
             resetForm();
             setCreateDialogOpen(false);
+          } else {
+            handleOpenCreateDialog();
           }
         }}>
         <DialogContent>
@@ -378,7 +307,7 @@ export default function HabitsPage() {
             <DialogClose asChild>
                 <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancelar</Button>
             </DialogClose>
-            <Button type="submit" onClick={handleCreateOrUpdateHabit}>
+            <Button type="submit" onClick={onSave}>
               Guardar Hábito
             </Button>
           </DialogFooter>
@@ -462,7 +391,7 @@ export default function HabitsPage() {
              <DialogClose asChild>
                 <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
             </DialogClose>
-            <Button type="submit" onClick={handleCreateOrUpdateHabit}>
+            <Button type="submit" onClick={onSave}>
               Guardar Cambios
             </Button>
           </DialogFooter>
@@ -480,7 +409,7 @@ export default function HabitsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteHabit} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction onClick={onDelete} className="bg-destructive hover:bg-destructive/90">
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -498,7 +427,7 @@ export default function HabitsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleResetStreak} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction onClick={onResetStreak} className="bg-destructive hover:bg-destructive/90">
               Reiniciar
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -506,4 +435,13 @@ export default function HabitsPage() {
       </AlertDialog>
     </>
   );
+}
+
+
+export default function HabitsPage() {
+  return (
+    <HabitsProvider>
+      <HabitsContent />
+    </HabitsProvider>
+  )
 }

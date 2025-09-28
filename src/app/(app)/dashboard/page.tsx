@@ -20,106 +20,40 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import PageHeader from '@/components/page-header';
-import { useState, useEffect, useMemo } from 'react';
-import {
-  useCollection,
-  useFirebase,
-} from '@/firebase';
-import {
-  collection,
-  query,
-  where,
-  limit,
-  Timestamp,
-} from 'firebase/firestore';
+import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { isHabitCompletedToday } from '@/lib/habits';
+import { HabitsProvider, useHabits } from '@/app/(app)/habits/_components/HabitsProvider';
+import { TasksProvider, useTasks } from '@/app/(app)/tasks/_components/TasksProvider';
+import { MoodsProvider, useMoods } from '@/app/(app)/mood-tracker/_components/MoodsProvider';
 
-const getStartOfWeek = (date: Date) => {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-  return new Date(d.setDate(diff));
-};
 
-const getEndOfWeek = (date: Date) => {
-    const start = getStartOfWeek(date);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    end.setHours(23, 59, 59, 999);
-    return end;
-};
-
-const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
-
-export default function DashboardPage() {
+function DashboardContent() {
   const [isClient, setIsClient] = useState(false);
-  const { firestore, user } = useFirebase();
   
-  const today = useMemo(() => new Date(), []);
+  const { 
+    dailyHabits,
+    weeklyHabits,
+    completedDaily,
+    completedWeekly,
+    longestStreak,
+    longestCurrentStreak,
+    habitsLoading
+  } = useHabits();
   
-  const habitsQuery = useMemo(
-    () => (user ? collection(firestore, 'users', user.uid, 'habits') : null),
-    [firestore, user]
-  );
-  const { data: allHabits, isLoading: habitsLoading } = useCollection(habitsQuery);
+  const { 
+    weeklyTasks, 
+    pendingTasks, 
+    completedWeeklyTasks, 
+    totalWeeklyTasks, 
+    weeklyTasksProgress,
+    tasksLoading
+  } = useTasks();
 
-  const weeklyTasksQuery = useMemo(() => {
-    if (!user) return null;
-    const startOfWeek = getStartOfWeek(today);
-    const endOfWeek = getEndOfWeek(today);
-    return query(
-        collection(firestore, 'users', user.uid, 'tasks'),
-        where('dueDate', '>=', startOfWeek),
-        where('dueDate', '<=', endOfWeek)
-      )
-  }, [firestore, user, today]);
+  const { todayMood, moodsLoading } = useMoods();
 
-  const { data: weeklyTasks, isLoading: tasksLoading } = useCollection(weeklyTasksQuery);
-
-  const pendingTasks = useMemo(() => weeklyTasks?.filter(t => !t.isCompleted) || [], [weeklyTasks]);
-  const completedWeeklyTasks = useMemo(() => weeklyTasks?.filter(t => t.isCompleted).length || 0, [weeklyTasks]);
-  const totalWeeklyTasks = weeklyTasks?.length || 0;
-  const weeklyTasksProgress = totalWeeklyTasks > 0 ? (completedWeeklyTasks / totalWeeklyTasks) * 100 : 0;
-
-
-  const moodsQuery = useMemo(() => {
-    if (!user) return null;
-    const todayISO = today.toISOString().split('T')[0];
-    return query(
-      collection(firestore, 'users', user.uid, 'moods'),
-      where('date', '>=', `${todayISO}T00:00:00.000Z`),
-      where('date', '<=', `${todayISO}T23:59:59.999Z`),
-      limit(1)
-    );
-  }, [firestore, user, today]);
-  const { data: moods, isLoading: moodsLoading } = useCollection(moodsQuery);
-  const todayMood = moods?.[0];
-
-  const { dailyHabits, weeklyHabits, completedDaily, completedWeekly } = useMemo(() => {
-    if (!allHabits) return { dailyHabits: [], weeklyHabits: [], completedDaily: 0, completedWeekly: 0 };
-    
-    const daily = allHabits.filter(h => h.frequency === 'Diario');
-    const weekly = allHabits.filter(h => h.frequency === 'Semanal');
-
-    const completedD = daily.filter(h => isHabitCompletedToday(h)).length;
-    const completedW = weekly.filter(h => isHabitCompletedToday(h)).length;
-
-    return {
-      dailyHabits: daily,
-      weeklyHabits: weekly,
-      completedDaily: completedD,
-      completedWeekly: completedW
-    };
-  }, [allHabits]);
-  
-  const longestStreak = useMemo(() => allHabits?.reduce((max, h) => Math.max(max, h.longestStreak || 0), 0) || 0, [allHabits]);
-  const longestCurrentStreak = useMemo(() => allHabits?.reduce((max, h) => Math.max(max, h.currentStreak || 0), 0) || 0, [allHabits]);
-  
   const dailyProgress = dailyHabits.length > 0 ? (completedDaily / dailyHabits.length) * 100 : 0;
   const weeklyProgress = weeklyHabits.length > 0 ? (completedWeekly / weeklyHabits.length) * 100 : 0;
 
@@ -268,4 +202,16 @@ export default function DashboardPage() {
       </div>
     </div>
   );
+}
+
+export default function DashboardPage() {
+    return (
+        <HabitsProvider>
+            <TasksProvider>
+                <MoodsProvider>
+                    <DashboardContent />
+                </MoodsProvider>
+            </TasksProvider>
+        </HabitsProvider>
+    )
 }
