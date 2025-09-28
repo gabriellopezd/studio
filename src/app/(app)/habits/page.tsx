@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -46,7 +47,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Check, Flame, MoreHorizontal, Pencil, PlusCircle, Trash2, Trophy, RotateCcw } from 'lucide-react';
+import { Check, Flame, MoreHorizontal, Pencil, PlusCircle, Trash2, Trophy } from 'lucide-react';
 import {
   useFirebase,
   useCollection,
@@ -96,7 +97,6 @@ export default function HabitsPage() {
   const [isEditDialogOpen, setEditDialogOpen] = useState(false);
   const [habitToEdit, setHabitToEdit] = useState<any>(null);
   const [habitToDelete, setHabitToDelete] = useState<any>(null);
-  const [habitToReset, setHabitToReset] = useState<any>(null);
 
   const [newHabitName, setNewHabitName] = useState('');
   const [newHabitIcon, setNewHabitIcon] = useState('');
@@ -253,19 +253,6 @@ export default function HabitsPage() {
     setHabitToDelete(null);
   };
   
-  const handleResetStreak = async () => {
-    if (!habitToReset || !user) return;
-    const habitRef = doc(firestore, 'users', user.uid, 'habits', habitToReset.id);
-    await updateDocumentNonBlocking(habitRef, {
-      currentStreak: 0,
-      longestStreak: 0,
-      lastCompletedAt: null,
-      previousStreak: null,
-      previousLastCompletedAt: null,
-    });
-    setHabitToReset(null);
-  };
-  
   const handleOpenEditDialog = (habit: any) => {
     setHabitToEdit(habit);
     setNewHabitName(habit.name);
@@ -358,10 +345,6 @@ export default function HabitsPage() {
                                 <DropdownMenuItem onClick={() => handleOpenEditDialog(habit)}>
                                   <Pencil className="mr-2 h-4 w-4" />
                                   Editar
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setHabitToReset(habit)}>
-                                  <RotateCcw className="mr-2 h-4 w-4" />
-                                  Reiniciar Racha
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => setHabitToDelete(habit)}
@@ -467,6 +450,9 @@ export default function HabitsPage() {
             </div>
           </div>
           <DialogFooter>
+            <DialogClose asChild>
+                <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancelar</Button>
+            </DialogClose>
             <Button type="submit" onClick={handleCreateOrUpdateHabit}>
               Guardar Hábito
             </Button>
@@ -548,6 +534,9 @@ export default function HabitsPage() {
             </div>
           </div>
           <DialogFooter>
+             <DialogClose asChild>
+                <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
+            </DialogClose>
             <Button type="submit" onClick={handleCreateOrUpdateHabit}>
               Guardar Cambios
             </Button>
@@ -568,24 +557,6 @@ export default function HabitsPage() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteHabit} className="bg-destructive hover:bg-destructive/90">
               Eliminar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      
-      {/* Reset Streak Confirmation Dialog */}
-      <AlertDialog open={!!habitToReset} onOpenChange={(open) => !open && setHabitToReset(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Reiniciar Progreso?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esto reiniciará la racha actual y el récord de "{habitToReset?.name}" a cero. Esta acción no se puede deshacer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleResetStreak} className="bg-destructive hover:bg-destructive/90">
-              Reiniciar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
