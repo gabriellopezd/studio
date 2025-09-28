@@ -17,6 +17,8 @@ import {
   Trash2,
   ShoppingCart,
   GripVertical,
+  CheckCircle,
+  Undo2,
 } from 'lucide-react';
 import {
   Dialog,
@@ -52,8 +54,8 @@ import { useToast } from '@/hooks/use-toast';
 import {
   useFirebase,
   useCollection,
-  addDocumentNonBlocking,
   updateDocumentNonBlocking,
+  addDocumentNonBlocking,
   deleteDocumentNonBlocking,
 } from '@/firebase';
 import {
@@ -81,7 +83,6 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Checkbox } from '@/components/ui/checkbox';
 
 function SortableListItem({
   list,
@@ -116,7 +117,6 @@ function SortableListItem({
 export default function ExpensesPage() {
   const { firestore, user } = useFirebase();
 
-  // State for Shopping Lists
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [newListName, setNewListName] = useState('');
   const [newListBudgetFocus, setNewListBudgetFocus] = useState('Deseos');
@@ -131,7 +131,6 @@ export default function ExpensesPage() {
 
   const { toast } = useToast();
 
-  // Queries
   const shoppingListsQuery = useMemo(
     () =>
       user
@@ -158,7 +157,6 @@ export default function ExpensesPage() {
     return lists ? [...lists].sort((a, b) => a.order - b.order) : [];
   }, [lists]);
 
-  // Shopping List Handlers
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -194,6 +192,8 @@ export default function ExpensesPage() {
   };
 
   const selectedList = lists?.find((list) => list.id === selectedListId);
+  const pendingItems = useMemo(() => selectedList?.items.filter((i: any) => !i.isPurchased) || [], [selectedList]);
+  const purchasedItems = useMemo(() => selectedList?.items.filter((i: any) => i.isPurchased) || [], [selectedList]);
 
 
   const handleCreateList = async () => {
@@ -305,43 +305,42 @@ export default function ExpensesPage() {
 
     setNewItemName('');
     setNewItemAmount('');
-};
+  };
 
-  const handleTogglePurchase = async (itemId: string, isPurchased: boolean) => {
-      if (!selectedList || !user) return;
-      const item = selectedList.items.find((i: any) => i.itemId === itemId);
-      if (!item) return;
+  const handleOpenPurchaseDialog = (item: any) => {
+    setItemToPurchase(item);
+    setPurchasePrice(item.amount.toString());
+    setPurchaseDialogOpen(true);
+  };
 
-      if (isPurchased) { // Un-purchasing
-          const updatedItems = selectedList.items.map((i: any) =>
-              i.itemId === itemId ? { ...i, isPurchased: false, price: null, transactionId: null } : i
-          );
+  const handleRevertPurchase = async (itemId: string) => {
+    if (!selectedList || !user) return;
+    const item = selectedList.items.find((i: any) => i.itemId === itemId);
+    if (!item || !item.isPurchased) return;
 
-          const batch = writeBatch(firestore);
-          const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', selectedListId!);
-          batch.update(listRef, { items: updatedItems });
+    const updatedItems = selectedList.items.map((i: any) =>
+        i.itemId === itemId ? { ...i, isPurchased: false, price: null, transactionId: null } : i
+    );
 
-          if (item.transactionId) {
-              const transactionRef = doc(firestore, 'users', user.uid, 'transactions', item.transactionId);
-              const transactionSnap = await getDoc(transactionRef);
-              if (transactionSnap.exists()) {
-                  const transactionData = transactionSnap.data();
-                  batch.delete(transactionRef);
-                  const budget = budgets?.find(b => b.categoryName === transactionData.category);
-                  if (budget) {
-                      const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-                      batch.update(budgetRef, { currentSpend: increment(-transactionData.amount) });
-                  }
-              }
-          }
-          await batch.commit();
-          toast({ title: "Gasto revertido" });
+    const batch = writeBatch(firestore);
+    const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', selectedListId!);
+    batch.update(listRef, { items: updatedItems });
 
-      } else { // Purchasing
-          setItemToPurchase(item);
-          setPurchasePrice(item.amount.toString());
-          setPurchaseDialogOpen(true);
-      }
+    if (item.transactionId) {
+        const transactionRef = doc(firestore, 'users', user.uid, 'transactions', item.transactionId);
+        const transactionSnap = await getDoc(transactionRef);
+        if (transactionSnap.exists()) {
+            const transactionData = transactionSnap.data();
+            batch.delete(transactionRef);
+            const budget = budgets?.find(b => b.categoryName === transactionData.category);
+            if (budget) {
+                const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+                batch.update(budgetRef, { currentSpend: increment(-transactionData.amount) });
+            }
+        }
+    }
+    await batch.commit();
+    toast({ title: "Gasto revertido" });
   };
 
   const handleConfirmPurchase = async () => {
@@ -355,27 +354,24 @@ export default function ExpensesPage() {
     
     const batch = writeBatch(firestore);
 
-    // 1. Create new transaction document
     const newTransactionRef = doc(collection(firestore, 'users', user.uid, 'transactions'));
     batch.set(newTransactionRef, {
         type: 'expense',
         description: itemToPurchase.name,
         category: selectedList.name,
         amount: finalPrice,
-        budgetFocus: selectedList.budgetFocus, // This was the source of the error
+        budgetFocus: selectedList.budgetFocus,
         date: new Date().toISOString(),
         userId: user.uid,
         createdAt: serverTimestamp(),
     });
 
-    // 2. Update the item in the shopping list
     const updatedItems = selectedList.items.map((i: any) =>
         i.itemId === itemToPurchase.itemId ? { ...i, isPurchased: true, price: finalPrice, transactionId: newTransactionRef.id } : i
     );
     const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', selectedListId!);
     batch.update(listRef, { items: updatedItems });
     
-    // 3. Update the budget
     const budget = budgets?.find(b => b.categoryName === selectedList.name);
     if (budget) {
         const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
@@ -456,7 +452,6 @@ export default function ExpensesPage() {
     }
   };
 
-  // General Logic
   useEffect(() => {
     if (!listsLoading && !selectedListId && sortedLists && sortedLists.length > 0) {
       setSelectedListId(sortedLists[0].id);
@@ -625,13 +620,10 @@ export default function ExpensesPage() {
                            <Label htmlFor="new-item-name">Descripción</Label>
                            <Input id="new-item-name" placeholder="Leche, pan, etc." value={newItemName} onChange={(e) => setNewItemName(e.target.value)} />
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="new-item-amount">Monto Estimado</Label>
-                                <Input id="new-item-amount" type="number" placeholder="5000" value={newItemAmount} onChange={(e) => setNewItemAmount(e.target.value)} />
-                            </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="new-item-amount">Monto Estimado</Label>
+                            <Input id="new-item-amount" type="number" placeholder="5000" value={newItemAmount} onChange={(e) => setNewItemAmount(e.target.value)} />
                         </div>
-
                         <Button onClick={handleAddItem} disabled={!newItemName.trim() || !newItemAmount.trim()} className="w-full sm:w-auto">
                             <PlusCircle className="mr-2 h-4 w-4"/> Añadir a la Lista
                         </Button>
@@ -639,44 +631,59 @@ export default function ExpensesPage() {
                     
                     <Separator className="my-6" />
 
-                    <div className="space-y-3">
-                      {selectedList.items && selectedList.items.length > 0 ? (
-                        selectedList.items.map((item: any) => (
-                          <div
-                            key={item.itemId}
-                            className="flex items-center gap-3 rounded-lg border p-3 shadow-sm transition-all"
-                          >
-                            <Checkbox id={`item-${item.itemId}`} checked={item.isPurchased} onCheckedChange={(checked) => handleTogglePurchase(item.itemId, !!checked)}/>
-                            <div className="flex-1">
-                              <label htmlFor={`item-${item.itemId}`} className={`font-medium cursor-pointer ${item.isPurchased ? 'line-through text-muted-foreground' : ''}`}>
-                                {item.name}
-                              </label>
-                              <p className="text-sm font-semibold text-primary">
-                                  {formatCurrency(item.price ?? item.amount)}
-                              </p>
+                    <div className="space-y-6">
+                        <div>
+                            <h4 className="font-medium mb-3">Artículos Pendientes</h4>
+                            <div className="space-y-3">
+                                {pendingItems.length > 0 ? (
+                                    pendingItems.map((item: any) => (
+                                    <div key={item.itemId} className="flex items-center gap-3 rounded-lg border p-3 shadow-sm">
+                                        <div className="flex-1">
+                                            <p className="font-medium">{item.name}</p>
+                                            <p className="text-sm font-semibold text-primary">{formatCurrency(item.amount)} (Estimado)</p>
+                                        </div>
+                                        <Button onClick={() => handleOpenPurchaseDialog(item)} size="sm">
+                                            <CheckCircle className="mr-2 h-4 w-4" />
+                                            Pagar
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteItem(item.itemId)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-muted-foreground text-center">No hay artículos pendientes.</p>
+                                )}
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                              onClick={() => handleDeleteItem(item.itemId)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-10 text-center">
-                          <ShoppingCart className="h-12 w-12 text-muted-foreground/50" />
-                          <h3 className="mt-4 text-lg font-semibold text-muted-foreground">
-                            Lista de compras vacía
-                          </h3>
-                          <p className="mt-2 text-sm text-muted-foreground">
-                            Añade artículos para empezar a planificar tus compras.
-                          </p>
                         </div>
-                      )}
+
+                        <div>
+                            <h4 className="font-medium mb-3">Artículos Comprados</h4>
+                            <div className="space-y-3">
+                            {purchasedItems.length > 0 ? (
+                                purchasedItems.map((item: any) => (
+                                    <div key={item.itemId} className="flex items-center gap-3 rounded-lg border bg-muted/50 p-3">
+                                        <div className="flex-1">
+                                            <p className="font-medium line-through text-muted-foreground">{item.name}</p>
+                                            <p className="text-sm font-semibold">{formatCurrency(item.price)} (Final)</p>
+                                        </div>
+                                        <Button variant="ghost" size="sm" onClick={() => handleRevertPurchase(item.itemId)}>
+                                            <Undo2 className="mr-2 h-4 w-4" />
+                                            Revertir
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteItem(item.itemId)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-sm text-muted-foreground text-center">No hay artículos comprados en esta lista.</p>
+                            )}
+                            </div>
+                        </div>
                     </div>
+
+
                   </CardContent>
                 </Card>
               ) : (
