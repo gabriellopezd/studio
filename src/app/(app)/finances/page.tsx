@@ -842,7 +842,7 @@ function FinancesContent() {
                 <div className="space-y-6">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle>Ingresos Fijos Definidos</CardTitle>
+                            <CardTitle>Ingresos Fijos</CardTitle>
                              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openRecurringDialog('income')}>
                                 <PlusCircle className="h-4 w-4" />
                             </Button>
@@ -873,7 +873,7 @@ function FinancesContent() {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Ingresos Recurrentes Pendientes</CardTitle>
+                            <CardTitle>Ingresos Pendientes</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
                             {pendingRecurringIncomes.map(income => (
@@ -890,7 +890,7 @@ function FinancesContent() {
                     </Card>
                     
                     <Card>
-                        <CardHeader><CardTitle>Ingresos Recibidos este Mes</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Ingresos Recibidos</CardTitle></CardHeader>
                         <CardContent className="space-y-3">
                             {receivedRecurringIncomes.map(income => (
                                 <div key={income.id} className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
@@ -910,7 +910,7 @@ function FinancesContent() {
                 <div className="space-y-6">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle>Gastos Fijos Definidos</CardTitle>
+                            <CardTitle>Gastos Fijos</CardTitle>
                              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openRecurringDialog('expense')}>
                                 <PlusCircle className="h-4 w-4" />
                             </Button>
@@ -941,7 +941,7 @@ function FinancesContent() {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Gastos Recurrentes Pendientes</CardTitle>
+                            <CardTitle>Gastos Pendientes</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
                             {pendingRecurringExpenses.map(expense => (
@@ -958,7 +958,7 @@ function FinancesContent() {
                     </Card>
 
                      <Card>
-                        <CardHeader><CardTitle>Gastos Pagados este Mes</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Gastos Pagados</CardTitle></CardHeader>
                         <CardContent className="space-y-3">
                             {paidRecurringExpenses.map(expense => (
                                 <div key={expense.id} className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">

@@ -56,18 +56,14 @@ const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "
 
 function HabitsContent() {
   const { 
-    firestore, 
-    user, 
     groupedHabits, 
     habitsLoading,
     handleToggleHabit,
     handleCreateOrUpdateHabit,
     handleDeleteHabit,
-    handleResetStreak,
   } = useHabits();
 
-  const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
-  const [isEditDialogOpen, setEditDialogOpen] = useState(false);
+  const [isDialogOpen, setDialogOpen] = useState(false);
   const [habitToEdit, setHabitToEdit] = useState<any>(null);
   const [habitToDelete, setHabitToDelete] = useState<any>(null);
 
@@ -76,13 +72,12 @@ function HabitsContent() {
   const [newHabitFrequency, setNewHabitFrequency] = useState('Diario');
   const [newHabitCategory, setNewHabitCategory] = useState('');
   
-  const [habitToReset, setHabitToReset] = useState<any | null>(null);
-
   const resetForm = () => {
     setNewHabitName('');
     setNewHabitIcon('');
     setNewHabitFrequency('Diario');
     setNewHabitCategory('');
+    setHabitToEdit(null);
   };
   
   const onSave = () => {
@@ -93,12 +88,7 @@ function HabitsContent() {
       frequency: newHabitFrequency,
       category: newHabitCategory,
     });
-    if (habitToEdit) {
-      setEditDialogOpen(false);
-      setHabitToEdit(null);
-    } else {
-      setCreateDialogOpen(false);
-    }
+    setDialogOpen(false);
     resetForm();
   }
 
@@ -109,26 +99,17 @@ function HabitsContent() {
     }
   }
 
-  const onResetStreak = () => {
-    if (habitToReset) {
-      handleResetStreak(habitToReset.id);
-      setHabitToReset(null);
+  const handleOpenDialog = (habit?: any) => {
+    if (habit) {
+      setHabitToEdit(habit);
+      setNewHabitName(habit.name);
+      setNewHabitIcon(habit.icon);
+      setNewHabitFrequency(habit.frequency);
+      setNewHabitCategory(habit.category);
+    } else {
+      resetForm();
     }
-  }
-  
-  const handleOpenEditDialog = (habit: any) => {
-    setHabitToEdit(habit);
-    setNewHabitName(habit.name);
-    setNewHabitIcon(habit.icon);
-    setNewHabitFrequency(habit.frequency);
-    setNewHabitCategory(habit.category);
-    setEditDialogOpen(true);
-  };
-
-  const handleOpenCreateDialog = () => {
-    resetForm();
-    setHabitToEdit(null);
-    setCreateDialogOpen(true);
+    setDialogOpen(true);
   };
 
   return (
@@ -138,7 +119,7 @@ function HabitsContent() {
           title="Hábitos"
           description="Gestiona tus hábitos y sigue tu progreso."
         >
-          <Button onClick={handleOpenCreateDialog}>
+          <Button onClick={() => handleOpenDialog()}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Crear Hábito
           </Button>
@@ -185,18 +166,14 @@ function HabitsContent() {
                             {habit.category && <Badge variant="secondary">{habit.category}</Badge>}
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 ml-auto">
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleOpenEditDialog(habit)}>
+                                <DropdownMenuItem onClick={() => handleOpenDialog(habit)}>
                                   <Pencil className="mr-2 h-4 w-4" />
                                   Editar
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setHabitToReset(habit)}>
-                                  <RotateCcw className="mr-2 h-4 w-4" />
-                                  Reiniciar Racha
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => setHabitToDelete(habit)}
@@ -229,53 +206,43 @@ function HabitsContent() {
         </div>
       </div>
       
-      {/* Create Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
+      {/* Create/Edit Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={(open) => {
           if (!open) {
             resetForm();
-            setCreateDialogOpen(false);
-          } else {
-            handleOpenCreateDialog();
           }
+          setDialogOpen(open);
         }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Crear Nuevo Hábito</DialogTitle>
+            <DialogTitle>{habitToEdit ? 'Editar Hábito': 'Crear Nuevo Hábito'}</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="habit-name" className="text-right">
-                Nombre
-              </Label>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="habit-name">Nombre</Label>
               <Input
                 id="habit-name"
                 value={newHabitName}
                 onChange={(e) => setNewHabitName(e.target.value)}
-                className="col-span-3"
                 placeholder="Ej: Leer 30 minutos"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="habit-icon" className="text-right">
-                Ícono
-              </Label>
+            <div className="space-y-2">
+              <Label htmlFor="habit-icon">Ícono</Label>
               <Input
                 id="habit-icon"
                 value={newHabitIcon}
                 onChange={(e) => setNewHabitIcon(e.target.value)}
-                className="col-span-3"
                 placeholder="Ej: 📚"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="habit-frequency" className="text-right">
-                Frecuencia
-              </Label>
+            <div className="space-y-2">
+              <Label htmlFor="habit-frequency">Frecuencia</Label>
               <Select
                 value={newHabitFrequency}
                 onValueChange={setNewHabitFrequency}
               >
-                <SelectTrigger className="col-span-3">
+                <SelectTrigger id="habit-frequency">
                   <SelectValue placeholder="Selecciona una frecuencia" />
                 </SelectTrigger>
                 <SelectContent>
@@ -284,15 +251,13 @@ function HabitsContent() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="habit-category" className="text-right">
-                Categoría
-              </Label>
+            <div className="space-y-2">
+              <Label htmlFor="habit-category">Categoría</Label>
               <Select
                 value={newHabitCategory}
                 onValueChange={setNewHabitCategory}
               >
-                <SelectTrigger className="col-span-3">
+                <SelectTrigger id="habit-category">
                   <SelectValue placeholder="Selecciona una categoría" />
                 </SelectTrigger>
                 <SelectContent>
@@ -305,94 +270,10 @@ function HabitsContent() {
           </div>
           <DialogFooter>
             <DialogClose asChild>
-                <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancelar</Button>
+                <Button type="button" variant="outline">Cancelar</Button>
             </DialogClose>
             <Button type="submit" onClick={onSave}>
-              Guardar Hábito
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
-          if (!open) {
-            setHabitToEdit(null);
-            setEditDialogOpen(false);
-            resetForm();
-          }
-        }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Hábito</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-habit-name" className="text-right">
-                Nombre
-              </Label>
-              <Input
-                id="edit-habit-name"
-                value={newHabitName}
-                onChange={(e) => setNewHabitName(e.target.value)}
-                className="col-span-3"
-                placeholder="Ej: Leer 30 minutos"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-habit-icon" className="text-right">
-                Ícono
-              </Label>
-              <Input
-                id="edit-habit-icon"
-                value={newHabitIcon}
-                onChange={(e) => setNewHabitIcon(e.target.value)}
-                className="col-span-3"
-                placeholder="Ej: 📚"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-habit-frequency" className="text-right">
-                Frecuencia
-              </Label>
-              <Select
-                value={newHabitFrequency}
-                onValueChange={setNewHabitFrequency}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Selecciona una frecuencia" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Diario">Diario</SelectItem>
-                  <SelectItem value="Semanal">Semanal</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-habit-category" className="text-right">
-                Categoría
-              </Label>
-              <Select
-                value={newHabitCategory}
-                onValueChange={setNewHabitCategory}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Selecciona una categoría" />
-                </SelectTrigger>
-                <SelectContent>
-                  {habitCategories.map(category => (
-                     <SelectItem key={category} value={category}>{category}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-             <DialogClose asChild>
-                <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
-            </DialogClose>
-            <Button type="submit" onClick={onSave}>
-              Guardar Cambios
+              {habitToEdit ? 'Guardar Cambios' : 'Guardar Hábito'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -411,24 +292,6 @@ function HabitsContent() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={onDelete} className="bg-destructive hover:bg-destructive/90">
               Eliminar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      
-      {/* Reset Streak Confirmation Dialog */}
-      <AlertDialog open={!!habitToReset} onOpenChange={(open) => !open && setHabitToReset(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Reiniciar Racha?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esto reiniciará la racha actual y el récord del hábito "{habitToReset?.name}" a cero. Esta acción no se puede deshacer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={onResetStreak} className="bg-destructive hover:bg-destructive/90">
-              Reiniciar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

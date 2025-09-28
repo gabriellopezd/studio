@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useMemo } from 'react';
 import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, doc, query, Timestamp, serverTimestamp, where } from 'firebase/firestore';
+import { collection, doc, query, Timestamp, serverTimestamp, where, orderBy } from 'firebase/firestore';
 
 interface Task {
     id?: string;
@@ -58,15 +58,13 @@ export const TasksProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const allTasksQuery = useMemo(() => {
         if (!user) return null;
-        return query(collection(firestore, 'users', user.uid, 'tasks'));
+        return query(collection(firestore, 'users', user.uid, 'tasks'), orderBy('createdAt', 'desc'));
     }, [firestore, user]);
     const { data: allTasksData, isLoading: allTasksLoading } = useCollection(allTasksQuery);
     
-    // This is for the main tasks page, which can be filtered
     const tasksQuery = useMemo(() => {
         if (!user) return null;
-        // In a real app, you'd probably pass a filter state here
-        return query(collection(firestore, 'users', user.uid, 'tasks'));
+        return query(collection(firestore, 'users', user.uid, 'tasks'), orderBy('createdAt', 'desc'));
     }, [firestore, user]);
     const { data: tasks, isLoading: tasksLoading } = useCollection(tasksQuery);
 
@@ -83,7 +81,7 @@ export const TasksProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, [firestore, user, today]);
     const { data: weeklyTasks } = useCollection(weeklyTasksQuery);
     
-    const pendingTasks = useMemo(() => weeklyTasks?.filter(t => !t.isCompleted) || [], [weeklyTasks]);
+    const pendingTasks = useMemo(() => weeklyTasks?.filter(t => !t.isCompleted).sort((a, b) => a.dueDate.seconds - b.dueDate.seconds) || [], [weeklyTasks]);
     const completedWeeklyTasks = useMemo(() => weeklyTasks?.filter(t => t.isCompleted).length || 0, [weeklyTasks]);
     const totalWeeklyTasks = weeklyTasks?.length || 0;
     const weeklyTasksProgress = totalWeeklyTasks > 0 ? (completedWeeklyTasks / totalWeeklyTasks) * 100 : 0;

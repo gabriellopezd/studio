@@ -143,9 +143,11 @@ function TasksContent() {
         });
         break;
       case 'completed':
+        tasksToShow = tasks.filter(task => task.isCompleted);
+        break;
       case 'all':
       default:
-        tasksToShow = tasks;
+        tasksToShow = tasks.filter(task => !task.isCompleted);
         break;
     }
 
@@ -435,12 +437,12 @@ function TasksContent() {
           <DialogHeader>
             <DialogTitle>{taskToEdit ? 'Editar Tarea' : 'Crear Nueva Tarea'}</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="space-y-4 py-4">
              <div className="space-y-2">
               <Label htmlFor="task-name">Nombre</Label>
               <Input id="task-name" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
-             <div className="grid grid-cols-2 gap-4">
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                    <Label htmlFor="task-category">Categoría</Label>
                    <Select value={category} onValueChange={setCategory}>

@@ -225,6 +225,7 @@ export default function GoalsPage() {
   const renderGoalCard = (goal: any) => {
     const isFinancial = goal.type === 'savings' || goal.type === 'debt';
     const projectedDate = isFinancial ? calculateProjectedDate(goal) : null;
+    const progress = (goal.currentValue / goal.targetValue) * 100;
 
     return (
         <Card key={goal.id} className="flex flex-col">
@@ -259,18 +260,20 @@ export default function GoalsPage() {
             <CardDescription>{goal.description}</CardDescription>
           </CardHeader>
           <CardContent className="flex-grow space-y-4">
-            <div className="mb-2 flex justify-between text-sm">
-              <span className="font-medium text-foreground">
-                {isFinancial ? formatCurrency(goal.currentValue) : `${goal.currentValue.toLocaleString()} ${goal.unit}`}
-              </span>
-              <span className="text-muted-foreground">
-                {isFinancial ? formatCurrency(goal.targetValue) : `${goal.targetValue.toLocaleString()} ${goal.unit}`}
-              </span>
+            <div>
+              <div className="mb-2 flex justify-between text-sm">
+                <span className="font-medium text-foreground">
+                  {isFinancial ? formatCurrency(goal.currentValue) : `${goal.currentValue.toLocaleString()} ${goal.unit}`}
+                </span>
+                <span className="text-muted-foreground">
+                  {isFinancial ? formatCurrency(goal.targetValue) : `${goal.targetValue.toLocaleString()} ${goal.unit}`}
+                </span>
+              </div>
+              <Progress
+                value={progress}
+                aria-label={`${progress.toFixed(0)}% completado`}
+              />
             </div>
-            <Progress
-              value={(goal.currentValue / goal.targetValue) * 100}
-              aria-label={`${(goal.currentValue / goal.targetValue) * 100}% completado`}
-            />
             {isFinancial && goal.monthlyContribution > 0 && (
                 <div className="text-sm text-muted-foreground">
                     Aportando <span className="font-medium text-foreground">{formatCurrency(goal.monthlyContribution)}</span> al mes.
@@ -369,7 +372,7 @@ export default function GoalsPage() {
           <DialogHeader>
             <DialogTitle>{goalToEdit ? 'Editar Meta' : 'Crear Nueva Meta'}</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="space-y-4 py-4">
             <div className="space-y-2">
                 <Label htmlFor="goal-type">Tipo de Meta</Label>
                 <Select value={type} onValueChange={setType}>
@@ -433,7 +436,7 @@ export default function GoalsPage() {
           <DialogHeader>
             <DialogTitle>Actualizar Progreso de "{goalToUpdateProgress?.name}"</DialogTitle>
           </DialogHeader>
-           <div className="space-y-2">
+           <div className="space-y-2 py-4">
               <Label htmlFor="goal-progress">Nuevo Valor Actual</Label>
               <Input id="goal-progress" type="number" value={newProgress} onChange={(e) => setNewProgress(e.target.value)} />
             </div>
