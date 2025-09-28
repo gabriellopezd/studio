@@ -11,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
   PlusCircle,
@@ -135,13 +134,8 @@ export default function ExpensesPage() {
   const [newListName, setNewListName] = useState('');
   const [newItemName, setNewItemName] = useState('');
   const [newItemQuantity, setNewItemQuantity] = useState('1');
-  const [itemToUpdate, setItemToUpdate] = useState<{
-    listId: string;
-    itemId: string;
-    listName: string;
-    itemName: string;
-  } | null>(null);
-  const [itemPrice, setItemPrice] = useState('');
+  const [newItemPrice, setNewItemPrice] = useState('');
+
 
   // State for Recurring Expenses
   const [isRecurringExpenseDialogOpen, setRecurringExpenseDialogOpen] =
@@ -263,10 +257,6 @@ export default function ExpensesPage() {
 
   const selectedList = lists?.find((list) => list.id === selectedListId);
 
-  const itemsToPurchase =
-    selectedList?.items?.filter((item: any) => !item.isPurchased) ?? [];
-  const purchasedItems =
-    selectedList?.items?.filter((item: any) => item.isPurchased) ?? [];
 
   const addTransaction = async (newTransaction: any) => {
     if (!user) return null;
@@ -386,8 +376,6 @@ export default function ExpensesPage() {
     
     const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
     batch.delete(listRef);
-
-    // We don't delete the budget automatically anymore, user can do it from finances page.
     
     try {
         await batch.commit();
@@ -404,140 +392,55 @@ export default function ExpensesPage() {
     }
   };
 
-  const handleAddItem = () => {
-    if (newItemName.trim() && selectedList && user) {
-      const newItem = {
-        itemId: doc(collection(firestore, 'temp')).id,
-        name: newItemName.trim(),
-        quantity: newItemQuantity.trim() || '1',
-        isPurchased: false,
-      };
-      const listRef = doc(
-        firestore,
-        'users',
-        user.uid,
-        'shoppingLists',
-        selectedListId!
-      );
-      updateDocumentNonBlocking(listRef, {
-        items: [...(selectedList.items || []), newItem],
+  const handleAddItem = async () => {
+    if (!newItemName.trim() || !newItemPrice || !selectedList || !user) return;
+
+    const price = parseFloat(newItemPrice);
+    if (isNaN(price)) {
+      toast({
+        variant: 'destructive',
+        title: 'Precio inválido',
+        description: 'Por favor, introduce un número válido para el precio.',
       });
-      setNewItemName('');
-      setNewItemQuantity('1');
+      return;
     }
-  };
-
-  const handleToggleItem = async (itemId: string, isChecked: boolean) => {
-    const list = lists?.find((l) => l.id === selectedListId);
-    const item = list?.items.find((i: any) => i.itemId === itemId);
-
-    if (!list || !item || !user) return;
-
-    if (isChecked) {
-      setItemToUpdate({
-        listId: selectedListId!,
-        itemId: itemId,
-        listName: list.name,
-        itemName: item.name,
-      });
-    } else {
-      // Logic to "un-purchase" an item
-      if (item.transactionId) {
-        const batch = writeBatch(firestore);
-        
-        const transactionRef = doc(
-          firestore,
-          'users',
-          user.uid,
-          'transactions',
-          item.transactionId
-        );
-        batch.delete(transactionRef);
-
-        const budget = budgets?.find((b) => b.categoryName === list.name);
-        if (budget && item.price) {
-          const budgetRef = doc(
-            firestore,
-            'users',
-            user.uid,
-            'budgets',
-            budget.id
-          );
-          const newSpend = Math.max(0, (budget.currentSpend || 0) - item.price);
-          batch.update(budgetRef, { currentSpend: newSpend });
-        }
-        
-        const updatedItems = list.items.map((i: any) => {
-            if (i.itemId === itemId) {
-                const { price, transactionId, ...rest } = i;
-                return { ...rest, isPurchased: false };
-            }
-            return i;
-        });
-        const listRef = doc(
-            firestore,
-            'users',
-            user.uid,
-            'shoppingLists',
-            selectedListId!
-        );
-        batch.update(listRef, { items: updatedItems });
-        
-        try {
-            await batch.commit();
-        } catch (error) {
-            console.error("Error un-purchasing item:", error);
-            toast({
-                variant: "destructive",
-                title: "Error",
-                description: "No se pudo deshacer la compra.",
-            });
-        }
-      }
-    }
-  };
-
-  const handleSetItemPrice = async () => {
-    if (!itemToUpdate || !itemPrice || !user) return;
-
-    const price = parseFloat(itemPrice);
-    if (isNaN(price)) return;
 
     const newTransaction = {
       type: 'expense' as const,
-      description: itemToUpdate.itemName,
-      category: itemToUpdate.listName,
+      description: newItemName.trim(),
+      category: selectedList.name,
       amount: price,
     };
 
     const transactionDoc = await addTransaction(newTransaction);
     if (!transactionDoc) return;
 
-    const list = lists?.find((l) => l.id === itemToUpdate.listId);
-    if (list) {
-      const updatedItems = list.items.map((item: any) =>
-        item.itemId === itemToUpdate.itemId
-          ? {
-              ...item,
-              isPurchased: true,
-              price: price,
-              transactionId: transactionDoc.id,
-            }
-          : item
-      );
-      const listRef = doc(
-        firestore,
-        'users',
-        user.uid,
-        'shoppingLists',
-        itemToUpdate.listId
-      );
-      updateDocumentNonBlocking(listRef, { items: updatedItems });
-    }
+    const newItem = {
+      itemId: doc(collection(firestore, 'temp')).id,
+      name: newItemName.trim(),
+      quantity: newItemQuantity.trim() || '1',
+      isPurchased: true,
+      price: price,
+      transactionId: transactionDoc.id,
+    };
+    
+    const listRef = doc(
+      firestore,
+      'users',
+      user.uid,
+      'shoppingLists',
+      selectedListId!
+    );
 
-    setItemToUpdate(null);
-    setItemPrice('');
+    updateDocumentNonBlocking(listRef, {
+      items: [...(selectedList.items || []), newItem],
+    });
+
+    setNewItemName('');
+    setNewItemQuantity('1');
+    setNewItemPrice('');
   };
+
 
   const handleDeleteItem = (itemId: string) => {
     if (!selectedList || !user) return;
@@ -729,7 +632,6 @@ export default function ExpensesPage() {
 
     if (!transactionSnap.exists()) {
         toast({ variant: "destructive", title: "Error", description: "No se encontró la transacción original para revertir." });
-        // Still attempt to revert the recurring expense state
         const expenseRef = doc(firestore, 'users', user.uid, 'recurringExpenses', expense.id);
         updateDocumentNonBlocking(expenseRef, {
             lastInstanceCreated: null,
@@ -783,673 +685,570 @@ export default function ExpensesPage() {
   
 
   return (
-    <>
-      <div className="flex flex-col gap-8">
-        <PageHeader
-          title="REGISTRO DE GASTOS"
-          description="Organiza tus compras y gestiona tus pagos recurrentes."
-        >
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Crear Categoría de Compra
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Crear Nueva Categoría de Compra</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-2">
-                <Label htmlFor="listName">Nombre de la categoría</Label>
-                <Input
-                  id="listName"
-                  value={newListName}
-                  onChange={(e) => setNewListName(e.target.value)}
-                  placeholder="Ej: Supermercado, Farmacia..."
-                />
-              </div>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button
-                    type="button"
-                    onClick={handleCreateList}
-                    disabled={!newListName.trim()}
-                  >
-                    Crear Categoría
-                  </Button>
-                </DialogClose>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </PageHeader>
-
-        <Tabs defaultValue="shopping" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="shopping">Listas de Compras</TabsTrigger>
-            <TabsTrigger value="recurring">Gastos Recurrentes</TabsTrigger>
-          </TabsList>
-          <TabsContent value="shopping" className="mt-6">
-            <div className="md:hidden">
-              <Select
-                value={String(selectedListId)}
-                onValueChange={(val) => setSelectedListId(val)}
-              >
-                <SelectTrigger className="w-full mb-4">
-                    <SelectValue placeholder="Selecciona una categoría" />
-                </SelectTrigger>
-                <SelectContent>
-                    {sortedLists?.map((list) => (
-                      <SelectItem key={list.id} value={String(list.id)}>
-                        {list.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        title="REGISTRO DE GASTOS"
+        description="Organiza tus compras y gestiona tus pagos recurrentes."
+      >
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Crear Categoría de Compra
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Crear Nueva Categoría de Compra</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="listName">Nombre de la categoría</Label>
+              <Input
+                id="listName"
+                value={newListName}
+                onChange={(e) => setNewListName(e.target.value)}
+                placeholder="Ej: Supermercado, Farmacia..."
+              />
             </div>
-            
-            {listsLoading && <p>Cargando categorías...</p>}
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button
+                  type="button"
+                  onClick={handleCreateList}
+                  disabled={!newListName.trim()}
+                >
+                  Crear Categoría
+                </Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </PageHeader>
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-4 mt-6 md:mt-0">
-              <div className="hidden md:block md:col-span-1">
-                 { !listsLoading && sortedLists.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Categorías</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-2">
-                      <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleDragEnd}
+      <Tabs defaultValue="shopping" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="shopping">Listas de Compras</TabsTrigger>
+          <TabsTrigger value="recurring">Gastos Recurrentes</TabsTrigger>
+        </TabsList>
+        <TabsContent value="shopping" className="mt-6">
+          <div className="md:hidden">
+            <Select
+              value={String(selectedListId)}
+              onValueChange={(val) => setSelectedListId(val)}
+            >
+              <SelectTrigger className="w-full mb-4">
+                  <SelectValue placeholder="Selecciona una categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                  {sortedLists?.map((list) => (
+                    <SelectItem key={list.id} value={String(list.id)}>
+                      {list.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {listsLoading && <p>Cargando categorías...</p>}
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-4 mt-6 md:mt-0">
+            <div className="hidden md:block md:col-span-1">
+                { !listsLoading && sortedLists.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Categorías</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-2">
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <SortableContext
+                        items={sortedLists.map((list) => list.id)}
+                        strategy={verticalListSortingStrategy}
                       >
-                        <SortableContext
-                          items={sortedLists.map((list) => list.id)}
-                          strategy={verticalListSortingStrategy}
-                        >
-                          <ul className="space-y-1">
-                            {sortedLists.map((list) => (
-                              <SortableListItem
-                                key={list.id}
-                                list={list}
-                                selectedListId={selectedListId}
-                                setSelectedListId={setSelectedListId}
-                              >
-                                <ShoppingCart className="mr-2 h-4 w-4" />
-                                {list.name}
-                              </SortableListItem>
-                            ))}
-                          </ul>
-                        </SortableContext>
-                      </DndContext>
-                    </CardContent>
-                  </Card>
-                 )}
-              </div>
-
-              <div className="md:col-span-3">
-                {selectedList ? (
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                      <div>
-                        <CardTitle>{selectedList.name}</CardTitle>
-                        <CardDescription>
-                          {
-                            selectedList.items?.filter(
-                              (i: any) => i.isPurchased
-                            ).length
-                          }{' '}
-                          de {selectedList.items?.length || 0} gastos
-                          registrados
-                        </CardDescription>
-                      </div>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-muted-foreground hover:text-destructive"
-                          >
-                            <Trash2 className="h-5 w-5" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Esta acción no se puede deshacer. Esto eliminará
-                              permanentemente la categoría "{selectedList.name}"
-                              y todos sus gastos.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteList(selectedList.id)}
-                              className="bg-destructive hover:bg-destructive/90"
+                        <ul className="space-y-1">
+                          {sortedLists.map((list) => (
+                            <SortableListItem
+                              key={list.id}
+                              list={list}
+                              selectedListId={selectedListId}
+                              setSelectedListId={setSelectedListId}
                             >
-                              Eliminar
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex w-full flex-col sm:flex-row items-center gap-2 mb-6">
-                        <Input
-                          type="text"
-                          placeholder="Añadir gasto..."
-                          value={newItemName}
-                          onChange={(e) => setNewItemName(e.target.value)}
-                          onKeyDown={(e) =>
-                            e.key === 'Enter' && handleAddItem()
-                          }
-                          className="flex-grow"
-                        />
-                        <div className="flex w-full sm:w-auto gap-2">
-                          <Input
-                            type="text"
-                            placeholder="Cantidad"
-                            value={newItemQuantity}
-                            onChange={(e) =>
-                              setNewItemQuantity(e.target.value)
-                            }
-                            onKeyDown={(e) =>
-                              e.key === 'Enter' && handleAddItem()
-                            }
-                            className="w-full sm:w-24"
-                          />
-                          <Button
-                            onClick={handleAddItem}
-                            disabled={!newItemName.trim()}
-                            className="w-full sm:w-auto"
-                          >
-                            Añadir
-                          </Button>
-                        </div>
-                      </div>
-
-                      {itemsToPurchase.length > 0 && (
-                        <div className="space-y-3">
-                          {itemsToPurchase.map((item: any) => (
-                            <div
-                              key={item.itemId}
-                              className="flex items-center gap-3 rounded-lg border p-3 shadow-sm transition-all hover:shadow-md"
-                            >
-                              <Checkbox
-                                id={`item-${item.itemId}`}
-                                checked={item.isPurchased}
-                                onCheckedChange={(checked) =>
-                                  handleToggleItem(item.itemId, !!checked)
-                                }
-                                className="h-5 w-5"
-                              />
-                              <div className="flex-1">
-                                <label
-                                  htmlFor={`item-${item.itemId}`}
-                                  className="cursor-pointer text-base font-medium"
-                                >
-                                  {item.name}{' '}
-                                  <span className="text-sm text-muted-foreground">
-                                    ({item.quantity})
-                                  </span>
-                                </label>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                onClick={() => handleDeleteItem(item.itemId)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
+                              <ShoppingCart className="mr-2 h-4 w-4" />
+                              {list.name}
+                            </SortableListItem>
                           ))}
-                        </div>
-                      )}
-
-                      {purchasedItems.length > 0 && (
-                        <>
-                          <Separator className="my-6" />
-                          <h3 className="mb-4 text-lg font-medium text-muted-foreground">
-                            Gastos Registrados
-                          </h3>
-                          <div className="space-y-3">
-                            {purchasedItems.map((item: any) => (
-                              <div
-                                key={item.itemId}
-                                className="flex items-center gap-3 rounded-lg border border-dashed p-3"
-                              >
-                                <Checkbox
-                                  id={`item-${item.itemId}`}
-                                  checked={item.isPurchased}
-                                  onCheckedChange={(checked) =>
-                                    handleToggleItem(item.itemId, !!checked)
-                                  }
-                                  className="h-5 w-5"
-                                />
-                                <div className="flex-1">
-                                  <label
-                                    htmlFor={`item-${item.itemId}`}
-                                    className="cursor-pointer text-base text-muted-foreground line-through"
-                                  >
-                                    {item.name}{' '}
-                                    <span className="text-sm">
-                                      ({item.quantity})
-                                    </span>
-                                  </label>
-                                  {item.price != null && (
-                                    <p className="text-sm font-semibold text-primary">
-                                      {formatCurrency(item.price)}
-                                    </p>
-                                  )}
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                  onClick={() =>
-                                    handleDeleteItem(item.itemId)
-                                  }
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        </>
-                      )}
-
-                      {itemsToPurchase.length === 0 &&
-                        purchasedItems.length === 0 && (
-                          <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-10 text-center">
-                            <ShoppingCart className="h-12 w-12 text-muted-foreground/50" />
-                            <h3 className="mt-4 text-lg font-semibold text-muted-foreground">
-                              Sin gastos
-                            </h3>
-                            <p className="mt-2 text-sm text-muted-foreground">
-                              Añade un gasto para empezar a organizar tus
-                              finanzas.
-                            </p>
-                          </div>
-                        )}
-                    </CardContent>
-                  </Card>
-                ) : (
-                   !listsLoading && (
-                    <Card className="flex flex-col items-center justify-center p-10 text-center md:min-h-96">
-                        <CardHeader>
-                        <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground" />
-                        <CardTitle className="mt-4">
-                            No hay categorías de gastos
-                        </CardTitle>
-                        <CardDescription>
-                            Crea una categoría para empezar a registrar gastos.
-                        </CardDescription>
-                        </CardHeader>
-                    </Card>
-                   )
+                        </ul>
+                      </SortableContext>
+                    </DndContext>
+                  </CardContent>
+                </Card>
                 )}
-              </div>
             </div>
-          </TabsContent>
-          <TabsContent value="recurring" className="mt-6">
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-              <div className="lg:col-span-2 space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Gastos Recurrentes Pendientes</CardTitle>
-                    <CardDescription>
-                      Estos gastos fijos están pendientes de pago para este
-                      mes.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {recurringExpensesLoading ? (
-                        <p>Cargando...</p>
-                    ) : pendingRecurringExpenses.length > 0 ? (
-                      <CardContent className="p-0 space-y-3">
-                            {pendingRecurringExpenses.map((expense) => (
-                            <div
-                                key={expense.id}
-                                className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 rounded-lg border bg-card shadow-sm gap-2"
-                            >
-                                <div>
-                                <p className="font-semibold">{expense.name}</p>
-                                <p className="text-sm text-muted-foreground">
-                                    {expense.category} -{' '}
-                                    {formatCurrency(expense.amount)} - Vence el {expense.dayOfMonth}
-                                </p>
-                                </div>
-                                <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handlePayRecurringExpense(expense)}
-                                className="w-full sm:w-auto"
-                                >
-                                <CheckCircle className="mr-2 h-4 w-4" />
-                                Pagar
-                                </Button>
-                            </div>
-                            ))}
-                        </CardContent>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-10 text-center">
-                            <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
-                            <h3 className="mt-4 text-lg font-semibold text-muted-foreground">Todo al día</h3>
-                            <p className="mt-2 text-sm text-muted-foreground">
-                                No tienes gastos recurrentes pendientes para este mes.
-                            </p>
-                        </div>
-                    )}
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Gastos Pagados este Mes</CardTitle>
-                    <CardDescription>
-                      Estos son los gastos recurrentes que ya has pagado.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {recurringExpensesLoading ? (
-                        <p>Cargando...</p>
-                    ) : paidRecurringExpenses.length > 0 ? (
-                       <CardContent className="p-0 space-y-3">
-                            {paidRecurringExpenses.map((expense) => (
-                            <div
-                                key={expense.id}
-                                className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 rounded-lg border bg-muted/50 gap-2"
-                            >
-                                <div>
-                                <p className="font-semibold text-muted-foreground line-through">{expense.name}</p>
-                                <p className="text-sm text-muted-foreground">
-                                    {expense.category} -{' '}
-                                    {formatCurrency(expense.amount)}
-                                </p>
-                                </div>
-                                <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRevertPayment(expense)}
-                                className="w-full sm:w-auto"
-                                >
-                                <Undo2 className="mr-2 h-4 w-4" />
-                                Revertir
-                                </Button>
-                            </div>
-                            ))}
-                        </CardContent>
-                    ) : (
-                       <p className="text-sm text-muted-foreground text-center pt-4">
-                          Aún no has pagado ningún gasto recurrente este mes.
-                        </p>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-              <div className="lg:col-span-1">
+
+            <div className="md:col-span-3">
+              {selectedList ? (
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Gastos Fijos Definidos</CardTitle>
-                    <Dialog
-                      open={isRecurringExpenseDialogOpen}
-                      onOpenChange={(open) => {
-                        setRecurringExpenseDialogOpen(open);
-                        if (!open) setRecurringExpenseToEdit(null);
-                      }}
-                    >
-                      <DialogTrigger asChild>
+                    <div>
+                      <CardTitle>{selectedList.name}</CardTitle>
+                      <CardDescription>
+                        {selectedList.items?.length || 0} gastos registrados
+                      </CardDescription>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
-                          onClick={() => openRecurringExpenseDialog()}
+                          className="text-muted-foreground hover:text-destructive"
                         >
-                          <PlusCircle className="h-4 w-4" />
+                          <Trash2 className="h-5 w-5" />
                         </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>
-                            {recurringExpenseToEdit
-                              ? 'Editar Gasto Recurrente'
-                              : 'Añadir Gasto Recurrente'}
-                          </DialogTitle>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <Label
-                              htmlFor="recurring-name"
-                              className="text-right"
-                            >
-                              Descripción
-                            </Label>
-                            <Input
-                              id="recurring-name"
-                              value={newRecurringExpenseName}
-                              onChange={(e) =>
-                                setNewRecurringExpenseName(e.target.value)
-                              }
-                              className="col-span-3"
-                            />
-                          </div>
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <Label
-                              htmlFor="recurring-amount"
-                              className="text-right"
-                            >
-                              Monto
-                            </Label>
-                            <Input
-                              id="recurring-amount"
-                              type="number"
-                              value={newRecurringExpenseAmount}
-                              onChange={(e) =>
-                                setNewRecurringExpenseAmount(e.target.value)
-                              }
-                              className="col-span-3"
-                            />
-                          </div>
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <Label
-                              htmlFor="recurring-category"
-                              className="text-right"
-                            >
-                              Categoría
-                            </Label>
-                            <Select
-                              value={newRecurringExpenseCategory}
-                              onValueChange={setNewRecurringExpenseCategory}
-                            >
-                              <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Selecciona categoría" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {uniqueExpenseCategories.map((cat) => (
-                                  <SelectItem key={cat} value={cat}>
-                                    {cat}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <Label
-                              htmlFor="recurring-day"
-                              className="text-right"
-                            >
-                              Día del Mes
-                            </Label>
-                            <Input
-                              id="recurring-day"
-                              type="number"
-                              min="1"
-                              max="31"
-                              value={newRecurringExpenseDay}
-                              onChange={(e) =>
-                                setNewRecurringExpenseDay(e.target.value)
-                              }
-                              className="col-span-3"
-                            />
-                          </div>
-                        </div>
-                        <DialogFooter>
-                          <DialogClose asChild>
-                            <Button type="button" variant="outline">
-                              Cancelar
-                            </Button>
-                          </DialogClose>
-                          <Button
-                            type="submit"
-                            onClick={handleSaveRecurringExpense}
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta acción no se puede deshacer. Esto eliminará
+                            permanentemente la categoría "{selectedList.name}"
+                            y todos sus gastos.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteList(selectedList.id)}
+                            className="bg-destructive hover:bg-destructive/90"
                           >
-                            {recurringExpenseToEdit
-                              ? 'Guardar Cambios'
-                              : 'Guardar Gasto'}
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
+                            Eliminar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </CardHeader>
-                  <CardContent className="space-y-2">
-                    {recurringExpensesLoading && (
-                      <p>Cargando gastos recurrentes...</p>
-                    )}
-                    {recurringExpenses?.map((expense) => (
-                      <div
-                        key={expense.id}
-                        className="flex items-center justify-between p-2 rounded-md border"
-                      >
-                        <div className="flex items-center gap-2 overflow-hidden">
-                          <WalletCards className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                          <div className="truncate">
-                            <p className="font-medium text-sm truncate">
-                              {expense.name}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {expense.category} &middot; Día {expense.dayOfMonth}{' '}
-                              de cada mes
-                            </p>
-                          </div>
+                  <CardContent>
+                    <div className="space-y-4 rounded-lg border bg-muted/50 p-4 mb-6">
+                      <h4 className="font-medium">Añadir Nuevo Gasto</h4>
+                      <div className="space-y-2">
+                        <Label htmlFor="new-item-name">Descripción</Label>
+                        <Input
+                          id="new-item-name"
+                          placeholder="Café, pasajes, etc."
+                          value={newItemName}
+                          onChange={(e) => setNewItemName(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div className="space-y-2 sm:col-span-1">
+                          <Label htmlFor="new-item-quantity">Cantidad</Label>
+                          <Input
+                            id="new-item-quantity"
+                            placeholder="1"
+                            value={newItemQuantity}
+                            onChange={(e) => setNewItemQuantity(e.target.value)}
+                          />
                         </div>
-                        <div className="flex items-center gap-1">
-                          <span className="font-semibold text-sm">
-                            {formatCurrency(expense.amount)}
-                          </span>
-                          <AlertDialog onOpenChange={(open) => !open && setRecurringExpenseToDelete(null)}>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 flex-shrink-0"
-                                >
-                                    <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent>
-                                <DropdownMenuItem
-                                    onClick={() =>
-                                    openRecurringExpenseDialog(expense)
-                                    }
-                                >
-                                    <Pencil className="mr-2 h-4 w-4" />
-                                    Editar
-                                </DropdownMenuItem>
-                                <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem
-                                        onSelect={(e) => e.preventDefault()}
-                                        onClick={() => setRecurringExpenseToDelete(expense)}
-                                        className="text-red-500 focus:text-red-500"
-                                    >
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Eliminar
-                                    </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                             <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                    Esta acción no se puede deshacer. Se eliminará el gasto recurrente
-                                    "{recurringExpenseToDelete?.name}" permanentemente.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel onClick={() => setRecurringExpenseToDelete(null)}>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction
-                                    onClick={handleDeleteRecurringExpense}
-                                    className="bg-destructive hover:bg-destructive/90"
-                                    >
-                                    Eliminar
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                        <div className="space-y-2 sm:col-span-2">
+                          <Label htmlFor="new-item-price">Precio</Label>
+                           <Input
+                            id="new-item-price"
+                            type="number"
+                            placeholder="0"
+                            value={newItemPrice}
+                            onChange={(e) => setNewItemPrice(e.target.value)}
+                          />
                         </div>
                       </div>
-                    ))}
-                    {recurringExpenses?.length === 0 &&
-                      !recurringExpensesLoading && (
-                        <p className="text-sm text-muted-foreground text-center pt-4">
-                          No tienes gastos recurrentes definidos.
-                        </p>
+                      <Button
+                        onClick={handleAddItem}
+                        disabled={!newItemName.trim() || !newItemPrice.trim()}
+                        className="w-full sm:w-auto"
+                      >
+                        <PlusCircle className="mr-2 h-4 w-4"/>
+                        Añadir Gasto
+                      </Button>
+                    </div>
+
+                    <Separator className="my-6" />
+
+                    <div className="space-y-3">
+                      {selectedList.items && selectedList.items.length > 0 ? (
+                        selectedList.items.map((item: any) => (
+                          <div
+                            key={item.itemId}
+                            className="flex items-center gap-3 rounded-lg border p-3 shadow-sm transition-all"
+                          >
+                            <div className="flex-1">
+                              <p className="font-medium">
+                                {item.name}{' '}
+                                <span className="text-sm text-muted-foreground">
+                                  ({item.quantity})
+                                </span>
+                              </p>
+                              {item.price != null && (
+                                <p className="text-sm font-semibold text-primary">
+                                  {formatCurrency(item.price)}
+                                </p>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              onClick={() => handleDeleteItem(item.itemId)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-10 text-center">
+                          <ShoppingCart className="h-12 w-12 text-muted-foreground/50" />
+                          <h3 className="mt-4 text-lg font-semibold text-muted-foreground">
+                            Sin gastos registrados
+                          </h3>
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            Añade un gasto para empezar a organizar tus
+                            finanzas en esta categoría.
+                          </p>
+                        </div>
                       )}
+                    </div>
                   </CardContent>
                 </Card>
-              </div>
+              ) : (
+                  !listsLoading && (
+                  <Card className="flex flex-col items-center justify-center p-10 text-center md:min-h-96">
+                      <CardHeader>
+                      <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground" />
+                      <CardTitle className="mt-4">
+                          No hay categorías de gastos
+                      </CardTitle>
+                      <CardDescription>
+                          Crea una categoría para empezar a registrar gastos.
+                      </CardDescription>
+                      </CardHeader>
+                  </Card>
+                  )
+              )}
             </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      <Dialog
-        open={!!itemToUpdate}
-        onOpenChange={(open) => !open && setItemToUpdate(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Registrar Gasto</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="itemPrice">Precio</Label>
-            <Input
-              id="itemPrice"
-              type="number"
-              value={itemPrice}
-              onChange={(e) => setItemPrice(e.target.value)}
-              placeholder="0"
-            />
           </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button
-                type="button"
-                onClick={() => {
-                  if (itemToUpdate) {
-                    handleToggleItem(itemToUpdate.itemId, false);
-                  }
-                  setItemToUpdate(null);
-                }}
-                variant="outline"
-              >
-                Cancelar
-              </Button>
-            </DialogClose>
-            <DialogClose asChild>
-              <Button
-                type="button"
-                onClick={handleSetItemPrice}
-                disabled={!itemPrice.trim()}
-              >
-                Guardar Gasto
-              </Button>
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+        </TabsContent>
+        <TabsContent value="recurring" className="mt-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Gastos Recurrentes Pendientes</CardTitle>
+                  <CardDescription>
+                    Estos gastos fijos están pendientes de pago para este
+                    mes.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {recurringExpensesLoading ? (
+                      <p>Cargando...</p>
+                  ) : pendingRecurringExpenses.length > 0 ? (
+                    <CardContent className="p-0 space-y-3">
+                          {pendingRecurringExpenses.map((expense) => (
+                          <div
+                              key={expense.id}
+                              className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 rounded-lg border bg-card shadow-sm gap-2"
+                          >
+                              <div>
+                              <p className="font-semibold">{expense.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                  {expense.category} -{' '}
+                                  {formatCurrency(expense.amount)} - Vence el {expense.dayOfMonth}
+                              </p>
+                              </div>
+                              <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handlePayRecurringExpense(expense)}
+                              className="w-full sm:w-auto"
+                              >
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Pagar
+                              </Button>
+                          </div>
+                          ))}
+                      </CardContent>
+                  ) : (
+                      <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-10 text-center">
+                          <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
+                          <h3 className="mt-4 text-lg font-semibold text-muted-foreground">Todo al día</h3>
+                          <p className="mt-2 text-sm text-muted-foreground">
+                              No tienes gastos recurrentes pendientes para este mes.
+                          </p>
+                      </div>
+                  )}
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Gastos Pagados este Mes</CardTitle>
+                  <CardDescription>
+                    Estos son los gastos recurrentes que ya has pagado.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {recurringExpensesLoading ? (
+                      <p>Cargando...</p>
+                  ) : paidRecurringExpenses.length > 0 ? (
+                      <CardContent className="p-0 space-y-3">
+                          {paidRecurringExpenses.map((expense) => (
+                          <div
+                              key={expense.id}
+                              className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 rounded-lg border bg-muted/50 gap-2"
+                          >
+                              <div>
+                              <p className="font-semibold text-muted-foreground line-through">{expense.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                  {expense.category} -{' '}
+                                  {formatCurrency(expense.amount)}
+                              </p>
+                              </div>
+                              <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRevertPayment(expense)}
+                              className="w-full sm:w-auto"
+                              >
+                              <Undo2 className="mr-2 h-4 w-4" />
+                              Revertir
+                              </Button>
+                          </div>
+                          ))}
+                      </CardContent>
+                  ) : (
+                      <p className="text-sm text-muted-foreground text-center pt-4">
+                        Aún no has pagado ningún gasto recurrente este mes.
+                      </p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+            <div className="lg:col-span-1">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Gastos Fijos Definidos</CardTitle>
+                  <Dialog
+                    open={isRecurringExpenseDialogOpen}
+                    onOpenChange={(open) => {
+                      setRecurringExpenseDialogOpen(open);
+                      if (!open) setRecurringExpenseToEdit(null);
+                    }}
+                  >
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => openRecurringExpenseDialog()}
+                      >
+                        <PlusCircle className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>
+                          {recurringExpenseToEdit
+                            ? 'Editar Gasto Recurrente'
+                            : 'Añadir Gasto Recurrente'}
+                        </DialogTitle>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label
+                            htmlFor="recurring-name"
+                            className="text-right"
+                          >
+                            Descripción
+                          </Label>
+                          <Input
+                            id="recurring-name"
+                            value={newRecurringExpenseName}
+                            onChange={(e) =>
+                              setNewRecurringExpenseName(e.target.value)
+                            }
+                            className="col-span-3"
+                          />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label
+                            htmlFor="recurring-amount"
+                            className="text-right"
+                          >
+                            Monto
+                          </Label>
+                          <Input
+                            id="recurring-amount"
+                            type="number"
+                            value={newRecurringExpenseAmount}
+                            onChange={(e) =>
+                              setNewRecurringExpenseAmount(e.target.value)
+                            }
+                            className="col-span-3"
+                          />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label
+                            htmlFor="recurring-category"
+                            className="text-right"
+                          >
+                            Categoría
+                          </Label>
+                          <Select
+                            value={newRecurringExpenseCategory}
+                            onValueChange={setNewRecurringExpenseCategory}
+                          >
+                            <SelectTrigger className="col-span-3">
+                              <SelectValue placeholder="Selecciona categoría" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {uniqueExpenseCategories.map((cat) => (
+                                <SelectItem key={cat} value={cat}>
+                                  {cat}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label
+                            htmlFor="recurring-day"
+                            className="text-right"
+                          >
+                            Día del Mes
+                          </Label>
+                          <Input
+                            id="recurring-day"
+                            type="number"
+                            min="1"
+                            max="31"
+                            value={newRecurringExpenseDay}
+                            onChange={(e) =>
+                              setNewRecurringExpenseDay(e.target.value)
+                            }
+                            className="col-span-3"
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button type="button" variant="outline">
+                            Cancelar
+                          </Button>
+                        </DialogClose>
+                        <Button
+                          type="submit"
+                          onClick={handleSaveRecurringExpense}
+                        >
+                          {recurringExpenseToEdit
+                            ? 'Guardar Cambios'
+                            : 'Guardar Gasto'}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {recurringExpensesLoading && (
+                    <p>Cargando gastos recurrentes...</p>
+                  )}
+                  {recurringExpenses?.map((expense) => (
+                    <div
+                      key={expense.id}
+                      className="flex items-center justify-between p-2 rounded-md border"
+                    >
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <WalletCards className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                        <div className="truncate">
+                          <p className="font-medium text-sm truncate">
+                            {expense.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {expense.category} &middot; Día {expense.dayOfMonth}{' '}
+                            de cada mes
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="font-semibold text-sm">
+                          {formatCurrency(expense.amount)}
+                        </span>
+                        <AlertDialog onOpenChange={(open) => !open && setRecurringExpenseToDelete(null)}>
+                          <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                              <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 flex-shrink-0"
+                              >
+                                  <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent>
+                              <DropdownMenuItem
+                                  onClick={() =>
+                                  openRecurringExpenseDialog(expense)
+                                  }
+                              >
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Editar
+                              </DropdownMenuItem>
+                              <AlertDialogTrigger asChild>
+                                  <DropdownMenuItem
+                                      onSelect={(e) => e.preventDefault()}
+                                      onClick={() => setRecurringExpenseToDelete(expense)}
+                                      className="text-red-500 focus:text-red-500"
+                                  >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Eliminar
+                                  </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              </DropdownMenuContent>
+                          </DropdownMenu>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                  Esta acción no se puede deshacer. Se eliminará el gasto recurrente
+                                  "{recurringExpenseToDelete?.name}" permanentemente.
+                                  </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                  <AlertDialogCancel onClick={() => setRecurringExpenseToDelete(null)}>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction
+                                  onClick={handleDeleteRecurringExpense}
+                                  className="bg-destructive hover:bg-destructive/90"
+                                  >
+                                  Eliminar
+                                  </AlertDialogAction>
+                              </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </div>
+                  ))}
+                  {recurringExpenses?.length === 0 &&
+                    !recurringExpensesLoading && (
+                      <p className="text-sm text-muted-foreground text-center pt-4">
+                        No tienes gastos recurrentes definidos.
+                      </p>
+                    )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
+
+    
