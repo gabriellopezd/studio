@@ -117,10 +117,10 @@ export default function ExpensesPage() {
   // State for Shopping Lists
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [newListName, setNewListName] = useState('');
+  const [newListBudgetFocus, setNewListBudgetFocus] = useState('Deseos');
   
   const [newItemName, setNewItemName] = useState('');
   const [newItemAmount, setNewItemAmount] = useState('');
-  const [newItemBudgetFocus, setNewItemBudgetFocus] = useState('Deseos');
   
   const [isPurchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [itemToPurchase, setItemToPurchase] = useState<any | null>(null);
@@ -253,6 +253,7 @@ export default function ExpensesPage() {
       
       const newList = {
         name: categoryName,
+        budgetFocus: newListBudgetFocus,
         createdAt: serverTimestamp(),
         items: [],
         userId: user.uid,
@@ -289,6 +290,7 @@ export default function ExpensesPage() {
         await batch.commit();
         setSelectedListId(listDocRef.id);
         setNewListName('');
+        setNewListBudgetFocus('Deseos');
       } catch (error) {
          console.error("Error creating list and budget:", error);
          toast({
@@ -339,7 +341,6 @@ export default function ExpensesPage() {
         itemId: doc(collection(firestore, 'temp')).id,
         name: newItemName.trim(),
         amount: amount,
-        budgetFocus: newItemBudgetFocus,
         isPurchased: false,
         price: null,
         transactionId: null,
@@ -353,7 +354,6 @@ export default function ExpensesPage() {
 
     setNewItemName('');
     setNewItemAmount('');
-    setNewItemBudgetFocus('Deseos');
 };
 
   const handleTogglePurchase = async (itemId: string, isPurchased: boolean) => {
@@ -400,7 +400,7 @@ export default function ExpensesPage() {
           description: itemToPurchase.name,
           category: selectedList.name,
           amount: itemToPurchase.amount,
-          budgetFocus: itemToPurchase.budgetFocus,
+          budgetFocus: selectedList.budgetFocus,
       });
 
       if (!transactionDoc) return; // Stop if transaction failed
@@ -503,14 +503,29 @@ export default function ExpensesPage() {
             <DialogHeader>
               <DialogTitle>Crear Nueva Categoría de Compra</DialogTitle>
             </DialogHeader>
-            <div className="space-y-2">
-              <Label htmlFor="listName">Nombre de la categoría</Label>
-              <Input
-                id="listName"
-                value={newListName}
-                onChange={(e) => setNewListName(e.target.value)}
-                placeholder="Ej: Supermercado, Farmacia..."
-              />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="listName">Nombre de la categoría</Label>
+                <Input
+                  id="listName"
+                  value={newListName}
+                  onChange={(e) => setNewListName(e.target.value)}
+                  placeholder="Ej: Supermercado, Farmacia..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="list-budget-focus">Enfoque Presupuesto</Label>
+                <Select value={newListBudgetFocus} onValueChange={setNewListBudgetFocus}>
+                    <SelectTrigger id="list-budget-focus">
+                        <SelectValue placeholder="Selecciona" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="Necesidades">Necesidades</SelectItem>
+                        <SelectItem value="Deseos">Deseos</SelectItem>
+                        <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
+                    </SelectContent>
+                </Select>
+              </div>
             </div>
             <DialogFooter>
               <DialogClose asChild>
@@ -636,19 +651,6 @@ export default function ExpensesPage() {
                             <div className="space-y-2">
                                 <Label htmlFor="new-item-amount">Monto Estimado</Label>
                                 <Input id="new-item-amount" type="number" placeholder="5000" value={newItemAmount} onChange={(e) => setNewItemAmount(e.target.value)} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="new-item-focus">Enfoque Presupuesto</Label>
-                                <Select value={newItemBudgetFocus} onValueChange={setNewItemBudgetFocus}>
-                                    <SelectTrigger id="new-item-focus">
-                                        <SelectValue placeholder="Selecciona" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Necesidades">Necesidades</SelectItem>
-                                        <SelectItem value="Deseos">Deseos</SelectItem>
-                                        <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
-                                    </SelectContent>
-                                </Select>
                             </div>
                         </div>
 
