@@ -727,21 +727,21 @@ export default function FinancesPage() {
                             <span className="text-sm font-medium flex items-center gap-2"><Landmark className="h-4 w-4 text-red-500" />Necesidades</span>
                             <span className="text-sm text-muted-foreground">{formatCurrency(budget503020.needs.spend)} / {formatCurrency(budget503020.needs.budget)}</span>
                         </div>
-                        <Progress value={budget503020.needs.progress} className="[&>div]:bg-red-500" />
+                        <Progress value={budget503020.needs.progress} className="h-4 [&>div]:bg-red-500" />
                     </div>
                      <div>
                         <div className="flex justify-between items-center mb-1">
                             <span className="text-sm font-medium flex items-center gap-2"><Heart className="h-4 w-4 text-amber-500" />Deseos</span>
                             <span className="text-sm text-muted-foreground">{formatCurrency(budget503020.wants.spend)} / {formatCurrency(budget503020.wants.budget)}</span>
                         </div>
-                        <Progress value={budget503020.wants.progress} className="[&>div]:bg-amber-500" />
+                        <Progress value={budget503020.wants.progress} className="h-4 [&>div]:bg-amber-500" />
                     </div>
                      <div>
                         <div className="flex justify-between items-center mb-1">
                             <span className="text-sm font-medium flex items-center gap-2"><PiggyBank className="h-4 w-4 text-emerald-500" />Ahorros y Deudas</span>
                             <span className="text-sm text-muted-foreground">{formatCurrency(budget503020.savings.spend)} / {formatCurrency(budget503020.savings.budget)}</span>
                         </div>
-                        <Progress value={budget503020.savings.progress} className="[&>div]:bg-emerald-500" />
+                        <Progress value={budget503020.savings.progress} className="h-4 [&>div]:bg-emerald-500" />
                     </div>
                 </CardContent>
             </Card>
@@ -801,48 +801,48 @@ export default function FinancesPage() {
                                 {formatCurrency(t.amount)}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                <AlertDialog>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon">
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                    <DropdownMenuItem onClick={() => openEditDialog(t)}>
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        Editar
-                                    </DropdownMenuItem>
-                                    <AlertDialogTrigger asChild>
-                                        <DropdownMenuItem
-                                        onSelect={(e) => e.preventDefault()}
-                                        onClick={() => setTransactionToDelete(t)}
-                                        className="text-red-500 focus:text-red-500"
-                                        >
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Eliminar
-                                        </DropdownMenuItem>
-                                    </AlertDialogTrigger>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Esta acción no se puede deshacer. Esto eliminará permanentemente
-                                        la transacción.
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel onClick={() => setTransactionToDelete(null)}>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction
-                                        onClick={handleDeleteTransaction}
-                                        className="bg-destructive hover:bg-destructive/90"
-                                    >
-                                        Eliminar
-                                    </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
+                                <AlertDialog onOpenChange={(open) => !open && setTransactionToDelete(null)}>
+                                  <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon">
+                                          <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent>
+                                      <DropdownMenuItem onClick={() => openEditDialog(t)}>
+                                          <Pencil className="mr-2 h-4 w-4" />
+                                          Editar
+                                      </DropdownMenuItem>
+                                      <AlertDialogTrigger asChild>
+                                          <DropdownMenuItem
+                                          onSelect={(e) => e.preventDefault()}
+                                          onClick={() => setTransactionToDelete(t)}
+                                          className="text-red-500 focus:text-red-500"
+                                          >
+                                          <Trash2 className="mr-2 h-4 w-4" />
+                                          Eliminar
+                                          </DropdownMenuItem>
+                                      </AlertDialogTrigger>
+                                      </DropdownMenuContent>
+                                  </DropdownMenu>
+                                  <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                          Esta acción no se puede deshacer. Esto eliminará permanentemente
+                                          la transacción.
+                                      </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                      <AlertDialogCancel onClick={() => setTransactionToDelete(null)}>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction
+                                          onClick={handleDeleteTransaction}
+                                          className="bg-destructive hover:bg-destructive/90"
+                                      >
+                                          Eliminar
+                                      </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                  </AlertDialogContent>
                                 </AlertDialog>
                                 </TableCell>
                             </TableRow>
@@ -939,7 +939,7 @@ export default function FinancesPage() {
                                         </Button>
                                     </div>
                                     </div>
-                                    <Progress value={progress} />
+                                    <Progress value={progress} className="h-4"/>
                                 </div>
                                 );
                             })}
@@ -972,13 +972,17 @@ export default function FinancesPage() {
                                     <p className="font-semibold">{income.name}</p>
                                     <p className="text-sm text-muted-foreground">{formatCurrency(income.amount)} - Día {income.dayOfMonth}</p>
                                 </div>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                        <DropdownMenuItem onClick={() => openRecurringDialog('income', income)}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setRecurringToDelete({ ...income, type: 'income' })} className="text-red-500"><Trash2 className="mr-2 h-4 w-4" />Eliminar</DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                                <AlertDialog open={recurringToDelete?.id === income.id} onOpenChange={(open) => !open && setRecurringToDelete(null)}>
+                                  <DropdownMenu>
+                                      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
+                                      <DropdownMenuContent>
+                                          <DropdownMenuItem onClick={() => openRecurringDialog('income', income)}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
+                                          <AlertDialogTrigger asChild>
+                                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => setRecurringToDelete({ ...income, type: 'income' })} className="text-red-500"><Trash2 className="mr-2 h-4 w-4" />Eliminar</DropdownMenuItem>
+                                          </AlertDialogTrigger>
+                                      </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </AlertDialog>
                             </div>
                            ))}
                            {recurringIncomes?.length === 0 && <p className="text-sm text-muted-foreground text-center pt-4">No has definido ingresos fijos.</p>}
@@ -1036,13 +1040,17 @@ export default function FinancesPage() {
                                     <p className="font-semibold">{expense.name}</p>
                                     <p className="text-sm text-muted-foreground">{formatCurrency(expense.amount)} - Día {expense.dayOfMonth}</p>
                                 </div>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                        <DropdownMenuItem onClick={() => openRecurringDialog('expense', expense)}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setRecurringToDelete({ ...expense, type: 'expense' })} className="text-red-500"><Trash2 className="mr-2 h-4 w-4" />Eliminar</DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                                <AlertDialog open={recurringToDelete?.id === expense.id} onOpenChange={(open) => !open && setRecurringToDelete(null)}>
+                                  <DropdownMenu>
+                                      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
+                                      <DropdownMenuContent>
+                                          <DropdownMenuItem onClick={() => openRecurringDialog('expense', expense)}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
+                                          <AlertDialogTrigger asChild>
+                                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => setRecurringToDelete({ ...expense, type: 'expense' })} className="text-red-500"><Trash2 className="mr-2 h-4 w-4" />Eliminar</DropdownMenuItem>
+                                          </AlertDialogTrigger>
+                                      </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </AlertDialog>
                             </div>
                            ))}
                            {recurringExpenses?.length === 0 && <p className="text-sm text-muted-foreground text-center">No has definido gastos fijos.</p>}
@@ -1138,7 +1146,7 @@ export default function FinancesPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setRecurringToDelete(null)}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteRecurringItem} className="bg-destructive hover:bg-destructive/90">
               Eliminar
             </AlertDialogAction>
@@ -1233,9 +1241,11 @@ export default function FinancesPage() {
                         <SelectItem key={cat} value={cat}>
                           {cat}
                         </SelectItem>
-                      )) : null}
-                      <SelectItem value="Salario">Salario</SelectItem>
-                      <SelectItem value="Otro">Otro</SelectItem>
+                      )) : uniqueIncomeCategories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1262,5 +1272,3 @@ export default function FinancesPage() {
     </>
   );
 }
-
-    

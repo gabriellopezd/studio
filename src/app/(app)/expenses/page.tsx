@@ -280,6 +280,7 @@ export default function ExpensesPage() {
       const docRef = await addDocumentNonBlocking(transactionsColRef, {
         ...newTransaction,
         userId: user.uid,
+        date: new Date().toISOString(),
         createdAt: serverTimestamp(),
       });
   
@@ -506,7 +507,6 @@ export default function ExpensesPage() {
       type: 'expense' as const,
       description: itemToUpdate.itemName,
       category: itemToUpdate.listName,
-      date: new Date().toISOString(),
       amount: price,
     };
 
@@ -691,36 +691,11 @@ export default function ExpensesPage() {
       type: 'expense' as const,
       description: expense.name,
       category: expense.category,
-      date: new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        expense.dayOfMonth
-      ).toISOString(),
       amount: expense.amount,
-      userId: user.uid,
-      createdAt: serverTimestamp(),
     };
   
-    const batch = writeBatch(firestore);
-  
-    // Add transaction
-    const transactionsColRef = collection(firestore, 'users', user.uid, 'transactions');
-    const newTransactionRef = doc(transactionsColRef);
-    batch.set(newTransactionRef, newTransaction);
-  
-    // Update budget
-    const budget = budgets?.find((b) => b.categoryName === expense.category);
-    if (budget) {
-      const budgetRef = doc(
-        firestore,
-        'users',
-        user.uid,
-        'budgets',
-        budget.id
-      );
-      const newSpend = (budget.currentSpend || 0) + expense.amount;
-      batch.update(budgetRef, { currentSpend: newSpend });
-    }
+    const transactionDoc = await addTransaction(newTransaction);
+    if (!transactionDoc) return;
   
     // Update recurring expense
     const expenseRef = doc(
@@ -730,71 +705,60 @@ export default function ExpensesPage() {
       'recurringExpenses',
       expense.id
     );
-    batch.update(expenseRef, {
+    updateDocumentNonBlocking(expenseRef, {
       lastInstanceCreated: currentMonthYear,
-      lastTransactionId: newTransactionRef.id
+      lastTransactionId: transactionDoc.id
     });
   
-    try {
-        await batch.commit();
-        toast({
-          title: 'Gasto Recurrente Pagado',
-          description: `${expense.name} por ${formatCurrency(
-            expense.amount
-          )} ha sido registrado.`,
-        });
-    } catch(error) {
-        console.error("Error paying recurring expense:", error);
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "No se pudo registrar el pago del gasto recurrente.",
-        });
-    }
+    toast({
+      title: 'Gasto Recurrente Pagado',
+      description: `${expense.name} por ${formatCurrency(
+        expense.amount
+      )} ha sido registrado.`,
+    });
   };
 
   const handleRevertPayment = async (expense: any) => {
     if (!user || !expense.lastTransactionId) return;
 
-    try {
-        const transactionRef = doc(firestore, 'users', user.uid, 'transactions', expense.lastTransactionId);
-        const transactionSnap = await getDoc(transactionRef);
-        
-        if (!transactionSnap.exists()) {
-            // If transaction doesn't exist, just revert the recurring expense state
-            const expenseRef = doc(firestore, 'users', user.uid, 'recurringExpenses', expense.id);
-            await updateDocumentNonBlocking(expenseRef, {
-                lastInstanceCreated: null,
-                lastTransactionId: null,
-            });
-            toast({
-                title: 'Pago Revertido',
-                description: `Se ha deshecho el pago de ${expense.name}. La transacción original no se encontró.`,
-            });
-            return;
-        }
-        
-        const transactionData = transactionSnap.data();
-        const batch = writeBatch(firestore);
+    const batch = writeBatch(firestore);
 
-        // 1. Delete the transaction
-        batch.delete(transactionRef);
+    // 1. Get transaction to be deleted to retrieve its data
+    const transactionRef = doc(firestore, 'users', user.uid, 'transactions', expense.lastTransactionId);
+    const transactionSnap = await getDoc(transactionRef);
 
-        // 2. Revert the budget
-        const budgetToRevert = budgets?.find(b => b.categoryName === transactionData.category);
-        if (budgetToRevert) {
-            const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budgetToRevert.id);
-            const newSpend = Math.max(0, (budgetToRevert.currentSpend || 0) - transactionData.amount);
-            batch.update(budgetRef, { currentSpend: newSpend });
-        }
-
-        // 3. Revert the recurring expense
+    if (!transactionSnap.exists()) {
+        toast({ variant: "destructive", title: "Error", description: "No se encontró la transacción original para revertir." });
+        // Still attempt to revert the recurring expense state
         const expenseRef = doc(firestore, 'users', user.uid, 'recurringExpenses', expense.id);
-        batch.update(expenseRef, {
+        updateDocumentNonBlocking(expenseRef, {
             lastInstanceCreated: null,
             lastTransactionId: null,
         });
+        return;
+    }
+    
+    const transactionData = transactionSnap.data();
 
+    // 2. Delete the transaction
+    batch.delete(transactionRef);
+
+    // 3. Revert the budget
+    const budgetToRevert = budgets?.find(b => b.categoryName === transactionData.category);
+    if (budgetToRevert) {
+        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budgetToRevert.id);
+        const newSpend = Math.max(0, (budgetToRevert.currentSpend || 0) - transactionData.amount);
+        batch.update(budgetRef, { currentSpend: newSpend });
+    }
+
+    // 4. Revert the recurring expense
+    const expenseRef = doc(firestore, 'users', user.uid, 'recurringExpenses', expense.id);
+    batch.update(expenseRef, {
+        lastInstanceCreated: null,
+        lastTransactionId: null,
+    });
+    
+    try {
         await batch.commit();
         toast({
             title: 'Pago Revertido',
@@ -1144,7 +1108,7 @@ export default function ExpensesPage() {
                     {recurringExpensesLoading ? (
                         <p>Cargando...</p>
                     ) : pendingRecurringExpenses.length > 0 ? (
-                        <div className="space-y-3">
+                      <CardContent className="p-0 space-y-3">
                             {pendingRecurringExpenses.map((expense) => (
                             <div
                                 key={expense.id}
@@ -1168,7 +1132,7 @@ export default function ExpensesPage() {
                                 </Button>
                             </div>
                             ))}
-                        </div>
+                        </CardContent>
                     ) : (
                         <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-10 text-center">
                             <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
@@ -1191,7 +1155,7 @@ export default function ExpensesPage() {
                     {recurringExpensesLoading ? (
                         <p>Cargando...</p>
                     ) : paidRecurringExpenses.length > 0 ? (
-                        <div className="space-y-3">
+                       <CardContent className="p-0 space-y-3">
                             {paidRecurringExpenses.map((expense) => (
                             <div
                                 key={expense.id}
@@ -1215,7 +1179,7 @@ export default function ExpensesPage() {
                                 </Button>
                             </div>
                             ))}
-                        </div>
+                        </CardContent>
                     ) : (
                        <p className="text-sm text-muted-foreground text-center pt-4">
                           Aún no has pagado ningún gasto recurrente este mes.
@@ -1489,5 +1453,3 @@ export default function ExpensesPage() {
     </>
   );
 }
-
-    
