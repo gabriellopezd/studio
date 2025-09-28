@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -86,7 +87,8 @@ import {
   getDocs,
   getDoc,
   Timestamp,
-  orderBy
+  orderBy,
+  increment,
 } from 'firebase/firestore';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
@@ -483,7 +485,7 @@ export default function FinancesPage() {
       category: item.category,
       date: new Date().toISOString(),
       amount: item.amount,
-      budgetFocus: item.budgetFocus, // Pass budget focus
+      budgetFocus: type === 'expense' ? item.budgetFocus : null,
       userId: user.uid,
       createdAt: serverTimestamp(),
     };
@@ -496,8 +498,7 @@ export default function FinancesPage() {
       const budget = budgets?.find(b => b.categoryName === item.category);
       if (budget) {
         const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-        const newSpend = (budget.currentSpend || 0) + item.amount;
-        batch.update(budgetRef, { currentSpend: newSpend });
+        batch.update(budgetRef, { currentSpend: increment(item.amount) });
       }
     }
 
