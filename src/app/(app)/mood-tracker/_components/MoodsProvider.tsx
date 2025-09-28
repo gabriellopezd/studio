@@ -48,10 +48,10 @@ export const MoodsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const counts = moods.flatMap(m => m.feelings).reduce((acc, feeling) => {
             acc[feeling] = (acc[feeling] || 0) + 1;
             return acc;
-        }, {} as Record<string, number>);
+        }, {} as { [key: string]: number });
 
         return Object.entries(counts)
-            .sort(([, a]: [string, number], [, b]: [string, number]) => b - a)
+            .sort(([, a], [, b]) => b - a)
             .slice(0, 5);
     }, [moods]);
 
@@ -60,10 +60,10 @@ export const MoodsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const counts = moods.flatMap(m => m.influences).reduce((acc, influence) => {
             acc[influence] = (acc[influence] || 0) + 1;
             return acc;
-        }, {} as Record<string, number>);
+        }, {} as { [key: string]: number });
 
         return Object.entries(counts)
-            .sort(([, a]: [string, number], [, b]: [string, number]) => b - a)
+            .sort(([, a], [, b]) => b - a)
             .slice(0, 5);
     }, [moods]);
     
