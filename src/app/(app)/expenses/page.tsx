@@ -117,13 +117,13 @@ export default function ExpensesPage() {
   // State for Shopping Lists
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [newListName, setNewListName] = useState('');
+  
   const [newItemName, setNewItemName] = useState('');
-  const [newItemQuantity, setNewItemQuantity] = useState('1');
+  const [newItemAmount, setNewItemAmount] = useState('');
+  const [newItemBudgetFocus, setNewItemBudgetFocus] = useState('Deseos');
   
   const [isPurchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [itemToPurchase, setItemToPurchase] = useState<any | null>(null);
-  const [purchasePrice, setPurchasePrice] = useState('');
-  const [purchaseBudgetFocus, setPurchaseBudgetFocus] = useState('Deseos');
 
   const { toast } = useToast();
 
@@ -327,12 +327,19 @@ export default function ExpensesPage() {
   };
 
   const handleAddItem = async () => {
-    if (!newItemName.trim() || !selectedListId || !user) return;
+    if (!newItemName.trim() || !newItemAmount.trim() || !selectedListId || !user) return;
 
+    const amount = parseFloat(newItemAmount);
+    if (isNaN(amount)) {
+        toast({ variant: "destructive", title: "Error", description: "El monto debe ser un número válido." });
+        return;
+    }
+    
     const newItem = {
-        itemId: doc(collection(firestore, 'temp')).id, // Generate a unique ID
+        itemId: doc(collection(firestore, 'temp')).id,
         name: newItemName.trim(),
-        quantity: newItemQuantity.trim() || '1',
+        amount: amount,
+        budgetFocus: newItemBudgetFocus,
         isPurchased: false,
         price: null,
         transactionId: null,
@@ -345,7 +352,8 @@ export default function ExpensesPage() {
     });
 
     setNewItemName('');
-    setNewItemQuantity('1');
+    setNewItemAmount('');
+    setNewItemBudgetFocus('Deseos');
 };
 
   const handleTogglePurchase = async (itemId: string, isPurchased: boolean) => {
@@ -380,33 +388,25 @@ export default function ExpensesPage() {
 
       } else { // Purchasing
           setItemToPurchase(item);
-          setPurchasePrice('');
-          setPurchaseBudgetFocus('Deseos'); // Reset to default
           setPurchaseDialogOpen(true);
       }
   };
 
   const handleConfirmPurchase = async () => {
-      if (!itemToPurchase || !purchasePrice || !user || !selectedList) return;
-
-      const price = parseFloat(purchasePrice);
-      if (isNaN(price)) {
-          toast({ variant: 'destructive', title: 'Precio inválido' });
-          return;
-      }
+      if (!itemToPurchase || !user || !selectedList) return;
       
       const transactionDoc = await addTransaction({
           type: 'expense',
           description: itemToPurchase.name,
           category: selectedList.name,
-          amount: price,
-          budgetFocus: purchaseBudgetFocus,
+          amount: itemToPurchase.amount,
+          budgetFocus: itemToPurchase.budgetFocus,
       });
 
       if (!transactionDoc) return; // Stop if transaction failed
 
       const updatedItems = selectedList.items.map((i: any) =>
-          i.itemId === itemToPurchase.itemId ? { ...i, isPurchased: true, price, transactionId: transactionDoc.id } : i
+          i.itemId === itemToPurchase.itemId ? { ...i, isPurchased: true, price: i.amount, transactionId: transactionDoc.id } : i
       );
       
       const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', selectedListId!);
@@ -628,17 +628,31 @@ export default function ExpensesPage() {
                   <CardContent>
                     <div className="mb-6 space-y-4 rounded-lg border bg-muted/50 p-4">
                         <h4 className="font-medium">Planificar Nuevo Artículo</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
-                           <div className="space-y-2 sm:col-span-3">
-                               <Label htmlFor="new-item-name">Descripción</Label>
-                               <Input id="new-item-name" placeholder="Leche, pan, etc." value={newItemName} onChange={(e) => setNewItemName(e.target.value)} />
-                           </div>
-                           <div className="space-y-2 sm:col-span-2">
-                               <Label htmlFor="new-item-quantity">Cantidad</Label>
-                               <Input id="new-item-quantity" placeholder="1" value={newItemQuantity} onChange={(e) => setNewItemQuantity(e.target.value)} />
-                           </div>
+                        <div className="space-y-2">
+                           <Label htmlFor="new-item-name">Descripción</Label>
+                           <Input id="new-item-name" placeholder="Leche, pan, etc." value={newItemName} onChange={(e) => setNewItemName(e.target.value)} />
                         </div>
-                        <Button onClick={handleAddItem} disabled={!newItemName.trim()} className="w-full sm:w-auto">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="new-item-amount">Monto Estimado</Label>
+                                <Input id="new-item-amount" type="number" placeholder="5000" value={newItemAmount} onChange={(e) => setNewItemAmount(e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="new-item-focus">Enfoque Presupuesto</Label>
+                                <Select value={newItemBudgetFocus} onValueChange={setNewItemBudgetFocus}>
+                                    <SelectTrigger id="new-item-focus">
+                                        <SelectValue placeholder="Selecciona" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Necesidades">Necesidades</SelectItem>
+                                        <SelectItem value="Deseos">Deseos</SelectItem>
+                                        <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        <Button onClick={handleAddItem} disabled={!newItemName.trim() || !newItemAmount.trim()} className="w-full sm:w-auto">
                             <PlusCircle className="mr-2 h-4 w-4"/> Añadir a la Lista
                         </Button>
                     </div>
@@ -655,16 +669,11 @@ export default function ExpensesPage() {
                             <Checkbox id={`item-${item.itemId}`} checked={item.isPurchased} onCheckedChange={(checked) => handleTogglePurchase(item.itemId, !!checked)}/>
                             <div className="flex-1">
                               <label htmlFor={`item-${item.itemId}`} className={`font-medium cursor-pointer ${item.isPurchased ? 'line-through text-muted-foreground' : ''}`}>
-                                {item.name}{' '}
-                                <span className="text-sm text-muted-foreground">
-                                  ({item.quantity})
-                                </span>
+                                {item.name}
                               </label>
-                              {item.price != null && (
-                                <p className="text-sm font-semibold text-primary">
-                                  {formatCurrency(item.price)}
-                                </p>
-                              )}
+                              <p className="text-sm font-semibold text-primary">
+                                  {formatCurrency(item.price ?? item.amount)}
+                              </p>
                             </div>
                             <Button
                               variant="ghost"
@@ -712,29 +721,13 @@ export default function ExpensesPage() {
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>Confirmar Compra: {itemToPurchase?.name}</DialogTitle>
+                 <CardDescription>
+                    Se registrará un gasto de {formatCurrency(itemToPurchase?.amount)} en la categoría {selectedList?.name}.
+                </CardDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                    <Label htmlFor="purchase-price">Precio</Label>
-                    <Input id="purchase-price" type="number" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} placeholder="0"/>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="purchase-budget-focus">Enfoque del Presupuesto</Label>
-                    <Select value={purchaseBudgetFocus} onValueChange={setPurchaseBudgetFocus}>
-                        <SelectTrigger id="purchase-budget-focus">
-                            <SelectValue placeholder="Selecciona un enfoque" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="Necesidades">Necesidades</SelectItem>
-                            <SelectItem value="Deseos">Deseos</SelectItem>
-                            <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
             <DialogFooter>
                 <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-                <Button onClick={handleConfirmPurchase} disabled={!purchasePrice}>Confirmar Gasto</Button>
+                <Button onClick={handleConfirmPurchase}>Confirmar Gasto</Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>
