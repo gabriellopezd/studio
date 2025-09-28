@@ -29,7 +29,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
   ArrowDownCircle,
@@ -46,6 +45,7 @@ import {
   Landmark,
   PiggyBank,
   Heart,
+  CalendarIcon,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import {
@@ -93,8 +93,11 @@ import {
 } from 'firebase/firestore';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-
-const needsCategories = ["Arriendo", "Servicios", "Transporte", "Salud"];
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 export default function FinancesPage() {
   const { firestore, user } = useFirebase();
@@ -103,21 +106,20 @@ export default function FinancesPage() {
   const [isTransactionDialogOpen, setTransactionDialogOpen] = useState(false);
   const [isBudgetDialogOpen, setBudgetDialogOpen] = useState(false);
 
-  const [newTransactionType, setNewTransactionType] = useState<
-    'income' | 'expense'
-  >('expense');
+  const [newTransactionType, setNewTransactionType] = useState<'income' | 'expense'>('expense');
   const [newTransactionDesc, setNewTransactionDesc] = useState('');
   const [newTransactionAmount, setNewTransactionAmount] = useState('');
   const [newTransactionCategory, setNewTransactionCategory] = useState('');
+  const [newTransactionDate, setNewTransactionDate] = useState<Date | undefined>(new Date());
+  const [newTransactionBudgetFocus, setNewTransactionBudgetFocus] = useState('Deseos');
+
   
   const [budgetToEdit, setBudgetToEdit] = useState<any | null>(null);
   const [newBudgetCategory, setNewBudgetCategory] = useState('');
   const [newBudgetLimit, setNewBudgetLimit] = useState('');
 
   const [transactionToEdit, setTransactionToEdit] = useState<any | null>(null);
-  const [transactionToDelete, setTransactionToDelete] = useState<any | null>(
-    null
-  );
+  const [transactionToDelete, setTransactionToDelete] = useState<any | null>(null);
 
   const [currentMonthYear, setCurrentMonthYear] = useState('');
 
@@ -175,17 +177,6 @@ export default function FinancesPage() {
   );
   const { data: recurringIncomes, isLoading: recurringIncomesLoading } = useCollection(recurringIncomesQuery);
 
-  const shoppingListsQuery = useMemo(
-    () => user ? query(collection(firestore, 'users', user.uid, 'shoppingLists')) : null,
-    [firestore, user]
-  );
-  const { data: shoppingLists } = useCollection(shoppingListsQuery);
-
-  const wantsCategories = useMemo(() => {
-    const fromShoppingLists = shoppingLists?.map((l) => l.name) ?? [];
-    return ["Restaurantes", "Entretenimiento", "Hobbies", ...fromShoppingLists];
-  }, [shoppingLists]);
-
 
   const pendingRecurringExpenses = useMemo(() => {
     if (!recurringExpenses) return [];
@@ -232,22 +223,23 @@ export default function FinancesPage() {
     const wantsBudget = monthlyIncome * 0.3;
     const savingsBudget = monthlyIncome * 0.2;
 
-    const needsSpend = transactions?.filter(t => t.type === 'expense' && needsCategories.includes(t.category)).reduce((sum, t) => sum + t.amount, 0) ?? 0;
-    const wantsSpend = transactions?.filter(t => t.type === 'expense' && wantsCategories.includes(t.category)).reduce((sum, t) => sum + t.amount, 0) ?? 0;
-    const savingsSpend = transactions?.filter(t => t.type === 'expense' && !needsCategories.includes(t.category) && !wantsCategories.includes(t.category)).reduce((sum, t) => sum + t.amount, 0) ?? 0;
+    const needsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Necesidades').reduce((sum, t) => sum + t.amount, 0) ?? 0;
+    const wantsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((sum, t) => sum + t.amount, 0) ?? 0;
+    const savingsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((sum, t) => sum + t.amount, 0) ?? 0;
 
     return {
         needs: { budget: needsBudget, spend: needsSpend, progress: (needsSpend/needsBudget)*100 },
         wants: { budget: wantsBudget, spend: wantsSpend, progress: (wantsSpend/wantsBudget)*100 },
         savings: { budget: savingsBudget, spend: savingsSpend, progress: (savingsSpend/savingsBudget)*100 },
     };
-  }, [monthlyIncome, transactions, wantsCategories]);
+  }, [monthlyIncome, transactions]);
 
   const handleAddTransaction = async () => {
     if (
       !newTransactionDesc ||
       !newTransactionAmount ||
       !newTransactionCategory ||
+      !newTransactionDate ||
       !user
     )
       return;
@@ -258,8 +250,9 @@ export default function FinancesPage() {
       type: newTransactionType,
       description: newTransactionDesc,
       category: newTransactionCategory,
-      date: new Date().toISOString(),
+      date: newTransactionDate.toISOString(),
       amount: amount,
+      budgetFocus: newTransactionType === 'expense' ? newTransactionBudgetFocus : null,
       createdAt: serverTimestamp(),
       userId: user.uid,
     };
@@ -280,7 +273,6 @@ export default function FinancesPage() {
         updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
       }
     }
-
 
     setNewTransactionDesc('');
     setNewTransactionAmount('');
@@ -346,6 +338,8 @@ export default function FinancesPage() {
       amount: amount,
       category: transactionToEdit.category,
       type: transactionToEdit.type,
+      date: new Date(transactionToEdit.date).toISOString(),
+      budgetFocus: transactionToEdit.type === 'expense' ? transactionToEdit.budgetFocus : null,
     });
     
     // Revert old budget spend
@@ -401,7 +395,7 @@ export default function FinancesPage() {
         const updatedItems = listData.items.map((item: any) => {
           if (item.transactionId === transactionToDelete.id) {
             const { price, transactionId, isPurchased, ...rest } = item;
-            return { ...rest, isPurchased: false };
+            return { ...rest, isPurchased: false, price: null, transactionId: null };
           }
           return item;
         });
@@ -423,7 +417,7 @@ export default function FinancesPage() {
   };
 
   const openEditDialog = (transaction: any) => {
-    setTransactionToEdit({ ...transaction, amount: transaction.amount.toString() });
+    setTransactionToEdit({ ...transaction, amount: transaction.amount.toString(), date: new Date(transaction.date) });
   };
   
     const openRecurringDialog = (type: 'income' | 'expense', item?: any) => {
@@ -488,6 +482,7 @@ export default function FinancesPage() {
       category: item.category,
       date: new Date().toISOString(),
       amount: item.amount,
+      budgetFocus: item.budgetFocus, // Pass budget focus
       userId: user.uid,
       createdAt: serverTimestamp(),
     };
@@ -556,7 +551,7 @@ export default function FinancesPage() {
     const fromTransactions = transactions
         ?.filter((t) => t.type === 'expense')
         .map((t) => t.category) ?? [];
-    return ["Arriendo", ...new Set([...fromBudgets, ...fromTransactions])];
+    return ["Arriendo", "Servicios", "Transporte", "Salud", ...new Set([...fromBudgets, ...fromTransactions])];
   }, [budgets, transactions]);
   
   const incomeCategories = useMemo(() => {
@@ -592,89 +587,78 @@ export default function FinancesPage() {
                 <DialogTitle>Añadir Nueva Transacción</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="type" className="text-right">
-                    Tipo
-                  </Label>
-                  <Select
-                    value={newTransactionType}
-                    onValueChange={(value) =>
-                      setNewTransactionType(value as 'income' | 'expense')
-                    }
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Selecciona un tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="expense">Gasto</SelectItem>
-                      <SelectItem value="income">Ingreso</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="type">Tipo</Label>
+                    <Select value={newTransactionType} onValueChange={(value) => setNewTransactionType(value as 'income' | 'expense')}>
+                      <SelectTrigger><SelectValue/></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="expense">Gasto</SelectItem>
+                        <SelectItem value="income">Ingreso</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                     <Label htmlFor="amount">Monto</Label>
+                     <Input id="amount" type="number" value={newTransactionAmount} onChange={(e) => setNewTransactionAmount(e.target.value)} />
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="description" className="text-right">
-                    Descripción
-                  </Label>
-                  <Input
-                    id="description"
-                    value={newTransactionDesc}
-                    onChange={(e) => setNewTransactionDesc(e.target.value)}
-                    className="col-span-3"
-                  />
+
+                <div className="space-y-2">
+                    <Label htmlFor="description">Descripción</Label>
+                    <Input id="description" value={newTransactionDesc} onChange={(e) => setNewTransactionDesc(e.target.value)} />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="amount" className="text-right">
-                    Monto
-                  </Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    value={newTransactionAmount}
-                    onChange={(e) => setNewTransactionAmount(e.target.value)}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="category" className="text-right">
-                    Categoría
-                  </Label>
-                  <Select
-                    value={newTransactionCategory}
-                    onValueChange={setNewTransactionCategory}
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Selecciona una categoría" />
-                    </SelectTrigger>
+                 
+                <div className="space-y-2">
+                  <Label htmlFor="category">Categoría</Label>
+                  <Select value={newTransactionCategory} onValueChange={setNewTransactionCategory}>
+                    <SelectTrigger><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
                     <SelectContent>
                       {newTransactionType === 'expense' 
-                        ? uniqueExpenseCategories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        )) 
-                        : uniqueIncomeCategories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))
+                        ? uniqueExpenseCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>)) 
+                        : uniqueIncomeCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))
                       }
                     </SelectContent>
                   </Select>
                 </div>
+
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label>Fecha</Label>
+                         <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal",!newTransactionDate && "text-muted-foreground")}>
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {newTransactionDate ? format(newTransactionDate, "PPP", { locale: es }) : <span>Elige una fecha</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={newTransactionDate} onSelect={setNewTransactionDate} initialFocus /></PopoverContent>
+                        </Popover>
+                    </div>
+                    {newTransactionType === 'expense' && (
+                        <div className="space-y-2">
+                          <Label htmlFor="budget-focus">Enfoque Presupuesto</Label>
+                          <Select value={newTransactionBudgetFocus} onValueChange={setNewTransactionBudgetFocus}>
+                            <SelectTrigger id="budget-focus"><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Necesidades">Necesidades</SelectItem>
+                              <SelectItem value="Deseos">Deseos</SelectItem>
+                              <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                    )}
+                </div>
               </div>
               <DialogFooter>
-                <DialogClose asChild>
-                  <Button type="button" variant="outline">Cancelar</Button>
-                </DialogClose>
-                <Button type="submit" onClick={handleAddTransaction}>
-                  Guardar Transacción
-                </Button>
+                <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                <Button type="submit" onClick={handleAddTransaction}>Guardar Transacción</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </PageHeader>
         
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
                 <CardHeader>
                 <CardTitle>Ingresos del Mes</CardTitle>
@@ -754,7 +738,7 @@ export default function FinancesPage() {
             <TabsTrigger value="recurring">Ingresos y Gastos Fijos</TabsTrigger>
           </TabsList>
           <TabsContent value="transactions" className="mt-4">
-             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <Card className="lg:col-span-2">
                     <CardHeader>
                     <CardTitle>Transacciones Recientes</CardTitle>
@@ -775,11 +759,11 @@ export default function FinancesPage() {
                         <TableBody>
                             {transactions?.map((t) => (
                             <TableRow key={t.id}>
-                                <TableCell className="font-medium flex items-center gap-2">
+                                <TableCell className="flex items-center gap-2 font-medium">
                                 {t.type === 'income' ? (
-                                    <ArrowUpCircle className="h-5 w-5 text-emerald-500 shrink-0" />
+                                    <ArrowUpCircle className="h-5 w-5 shrink-0 text-emerald-500" />
                                 ) : (
-                                    <ArrowDownCircle className="h-5 w-5 text-red-500 shrink-0" />
+                                    <ArrowDownCircle className="h-5 w-5 shrink-0 text-red-500" />
                                 )}
                                 <span className="truncate">{t.description}</span>
                                 </TableCell>
@@ -801,7 +785,7 @@ export default function FinancesPage() {
                                 {formatCurrency(t.amount)}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                <AlertDialog onOpenChange={(open) => !open && setTransactionToDelete(null)}>
+                                <AlertDialog open={transactionToDelete?.id === t.id} onOpenChange={(open) => !open && setTransactionToDelete(null)}>
                                   <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
                                       <Button variant="ghost" size="icon">
@@ -869,16 +853,14 @@ export default function FinancesPage() {
                                 <DialogTitle>{budgetToEdit ? 'Editar Presupuesto' : 'Añadir Presupuesto'}</DialogTitle>
                             </DialogHeader>
                             <div className="grid gap-4 py-4">
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="budget-category" className="text-right">
-                                    Categoría
-                                </Label>
+                                <div className="space-y-2">
+                                <Label htmlFor="budget-category">Categoría</Label>
                                 <Select
                                     value={newBudgetCategory}
                                     onValueChange={setNewBudgetCategory}
                                     disabled={!!budgetToEdit}
                                 >
-                                    <SelectTrigger className="col-span-3">
+                                    <SelectTrigger>
                                     <SelectValue placeholder="Selecciona una categoría" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -892,16 +874,13 @@ export default function FinancesPage() {
                                     </SelectContent>
                                 </Select>
                                 </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="budget-limit" className="text-right">
-                                    Límite Mensual
-                                </Label>
+                                <div className="space-y-2">
+                                <Label htmlFor="budget-limit">Límite Mensual</Label>
                                 <Input
                                     id="budget-limit"
                                     type="number"
                                     value={newBudgetLimit}
                                     onChange={(e) => setNewBudgetLimit(e.target.value)}
-                                    className="col-span-3"
                                 />
                                 </div>
                             </div>
@@ -944,7 +923,7 @@ export default function FinancesPage() {
                                 );
                             })}
                             {budgets?.length === 0 && !budgetsLoading && (
-                                <p className="text-sm text-muted-foreground text-center pt-4">
+                                <p className="text-sm text-center text-muted-foreground pt-4">
                                     No has creado ningún presupuesto.
                                 </p>
                                 )}
@@ -985,7 +964,7 @@ export default function FinancesPage() {
                                 </AlertDialog>
                             </div>
                            ))}
-                           {recurringIncomes?.length === 0 && <p className="text-sm text-muted-foreground text-center pt-4">No has definido ingresos fijos.</p>}
+                           {recurringIncomes?.length === 0 && <p className="text-sm text-center text-muted-foreground pt-4">No has definido ingresos fijos.</p>}
                         </CardContent>
                     </Card>
 
@@ -1003,7 +982,7 @@ export default function FinancesPage() {
                                     <Button onClick={() => handlePayRecurringItem(income, 'income')}><CheckCircle className="mr-2 h-4 w-4" />Recibir</Button>
                                 </div>
                             ))}
-                            {pendingRecurringIncomes.length === 0 && <p className="text-sm text-muted-foreground text-center">No tienes ingresos pendientes este mes.</p>}
+                            {pendingRecurringIncomes.length === 0 && <p className="text-sm text-center text-muted-foreground">No tienes ingresos pendientes este mes.</p>}
                         </CardContent>
                     </Card>
                     
@@ -1019,7 +998,7 @@ export default function FinancesPage() {
                                     <Button variant="ghost" onClick={() => handleRevertRecurringItem(income, 'income')}><Undo2 className="mr-2 h-4 w-4" />Revertir</Button>
                                 </div>
                             ))}
-                             {receivedRecurringIncomes.length === 0 && <p className="text-sm text-muted-foreground text-center">No has recibido ingresos fijos este mes.</p>}
+                             {receivedRecurringIncomes.length === 0 && <p className="text-sm text-center text-muted-foreground">No has recibido ingresos fijos este mes.</p>}
                         </CardContent>
                     </Card>
                 </div>
@@ -1053,7 +1032,7 @@ export default function FinancesPage() {
                                 </AlertDialog>
                             </div>
                            ))}
-                           {recurringExpenses?.length === 0 && <p className="text-sm text-muted-foreground text-center">No has definido gastos fijos.</p>}
+                           {recurringExpenses?.length === 0 && <p className="text-sm text-center text-muted-foreground pt-4">No has definido gastos fijos.</p>}
                         </CardContent>
                     </Card>
 
@@ -1071,7 +1050,7 @@ export default function FinancesPage() {
                                     <Button onClick={() => handlePayRecurringItem(expense, 'expense')}><CheckCircle className="mr-2 h-4 w-4" />Pagar</Button>
                                 </div>
                             ))}
-                            {pendingRecurringExpenses.length === 0 && <p className="text-sm text-muted-foreground text-center">No tienes gastos pendientes este mes.</p>}
+                            {pendingRecurringExpenses.length === 0 && <p className="text-sm text-center text-muted-foreground">No tienes gastos pendientes este mes.</p>}
                         </CardContent>
                     </Card>
 
@@ -1087,7 +1066,7 @@ export default function FinancesPage() {
                                     <Button variant="ghost" onClick={() => handleRevertRecurringItem(expense, 'expense')}><Undo2 className="mr-2 h-4 w-4" />Revertir</Button>
                                 </div>
                             ))}
-                            {paidRecurringExpenses.length === 0 && <p className="text-sm text-muted-foreground text-center">No has pagado gastos fijos este mes.</p>}
+                            {paidRecurringExpenses.length === 0 && <p className="text-sm text-center text-muted-foreground">No has pagado gastos fijos este mes.</p>}
                         </CardContent>
                     </Card>
                 </div>
@@ -1155,120 +1134,83 @@ export default function FinancesPage() {
       </AlertDialog>
 
       {/* Edit Transaction Dialog */}
-      <Dialog
-        open={!!transactionToEdit}
-        onOpenChange={(open) => !open && setTransactionToEdit(null)}
-      >
+      <Dialog open={!!transactionToEdit} onOpenChange={(open) => !open && setTransactionToEdit(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Transacción</DialogTitle>
           </DialogHeader>
           {transactionToEdit && (
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-type" className="text-right">
-                  Tipo
-                </Label>
-                <Select
-                  value={transactionToEdit.type}
-                  onValueChange={(value) =>
-                    setTransactionToEdit({
-                      ...transactionToEdit,
-                      type: value,
-                    })
-                  }
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="expense">Gasto</SelectItem>
-                    <SelectItem value="income">Ingreso</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-description" className="text-right">
-                  Descripción
-                </Label>
-                <Input
-                  id="edit-description"
-                  value={transactionToEdit.description}
-                  onChange={(e) =>
-                    setTransactionToEdit({
-                      ...transactionToEdit,
-                      description: e.target.value,
-                    })
-                  }
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-amount" className="text-right">
-                  Monto
-                </Label>
-                <Input
-                  id="edit-amount"
-                  type="number"
-                  value={transactionToEdit.amount}
-                  onChange={(e) =>
-                    setTransactionToEdit({
-                      ...transactionToEdit,
-                      amount: e.target.value,
-                    })
-                  }
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-category" className="text-right">
-                  Categoría
-                </Label>
-                <Select
-                  value={transactionToEdit.category}
-                  onValueChange={(value) =>
-                    setTransactionToEdit({
-                      ...transactionToEdit,
-                      category: value,
-                    })
-                  }
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecciona una categoría" />
-                  </SelectTrigger>
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-type">Tipo</Label>
+                    <Select value={transactionToEdit.type} onValueChange={(value) => setTransactionToEdit({...transactionToEdit, type: value,})}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="expense">Gasto</SelectItem>
+                        <SelectItem value="income">Ingreso</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                     <Label htmlFor="edit-amount">Monto</Label>
+                     <Input id="edit-amount" type="number" value={transactionToEdit.amount} onChange={(e) => setTransactionToEdit({...transactionToEdit, amount: e.target.value,})}/>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="edit-description">Descripción</Label>
+                    <Input id="edit-description" value={transactionToEdit.description} onChange={(e) => setTransactionToEdit({...transactionToEdit, description: e.target.value,})} />
+                </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-category">Categoría</Label>
+                <Select value={transactionToEdit.category} onValueChange={(value) => setTransactionToEdit({...transactionToEdit, category: value,})}>
+                  <SelectTrigger><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
                   <SelectContent>
                       {transactionToEdit.type === 'expense' ? uniqueExpenseCategories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                       )) : uniqueIncomeCategories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                       ))}
                   </SelectContent>
                 </Select>
               </div>
+               <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label>Fecha</Label>
+                         <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal",!transactionToEdit.date && "text-muted-foreground")}>
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {transactionToEdit.date ? format(transactionToEdit.date, "PPP", { locale: es }) : <span>Elige una fecha</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={transactionToEdit.date} onSelect={(date) => setTransactionToEdit({...transactionToEdit, date: date || new Date()})} initialFocus /></PopoverContent>
+                        </Popover>
+                    </div>
+                    {transactionToEdit.type === 'expense' && (
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-budget-focus">Enfoque Presupuesto</Label>
+                          <Select value={transactionToEdit.budgetFocus} onValueChange={(value) => setTransactionToEdit({...transactionToEdit, budgetFocus: value})}>
+                            <SelectTrigger id="edit-budget-focus"><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Necesidades">Necesidades</SelectItem>
+                              <SelectItem value="Deseos">Deseos</SelectItem>
+                              <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                    )}
+                </div>
             </div>
           )}
           <DialogFooter>
-            <DialogClose asChild>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setTransactionToEdit(null)}
-              >
-                Cancelar
-              </Button>
-            </DialogClose>
-            <DialogClose asChild>
-              <Button type="submit" onClick={handleUpdateTransaction}>
-                Guardar Cambios
-              </Button>
-            </DialogClose>
+            <DialogClose asChild><Button type="button" variant="outline" onClick={() => setTransactionToEdit(null)}>Cancelar</Button></DialogClose>
+            <DialogClose asChild><Button type="submit" onClick={handleUpdateTransaction}>Guardar Cambios</Button></DialogClose>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
   );
 }
+
+    

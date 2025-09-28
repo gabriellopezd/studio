@@ -95,6 +95,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Checkbox } from '@/components/ui/checkbox';
 
 function SortableListItem({
   list,
@@ -119,7 +120,7 @@ function SortableListItem({
       >
         {children}
       </Button>
-      <div {...attributes} {...listeners} className="p-2 cursor-grab touch-none">
+      <div {...attributes} {...listeners} className="cursor-grab p-2 touch-none">
         <GripVertical className="h-5 w-5 text-muted-foreground" />
       </div>
     </li>
@@ -134,7 +135,11 @@ export default function ExpensesPage() {
   const [newListName, setNewListName] = useState('');
   const [newItemName, setNewItemName] = useState('');
   const [newItemQuantity, setNewItemQuantity] = useState('1');
-  const [newItemPrice, setNewItemPrice] = useState('');
+  
+  const [isPurchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
+  const [itemToPurchase, setItemToPurchase] = useState<any | null>(null);
+  const [purchasePrice, setPurchasePrice] = useState('');
+  const [purchaseBudgetFocus, setPurchaseBudgetFocus] = useState('Deseos');
 
 
   // State for Recurring Expenses
@@ -148,6 +153,7 @@ export default function ExpensesPage() {
   const [newRecurringExpenseCategory, setNewRecurringExpenseCategory] =
     useState('');
   const [newRecurringExpenseDay, setNewRecurringExpenseDay] = useState('');
+  const [newRecurringExpenseBudgetFocus, setNewRecurringExpenseBudgetFocus] = useState('Necesidades');
   const [recurringExpenseToDelete, setRecurringExpenseToDelete] =
     useState<any | null>(null);
   const [currentMonthYear, setCurrentMonthYear] = useState('');
@@ -199,7 +205,7 @@ export default function ExpensesPage() {
   const expenseCategories = useMemo(() => {
     const fromShoppingLists = lists?.map((l) => l.name) ?? [];
     const fromBudgets = budgets?.map(b => b.categoryName) ?? [];
-    return ["Arriendo", ...new Set([...fromShoppingLists, ...fromBudgets])].filter(Boolean);
+    return ["Arriendo", "Servicios", "Transporte", "Salud", ...new Set([...fromShoppingLists, ...fromBudgets])].filter(Boolean);
   }, [lists, budgets]);
   
   const uniqueExpenseCategories = [...new Set(expenseCategories)].filter(
@@ -393,56 +399,97 @@ export default function ExpensesPage() {
   };
 
   const handleAddItem = async () => {
-    if (!newItemName.trim() || !newItemPrice || !selectedList || !user) return;
-
-    const price = parseFloat(newItemPrice);
-    if (isNaN(price)) {
-      toast({
-        variant: 'destructive',
-        title: 'Precio inválido',
-        description: 'Por favor, introduce un número válido para el precio.',
-      });
-      return;
-    }
-
-    const newTransaction = {
-      type: 'expense' as const,
-      description: newItemName.trim(),
-      category: selectedList.name,
-      amount: price,
-    };
-
-    const transactionDoc = await addTransaction(newTransaction);
-    if (!transactionDoc) return;
+    if (!newItemName.trim() || !selectedListId || !user) return;
 
     const newItem = {
-      itemId: doc(collection(firestore, 'temp')).id,
-      name: newItemName.trim(),
-      quantity: newItemQuantity.trim() || '1',
-      isPurchased: true,
-      price: price,
-      transactionId: transactionDoc.id,
+        itemId: doc(collection(firestore, 'temp')).id, // Generate a unique ID
+        name: newItemName.trim(),
+        quantity: newItemQuantity.trim() || '1',
+        isPurchased: false,
+        price: null,
+        transactionId: null,
     };
     
-    const listRef = doc(
-      firestore,
-      'users',
-      user.uid,
-      'shoppingLists',
-      selectedListId!
-    );
-
-    updateDocumentNonBlocking(listRef, {
-      items: [...(selectedList.items || []), newItem],
+    const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', selectedListId);
+    
+    await updateDocumentNonBlocking(listRef, {
+        items: [...(selectedList?.items || []), newItem],
     });
 
     setNewItemName('');
     setNewItemQuantity('1');
-    setNewItemPrice('');
+};
+
+  const handleTogglePurchase = async (itemId: string, isPurchased: boolean) => {
+      if (!selectedList || !user) return;
+      const item = selectedList.items.find((i: any) => i.itemId === itemId);
+      if (!item) return;
+
+      if (isPurchased) { // Un-purchasing
+          const updatedItems = selectedList.items.map((i: any) =>
+              i.itemId === itemId ? { ...i, isPurchased: false, price: null, transactionId: null } : i
+          );
+
+          const batch = writeBatch(firestore);
+          const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', selectedListId!);
+          batch.update(listRef, { items: updatedItems });
+
+          if (item.transactionId) {
+              const transactionRef = doc(firestore, 'users', user.uid, 'transactions', item.transactionId);
+              const transactionSnap = await getDoc(transactionRef);
+              if (transactionSnap.exists()) {
+                  const transactionData = transactionSnap.data();
+                  batch.delete(transactionRef);
+                  const budget = budgets?.find(b => b.categoryName === transactionData.category);
+                  if (budget) {
+                      const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+                      const newSpend = Math.max(0, (budget.currentSpend || 0) - transactionData.amount);
+                      batch.update(budgetRef, { currentSpend: newSpend });
+                  }
+              }
+          }
+          await batch.commit();
+
+      } else { // Purchasing
+          setItemToPurchase(item);
+          setPurchasePrice('');
+          setPurchaseBudgetFocus('Deseos'); // Reset to default
+          setPurchaseDialogOpen(true);
+      }
+  };
+
+  const handleConfirmPurchase = async () => {
+      if (!itemToPurchase || !purchasePrice || !user || !selectedList) return;
+
+      const price = parseFloat(purchasePrice);
+      if (isNaN(price)) {
+          toast({ variant: 'destructive', title: 'Precio inválido' });
+          return;
+      }
+      
+      const transactionDoc = await addTransaction({
+          type: 'expense',
+          description: itemToPurchase.name,
+          category: selectedList.name,
+          amount: price,
+          budgetFocus: purchaseBudgetFocus,
+      });
+
+      if (!transactionDoc) return; // Stop if transaction failed
+
+      const updatedItems = selectedList.items.map((i: any) =>
+          i.itemId === itemToPurchase.itemId ? { ...i, isPurchased: true, price, transactionId: transactionDoc.id } : i
+      );
+      
+      const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', selectedListId!);
+      await updateDocumentNonBlocking(listRef, { items: updatedItems });
+
+      setPurchaseDialogOpen(false);
+      setItemToPurchase(null);
   };
 
 
-  const handleDeleteItem = (itemId: string) => {
+  const handleDeleteItem = async (itemId: string) => {
     if (!selectedList || !user) return;
     const itemToDelete = selectedList.items.find(
       (item: any) => item.itemId === itemId
@@ -491,14 +538,16 @@ export default function ExpensesPage() {
     );
     batch.update(listRef, { items: updatedItems });
     
-    batch.commit().catch(error => {
+    try {
+        await batch.commit();
+    } catch(error) {
         console.error("Error deleting item:", error);
         toast({
             variant: "destructive",
             title: "Error",
-            description: "No se pudo eliminar el gasto.",
+            description: "No se pudo eliminar el artículo.",
         });
-    });
+    }
   };
 
   // Recurring Expenses Handlers
@@ -509,12 +558,14 @@ export default function ExpensesPage() {
       setNewRecurringExpenseAmount(expense.amount.toString());
       setNewRecurringExpenseCategory(expense.category);
       setNewRecurringExpenseDay(expense.dayOfMonth.toString());
+      setNewRecurringExpenseBudgetFocus(expense.budgetFocus || 'Necesidades');
     } else {
       setRecurringExpenseToEdit(null);
       setNewRecurringExpenseName('');
       setNewRecurringExpenseAmount('');
       setNewRecurringExpenseCategory('');
       setNewRecurringExpenseDay('');
+      setNewRecurringExpenseBudgetFocus('Necesidades');
     }
     setRecurringExpenseDialogOpen(true);
   };
@@ -543,6 +594,7 @@ export default function ExpensesPage() {
       amount,
       category: newRecurringExpenseCategory,
       dayOfMonth,
+      budgetFocus: newRecurringExpenseBudgetFocus,
       userId: user.uid,
     };
 
@@ -588,19 +640,15 @@ export default function ExpensesPage() {
   const handlePayRecurringExpense = async (expense: any) => {
     if (!user) return;
   
-    const now = new Date();
-    // Create new transaction
-    const newTransaction = {
+    const transactionDoc = await addTransaction({
       type: 'expense' as const,
       description: expense.name,
       category: expense.category,
       amount: expense.amount,
-    };
-  
-    const transactionDoc = await addTransaction(newTransaction);
+      budgetFocus: expense.budgetFocus || 'Necesidades'
+    });
     if (!transactionDoc) return;
   
-    // Update recurring expense
     const expenseRef = doc(
       firestore,
       'users',
@@ -626,7 +674,6 @@ export default function ExpensesPage() {
 
     const batch = writeBatch(firestore);
 
-    // 1. Get transaction to be deleted to retrieve its data
     const transactionRef = doc(firestore, 'users', user.uid, 'transactions', expense.lastTransactionId);
     const transactionSnap = await getDoc(transactionRef);
 
@@ -642,10 +689,8 @@ export default function ExpensesPage() {
     
     const transactionData = transactionSnap.data();
 
-    // 2. Delete the transaction
     batch.delete(transactionRef);
 
-    // 3. Revert the budget
     const budgetToRevert = budgets?.find(b => b.categoryName === transactionData.category);
     if (budgetToRevert) {
         const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budgetToRevert.id);
@@ -653,7 +698,6 @@ export default function ExpensesPage() {
         batch.update(budgetRef, { currentSpend: newSpend });
     }
 
-    // 4. Revert the recurring expense
     const expenseRef = doc(firestore, 'users', user.uid, 'recurringExpenses', expense.id);
     batch.update(expenseRef, {
         lastInstanceCreated: null,
@@ -751,7 +795,7 @@ export default function ExpensesPage() {
           
           {listsLoading && <p>Cargando categorías...</p>}
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-4 mt-6 md:mt-0">
+          <div className="grid grid-cols-1 md:grid-cols-4 mt-6 md:mt-0 gap-6">
             <div className="hidden md:block md:col-span-1">
                 { !listsLoading && sortedLists.length > 0 && (
                 <Card>
@@ -795,7 +839,7 @@ export default function ExpensesPage() {
                     <div>
                       <CardTitle>{selectedList.name}</CardTitle>
                       <CardDescription>
-                        {selectedList.items?.length || 0} gastos registrados
+                        {selectedList.items?.length || 0} artículos en la lista
                       </CardDescription>
                     </div>
                     <AlertDialog>
@@ -814,7 +858,7 @@ export default function ExpensesPage() {
                           <AlertDialogDescription>
                             Esta acción no se puede deshacer. Esto eliminará
                             permanentemente la categoría "{selectedList.name}"
-                            y todos sus gastos.
+                            y todos sus artículos.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -830,48 +874,23 @@ export default function ExpensesPage() {
                     </AlertDialog>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4 rounded-lg border bg-muted/50 p-4 mb-6">
-                      <h4 className="font-medium">Añadir Nuevo Gasto</h4>
-                      <div className="space-y-2">
-                        <Label htmlFor="new-item-name">Descripción</Label>
-                        <Input
-                          id="new-item-name"
-                          placeholder="Café, pasajes, etc."
-                          value={newItemName}
-                          onChange={(e) => setNewItemName(e.target.value)}
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <div className="space-y-2 sm:col-span-1">
-                          <Label htmlFor="new-item-quantity">Cantidad</Label>
-                          <Input
-                            id="new-item-quantity"
-                            placeholder="1"
-                            value={newItemQuantity}
-                            onChange={(e) => setNewItemQuantity(e.target.value)}
-                          />
+                    <div className="mb-6 space-y-4 rounded-lg border bg-muted/50 p-4">
+                        <h4 className="font-medium">Planificar Nuevo Artículo</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+                           <div className="space-y-2 sm:col-span-3">
+                               <Label htmlFor="new-item-name">Descripción</Label>
+                               <Input id="new-item-name" placeholder="Leche, pan, etc." value={newItemName} onChange={(e) => setNewItemName(e.target.value)} />
+                           </div>
+                           <div className="space-y-2 sm:col-span-2">
+                               <Label htmlFor="new-item-quantity">Cantidad</Label>
+                               <Input id="new-item-quantity" placeholder="1" value={newItemQuantity} onChange={(e) => setNewItemQuantity(e.target.value)} />
+                           </div>
                         </div>
-                        <div className="space-y-2 sm:col-span-2">
-                          <Label htmlFor="new-item-price">Precio</Label>
-                           <Input
-                            id="new-item-price"
-                            type="number"
-                            placeholder="0"
-                            value={newItemPrice}
-                            onChange={(e) => setNewItemPrice(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <Button
-                        onClick={handleAddItem}
-                        disabled={!newItemName.trim() || !newItemPrice.trim()}
-                        className="w-full sm:w-auto"
-                      >
-                        <PlusCircle className="mr-2 h-4 w-4"/>
-                        Añadir Gasto
-                      </Button>
+                        <Button onClick={handleAddItem} disabled={!newItemName.trim()} className="w-full sm:w-auto">
+                            <PlusCircle className="mr-2 h-4 w-4"/> Añadir a la Lista
+                        </Button>
                     </div>
-
+                    
                     <Separator className="my-6" />
 
                     <div className="space-y-3">
@@ -881,13 +900,14 @@ export default function ExpensesPage() {
                             key={item.itemId}
                             className="flex items-center gap-3 rounded-lg border p-3 shadow-sm transition-all"
                           >
+                            <Checkbox id={`item-${item.itemId}`} checked={item.isPurchased} onCheckedChange={(checked) => handleTogglePurchase(item.itemId, !!checked)}/>
                             <div className="flex-1">
-                              <p className="font-medium">
+                              <label htmlFor={`item-${item.itemId}`} className={`font-medium cursor-pointer ${item.isPurchased ? 'line-through text-muted-foreground' : ''}`}>
                                 {item.name}{' '}
                                 <span className="text-sm text-muted-foreground">
                                   ({item.quantity})
                                 </span>
-                              </p>
+                              </label>
                               {item.price != null && (
                                 <p className="text-sm font-semibold text-primary">
                                   {formatCurrency(item.price)}
@@ -908,11 +928,10 @@ export default function ExpensesPage() {
                         <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-10 text-center">
                           <ShoppingCart className="h-12 w-12 text-muted-foreground/50" />
                           <h3 className="mt-4 text-lg font-semibold text-muted-foreground">
-                            Sin gastos registrados
+                            Lista de compras vacía
                           </h3>
                           <p className="mt-2 text-sm text-muted-foreground">
-                            Añade un gasto para empezar a organizar tus
-                            finanzas en esta categoría.
+                            Añade artículos para empezar a planificar tus compras.
                           </p>
                         </div>
                       )}
@@ -938,7 +957,7 @@ export default function ExpensesPage() {
           </div>
         </TabsContent>
         <TabsContent value="recurring" className="mt-6">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
               <Card>
                 <CardHeader>
@@ -956,7 +975,7 @@ export default function ExpensesPage() {
                           {pendingRecurringExpenses.map((expense) => (
                           <div
                               key={expense.id}
-                              className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 rounded-lg border bg-card shadow-sm gap-2"
+                              className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 rounded-lg border bg-card p-3 shadow-sm"
                           >
                               <div>
                               <p className="font-semibold">{expense.name}</p>
@@ -1003,7 +1022,7 @@ export default function ExpensesPage() {
                           {paidRecurringExpenses.map((expense) => (
                           <div
                               key={expense.id}
-                              className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 rounded-lg border bg-muted/50 gap-2"
+                              className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 rounded-lg border bg-muted/50 p-3"
                           >
                               <div>
                               <p className="font-semibold text-muted-foreground line-through">{expense.name}</p>
@@ -1062,96 +1081,44 @@ export default function ExpensesPage() {
                         </DialogTitle>
                       </DialogHeader>
                       <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label
-                            htmlFor="recurring-name"
-                            className="text-right"
-                          >
-                            Descripción
-                          </Label>
-                          <Input
-                            id="recurring-name"
-                            value={newRecurringExpenseName}
-                            onChange={(e) =>
-                              setNewRecurringExpenseName(e.target.value)
-                            }
-                            className="col-span-3"
-                          />
+                        <div className="space-y-2">
+                          <Label htmlFor="recurring-name">Descripción</Label>
+                          <Input id="recurring-name" value={newRecurringExpenseName} onChange={(e) => setNewRecurringExpenseName(e.target.value)} />
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label
-                            htmlFor="recurring-amount"
-                            className="text-right"
-                          >
-                            Monto
-                          </Label>
-                          <Input
-                            id="recurring-amount"
-                            type="number"
-                            value={newRecurringExpenseAmount}
-                            onChange={(e) =>
-                              setNewRecurringExpenseAmount(e.target.value)
-                            }
-                            className="col-span-3"
-                          />
+                        <div className="space-y-2">
+                           <Label htmlFor="recurring-amount">Monto</Label>
+                           <Input id="recurring-amount" type="number" value={newRecurringExpenseAmount} onChange={(e) => setNewRecurringExpenseAmount(e.target.value)} />
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label
-                            htmlFor="recurring-category"
-                            className="text-right"
-                          >
-                            Categoría
-                          </Label>
-                          <Select
-                            value={newRecurringExpenseCategory}
-                            onValueChange={setNewRecurringExpenseCategory}
-                          >
-                            <SelectTrigger className="col-span-3">
-                              <SelectValue placeholder="Selecciona categoría" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {uniqueExpenseCategories.map((cat) => (
-                                <SelectItem key={cat} value={cat}>
-                                  {cat}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                        <div className="space-y-2">
+                            <Label htmlFor="recurring-category">Categoría</Label>
+                            <Select value={newRecurringExpenseCategory} onValueChange={setNewRecurringExpenseCategory}>
+                               <SelectTrigger><SelectValue placeholder="Selecciona categoría" /></SelectTrigger>
+                               <SelectContent>
+                                {uniqueExpenseCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}
+                               </SelectContent>
+                            </Select>
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label
-                            htmlFor="recurring-day"
-                            className="text-right"
-                          >
-                            Día del Mes
-                          </Label>
-                          <Input
-                            id="recurring-day"
-                            type="number"
-                            min="1"
-                            max="31"
-                            value={newRecurringExpenseDay}
-                            onChange={(e) =>
-                              setNewRecurringExpenseDay(e.target.value)
-                            }
-                            className="col-span-3"
-                          />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="recurring-day">Día del Mes</Label>
+                                <Input id="recurring-day" type="number" min="1" max="31" value={newRecurringExpenseDay} onChange={(e) => setNewRecurringExpenseDay(e.target.value)} />
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="recurring-budget-focus">Enfoque Presupuesto</Label>
+                                <Select value={newRecurringExpenseBudgetFocus} onValueChange={setNewRecurringExpenseBudgetFocus}>
+                                   <SelectTrigger><SelectValue placeholder="Selecciona enfoque" /></SelectTrigger>
+                                   <SelectContent>
+                                        <SelectItem value="Necesidades">Necesidades</SelectItem>
+                                        <SelectItem value="Deseos">Deseos</SelectItem>
+                                        <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
+                                   </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                       </div>
                       <DialogFooter>
-                        <DialogClose asChild>
-                          <Button type="button" variant="outline">
-                            Cancelar
-                          </Button>
-                        </DialogClose>
-                        <Button
-                          type="submit"
-                          onClick={handleSaveRecurringExpense}
-                        >
-                          {recurringExpenseToEdit
-                            ? 'Guardar Cambios'
-                            : 'Guardar Gasto'}
-                        </Button>
+                        <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                        <Button type="submit" onClick={handleSaveRecurringExpense}>{recurringExpenseToEdit ? 'Guardar Cambios' : 'Guardar Gasto'}</Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
@@ -1163,22 +1130,22 @@ export default function ExpensesPage() {
                   {recurringExpenses?.map((expense) => (
                     <div
                       key={expense.id}
-                      className="flex items-center justify-between p-2 rounded-md border"
+                      className="flex items-center justify-between rounded-md border p-2"
                     >
                       <div className="flex items-center gap-2 overflow-hidden">
-                        <WalletCards className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                        <WalletCards className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
                         <div className="truncate">
-                          <p className="font-medium text-sm truncate">
+                          <p className="truncate text-sm font-medium">
                             {expense.name}
                           </p>
-                          <p className="text-xs text-muted-foreground truncate">
+                          <p className="truncate text-xs text-muted-foreground">
                             {expense.category} &middot; Día {expense.dayOfMonth}{' '}
                             de cada mes
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
-                        <span className="font-semibold text-sm">
+                        <span className="text-sm font-semibold">
                           {formatCurrency(expense.amount)}
                         </span>
                         <AlertDialog onOpenChange={(open) => !open && setRecurringExpenseToDelete(null)}>
@@ -1247,6 +1214,37 @@ export default function ExpensesPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={isPurchaseDialogOpen} onOpenChange={setPurchaseDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Confirmar Compra: {itemToPurchase?.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                    <Label htmlFor="purchase-price">Precio</Label>
+                    <Input id="purchase-price" type="number" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} placeholder="0"/>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="purchase-budget-focus">Enfoque del Presupuesto</Label>
+                    <Select value={purchaseBudgetFocus} onValueChange={setPurchaseBudgetFocus}>
+                        <SelectTrigger id="purchase-budget-focus">
+                            <SelectValue placeholder="Selecciona un enfoque" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Necesidades">Necesidades</SelectItem>
+                            <SelectItem value="Deseos">Deseos</SelectItem>
+                            <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                <Button onClick={handleConfirmPurchase} disabled={!purchasePrice}>Confirmar Gasto</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
