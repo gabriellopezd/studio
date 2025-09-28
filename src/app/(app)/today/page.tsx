@@ -53,6 +53,15 @@ const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "
 
 const today = new Date();
 
+interface Habit {
+  id: string;
+  name: string;
+  icon: string;
+  currentStreak: number;
+  longestStreak: number;
+  [key: string]: any;
+}
+
 export default function TodayPage() {
   const [isClient, setIsClient] = useState(false);
   const { firestore, user } = useFirebase();
@@ -239,7 +248,7 @@ export default function TodayPage() {
                         <div key={category}>
                             <h3 className="text-lg font-semibold tracking-tight mb-2">{category}</h3>
                             <div className="space-y-2">
-                            {groupedHabits[category].map((habit) => {
+                            {groupedHabits[category].map((habit: Habit) => {
                                 return (
                                 <div
                                     key={habit.id}
