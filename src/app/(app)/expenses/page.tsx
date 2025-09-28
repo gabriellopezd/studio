@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -17,11 +16,6 @@ import {
   Trash2,
   ShoppingCart,
   GripVertical,
-  WalletCards,
-  MoreHorizontal,
-  Pencil,
-  CheckCircle,
-  Undo2,
 } from 'lucide-react';
 import {
   Dialog,
@@ -32,12 +26,6 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
 import {
   AlertDialog,
@@ -58,7 +46,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -75,9 +62,6 @@ import {
   query,
   orderBy,
   writeBatch,
-  getDocs,
-  where,
-  Timestamp,
   getDoc,
 } from 'firebase/firestore';
 import {
@@ -141,28 +125,6 @@ export default function ExpensesPage() {
   const [purchasePrice, setPurchasePrice] = useState('');
   const [purchaseBudgetFocus, setPurchaseBudgetFocus] = useState('Deseos');
 
-
-  // State for Recurring Expenses
-  const [isRecurringExpenseDialogOpen, setRecurringExpenseDialogOpen] =
-    useState(false);
-  const [recurringExpenseToEdit, setRecurringExpenseToEdit] =
-    useState<any | null>(null);
-  const [newRecurringExpenseName, setNewRecurringExpenseName] = useState('');
-  const [newRecurringExpenseAmount, setNewRecurringExpenseAmount] =
-    useState('');
-  const [newRecurringExpenseCategory, setNewRecurringExpenseCategory] =
-    useState('');
-  const [newRecurringExpenseDay, setNewRecurringExpenseDay] = useState('');
-  const [newRecurringExpenseBudgetFocus, setNewRecurringExpenseBudgetFocus] = useState('Necesidades');
-  const [recurringExpenseToDelete, setRecurringExpenseToDelete] =
-    useState<any | null>(null);
-  const [currentMonthYear, setCurrentMonthYear] = useState('');
-
-  useEffect(() => {
-    const now = new Date();
-    setCurrentMonthYear(`${now.getFullYear()}-${now.getMonth()}`);
-  }, []);
-
   const { toast } = useToast();
 
   // Queries
@@ -186,45 +148,11 @@ export default function ExpensesPage() {
   );
   const { data: budgets } = useCollection(budgetsQuery);
 
-  const recurringExpensesQuery = useMemo(
-    () =>
-      user
-        ? query(collection(firestore, 'users', user.uid, 'recurringExpenses'), orderBy('dayOfMonth'))
-        : null,
-    [firestore, user]
-  );
-  const { data: recurringExpenses, isLoading: recurringExpensesLoading } =
-    useCollection(recurringExpensesQuery);
-
   const sensors = useSensors(useSensor(PointerSensor));
 
   const sortedLists = useMemo(() => {
     return lists ? [...lists].sort((a, b) => a.order - b.order) : [];
   }, [lists]);
-
-  const expenseCategories = useMemo(() => {
-    const fromShoppingLists = lists?.map((l) => l.name) ?? [];
-    const fromBudgets = budgets?.map(b => b.categoryName) ?? [];
-    return ["Arriendo", "Servicios", "Transporte", "Salud", ...new Set([...fromShoppingLists, ...fromBudgets])].filter(Boolean);
-  }, [lists, budgets]);
-  
-  const uniqueExpenseCategories = [...new Set(expenseCategories)].filter(
-    Boolean
-  );
-
-  const pendingRecurringExpenses = useMemo(() => {
-    if (!recurringExpenses) return [];
-    return recurringExpenses.filter(
-      (expense) => expense.lastInstanceCreated !== currentMonthYear
-    );
-  }, [recurringExpenses, currentMonthYear]);
-  
-  const paidRecurringExpenses = useMemo(() => {
-    if (!recurringExpenses) return [];
-    return recurringExpenses.filter(
-      (expense) => expense.lastInstanceCreated === currentMonthYear
-    );
-  }, [recurringExpenses, currentMonthYear]);
 
   // Shopping List Handlers
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -550,176 +478,6 @@ export default function ExpensesPage() {
     }
   };
 
-  // Recurring Expenses Handlers
-  const openRecurringExpenseDialog = (expense?: any) => {
-    if (expense) {
-      setRecurringExpenseToEdit(expense);
-      setNewRecurringExpenseName(expense.name);
-      setNewRecurringExpenseAmount(expense.amount.toString());
-      setNewRecurringExpenseCategory(expense.category);
-      setNewRecurringExpenseDay(expense.dayOfMonth.toString());
-      setNewRecurringExpenseBudgetFocus(expense.budgetFocus || 'Necesidades');
-    } else {
-      setRecurringExpenseToEdit(null);
-      setNewRecurringExpenseName('');
-      setNewRecurringExpenseAmount('');
-      setNewRecurringExpenseCategory('');
-      setNewRecurringExpenseDay('');
-      setNewRecurringExpenseBudgetFocus('Necesidades');
-    }
-    setRecurringExpenseDialogOpen(true);
-  };
-
-  const handleSaveRecurringExpense = async () => {
-    if (
-      !user ||
-      !newRecurringExpenseName ||
-      !newRecurringExpenseAmount ||
-      !newRecurringExpenseCategory ||
-      !newRecurringExpenseDay
-    ) {
-        toast({ variant: "destructive", title: "Error", description: "Todos los campos son obligatorios." });
-        return;
-    }
-
-    const amount = parseFloat(newRecurringExpenseAmount);
-    const dayOfMonth = parseInt(newRecurringExpenseDay, 10);
-    if (isNaN(amount) || isNaN(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) {
-        toast({ variant: "destructive", title: "Error", description: "El monto o día del mes no son válidos." });
-        return;
-    }
-
-    const expenseData = {
-      name: newRecurringExpenseName,
-      amount,
-      category: newRecurringExpenseCategory,
-      dayOfMonth,
-      budgetFocus: newRecurringExpenseBudgetFocus,
-      userId: user.uid,
-    };
-
-    try {
-        if (recurringExpenseToEdit) {
-            const expenseRef = doc(
-                firestore,
-                'users',
-                user.uid,
-                'recurringExpenses',
-                recurringExpenseToEdit.id
-            );
-            await updateDocumentNonBlocking(expenseRef, expenseData);
-        } else {
-            const expensesColRef = collection(
-                firestore,
-                'users',
-                user.uid,
-                'recurringExpenses'
-            );
-            await addDocumentNonBlocking(expensesColRef, expenseData);
-        }
-        setRecurringExpenseDialogOpen(false);
-    } catch(error) {
-        console.error("Error saving recurring expense:", error);
-        toast({ variant: "destructive", title: "Error", description: "No se pudo guardar el gasto recurrente." });
-    }
-  };
-
-  const handleDeleteRecurringExpense = async () => {
-    if (!recurringExpenseToDelete || !user) return;
-    const expenseRef = doc(
-      firestore,
-      'users',
-      user.uid,
-      'recurringExpenses',
-      recurringExpenseToDelete.id
-    );
-    await deleteDocumentNonBlocking(expenseRef);
-    setRecurringExpenseToDelete(null);
-  };
-
-  const handlePayRecurringExpense = async (expense: any) => {
-    if (!user) return;
-  
-    const transactionDoc = await addTransaction({
-      type: 'expense' as const,
-      description: expense.name,
-      category: expense.category,
-      amount: expense.amount,
-      budgetFocus: expense.budgetFocus || 'Necesidades'
-    });
-    if (!transactionDoc) return;
-  
-    const expenseRef = doc(
-      firestore,
-      'users',
-      user.uid,
-      'recurringExpenses',
-      expense.id
-    );
-    updateDocumentNonBlocking(expenseRef, {
-      lastInstanceCreated: currentMonthYear,
-      lastTransactionId: transactionDoc.id
-    });
-  
-    toast({
-      title: 'Gasto Recurrente Pagado',
-      description: `${expense.name} por ${formatCurrency(
-        expense.amount
-      )} ha sido registrado.`,
-    });
-  };
-
-  const handleRevertPayment = async (expense: any) => {
-    if (!user || !expense.lastTransactionId) return;
-
-    const batch = writeBatch(firestore);
-
-    const transactionRef = doc(firestore, 'users', user.uid, 'transactions', expense.lastTransactionId);
-    const transactionSnap = await getDoc(transactionRef);
-
-    if (!transactionSnap.exists()) {
-        toast({ variant: "destructive", title: "Error", description: "No se encontró la transacción original para revertir." });
-        const expenseRef = doc(firestore, 'users', user.uid, 'recurringExpenses', expense.id);
-        updateDocumentNonBlocking(expenseRef, {
-            lastInstanceCreated: null,
-            lastTransactionId: null,
-        });
-        return;
-    }
-    
-    const transactionData = transactionSnap.data();
-
-    batch.delete(transactionRef);
-
-    const budgetToRevert = budgets?.find(b => b.categoryName === transactionData.category);
-    if (budgetToRevert) {
-        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budgetToRevert.id);
-        const newSpend = Math.max(0, (budgetToRevert.currentSpend || 0) - transactionData.amount);
-        batch.update(budgetRef, { currentSpend: newSpend });
-    }
-
-    const expenseRef = doc(firestore, 'users', user.uid, 'recurringExpenses', expense.id);
-    batch.update(expenseRef, {
-        lastInstanceCreated: null,
-        lastTransactionId: null,
-    });
-    
-    try {
-        await batch.commit();
-        toast({
-            title: 'Pago Revertido',
-            description: `Se ha deshecho el pago de ${expense.name}.`,
-        });
-    } catch (error) {
-        console.error("Error reverting payment:", error);
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "No se pudo revertir el pago.",
-        });
-    }
-  };
-
   // General Logic
   useEffect(() => {
     if (!listsLoading && !selectedListId && sortedLists && sortedLists.length > 0) {
@@ -732,7 +490,7 @@ export default function ExpensesPage() {
     <div className="flex flex-col gap-8">
       <PageHeader
         title="REGISTRO DE GASTOS"
-        description="Organiza tus compras y gestiona tus pagos recurrentes."
+        description="Planifica tus compras y registra tus gastos diarios."
       >
         <Dialog>
           <DialogTrigger asChild>
@@ -769,33 +527,27 @@ export default function ExpensesPage() {
         </Dialog>
       </PageHeader>
 
-      <Tabs defaultValue="shopping" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="shopping">Listas de Compras</TabsTrigger>
-          <TabsTrigger value="recurring">Gastos Recurrentes</TabsTrigger>
-        </TabsList>
-        <TabsContent value="shopping" className="mt-6">
-          <div className="md:hidden">
+        <div className="md:hidden">
             <Select
-              value={String(selectedListId)}
-              onValueChange={(val) => setSelectedListId(val)}
+            value={String(selectedListId)}
+            onValueChange={(val) => setSelectedListId(val)}
             >
-              <SelectTrigger className="w-full mb-4">
-                  <SelectValue placeholder="Selecciona una categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                  {sortedLists?.map((list) => (
+            <SelectTrigger className="w-full mb-4">
+                <SelectValue placeholder="Selecciona una categoría" />
+            </SelectTrigger>
+            <SelectContent>
+                {sortedLists?.map((list) => (
                     <SelectItem key={list.id} value={String(list.id)}>
-                      {list.name}
+                    {list.name}
                     </SelectItem>
-                  ))}
-              </SelectContent>
+                ))}
+            </SelectContent>
             </Select>
-          </div>
-          
-          {listsLoading && <p>Cargando categorías...</p>}
+        </div>
+        
+        {listsLoading && <p>Cargando categorías...</p>}
 
-          <div className="grid grid-cols-1 md:grid-cols-4 mt-6 md:mt-0 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 mt-6 md:mt-0 gap-6">
             <div className="hidden md:block md:col-span-1">
                 { !listsLoading && sortedLists.length > 0 && (
                 <Card>
@@ -954,266 +706,7 @@ export default function ExpensesPage() {
                   )
               )}
             </div>
-          </div>
-        </TabsContent>
-        <TabsContent value="recurring" className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Gastos Recurrentes Pendientes</CardTitle>
-                  <CardDescription>
-                    Estos gastos fijos están pendientes de pago para este
-                    mes.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {recurringExpensesLoading ? (
-                      <p>Cargando...</p>
-                  ) : pendingRecurringExpenses.length > 0 ? (
-                    <CardContent className="p-0 space-y-3">
-                          {pendingRecurringExpenses.map((expense) => (
-                          <div
-                              key={expense.id}
-                              className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 rounded-lg border bg-card p-3 shadow-sm"
-                          >
-                              <div>
-                              <p className="font-semibold">{expense.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                  {expense.category} -{' '}
-                                  {formatCurrency(expense.amount)} - Vence el {expense.dayOfMonth}
-                              </p>
-                              </div>
-                              <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handlePayRecurringExpense(expense)}
-                              className="w-full sm:w-auto"
-                              >
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                              Pagar
-                              </Button>
-                          </div>
-                          ))}
-                      </CardContent>
-                  ) : (
-                      <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-10 text-center">
-                          <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
-                          <h3 className="mt-4 text-lg font-semibold text-muted-foreground">Todo al día</h3>
-                          <p className="mt-2 text-sm text-muted-foreground">
-                              No tienes gastos recurrentes pendientes para este mes.
-                          </p>
-                      </div>
-                  )}
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Gastos Pagados este Mes</CardTitle>
-                  <CardDescription>
-                    Estos son los gastos recurrentes que ya has pagado.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {recurringExpensesLoading ? (
-                      <p>Cargando...</p>
-                  ) : paidRecurringExpenses.length > 0 ? (
-                      <CardContent className="p-0 space-y-3">
-                          {paidRecurringExpenses.map((expense) => (
-                          <div
-                              key={expense.id}
-                              className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 rounded-lg border bg-muted/50 p-3"
-                          >
-                              <div>
-                              <p className="font-semibold text-muted-foreground line-through">{expense.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                  {expense.category} -{' '}
-                                  {formatCurrency(expense.amount)}
-                              </p>
-                              </div>
-                              <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRevertPayment(expense)}
-                              className="w-full sm:w-auto"
-                              >
-                              <Undo2 className="mr-2 h-4 w-4" />
-                              Revertir
-                              </Button>
-                          </div>
-                          ))}
-                      </CardContent>
-                  ) : (
-                      <p className="text-sm text-muted-foreground text-center pt-4">
-                        Aún no has pagado ningún gasto recurrente este mes.
-                      </p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-            <div className="lg:col-span-1">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle>Gastos Fijos Definidos</CardTitle>
-                  <Dialog
-                    open={isRecurringExpenseDialogOpen}
-                    onOpenChange={(open) => {
-                      setRecurringExpenseDialogOpen(open);
-                      if (!open) setRecurringExpenseToEdit(null);
-                    }}
-                  >
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => openRecurringExpenseDialog()}
-                      >
-                        <PlusCircle className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>
-                          {recurringExpenseToEdit
-                            ? 'Editar Gasto Recurrente'
-                            : 'Añadir Gasto Recurrente'}
-                        </DialogTitle>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="recurring-name">Descripción</Label>
-                          <Input id="recurring-name" value={newRecurringExpenseName} onChange={(e) => setNewRecurringExpenseName(e.target.value)} />
-                        </div>
-                        <div className="space-y-2">
-                           <Label htmlFor="recurring-amount">Monto</Label>
-                           <Input id="recurring-amount" type="number" value={newRecurringExpenseAmount} onChange={(e) => setNewRecurringExpenseAmount(e.target.value)} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="recurring-category">Categoría</Label>
-                            <Select value={newRecurringExpenseCategory} onValueChange={setNewRecurringExpenseCategory}>
-                               <SelectTrigger><SelectValue placeholder="Selecciona categoría" /></SelectTrigger>
-                               <SelectContent>
-                                {uniqueExpenseCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}
-                               </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="recurring-day">Día del Mes</Label>
-                                <Input id="recurring-day" type="number" min="1" max="31" value={newRecurringExpenseDay} onChange={(e) => setNewRecurringExpenseDay(e.target.value)} />
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="recurring-budget-focus">Enfoque Presupuesto</Label>
-                                <Select value={newRecurringExpenseBudgetFocus} onValueChange={setNewRecurringExpenseBudgetFocus}>
-                                   <SelectTrigger><SelectValue placeholder="Selecciona enfoque" /></SelectTrigger>
-                                   <SelectContent>
-                                        <SelectItem value="Necesidades">Necesidades</SelectItem>
-                                        <SelectItem value="Deseos">Deseos</SelectItem>
-                                        <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
-                                   </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                        <Button type="submit" onClick={handleSaveRecurringExpense}>{recurringExpenseToEdit ? 'Guardar Cambios' : 'Guardar Gasto'}</Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {recurringExpensesLoading && (
-                    <p>Cargando gastos recurrentes...</p>
-                  )}
-                  {recurringExpenses?.map((expense) => (
-                    <div
-                      key={expense.id}
-                      className="flex items-center justify-between rounded-md border p-2"
-                    >
-                      <div className="flex items-center gap-2 overflow-hidden">
-                        <WalletCards className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
-                        <div className="truncate">
-                          <p className="truncate text-sm font-medium">
-                            {expense.name}
-                          </p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {expense.category} &middot; Día {expense.dayOfMonth}{' '}
-                            de cada mes
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-sm font-semibold">
-                          {formatCurrency(expense.amount)}
-                        </span>
-                        <AlertDialog onOpenChange={(open) => !open && setRecurringExpenseToDelete(null)}>
-                          <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                              <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 flex-shrink-0"
-                              >
-                                  <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent>
-                              <DropdownMenuItem
-                                  onClick={() =>
-                                  openRecurringExpenseDialog(expense)
-                                  }
-                              >
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  Editar
-                              </DropdownMenuItem>
-                              <AlertDialogTrigger asChild>
-                                  <DropdownMenuItem
-                                      onSelect={(e) => e.preventDefault()}
-                                      onClick={() => setRecurringExpenseToDelete(expense)}
-                                      className="text-red-500 focus:text-red-500"
-                                  >
-                                      <Trash2 className="mr-2 h-4 w-4" />
-                                      Eliminar
-                                  </DropdownMenuItem>
-                              </AlertDialogTrigger>
-                              </DropdownMenuContent>
-                          </DropdownMenu>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                  Esta acción no se puede deshacer. Se eliminará el gasto recurrente
-                                  "{recurringExpenseToDelete?.name}" permanentemente.
-                                  </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                  <AlertDialogCancel onClick={() => setRecurringExpenseToDelete(null)}>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction
-                                  onClick={handleDeleteRecurringExpense}
-                                  className="bg-destructive hover:bg-destructive/90"
-                                  >
-                                  Eliminar
-                                  </AlertDialogAction>
-                              </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </div>
-                  ))}
-                  {recurringExpenses?.length === 0 &&
-                    !recurringExpensesLoading && (
-                      <p className="text-sm text-muted-foreground text-center pt-4">
-                        No tienes gastos recurrentes definidos.
-                      </p>
-                    )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+        </div>
 
       <Dialog open={isPurchaseDialogOpen} onOpenChange={setPurchaseDialogOpen}>
         <DialogContent>
@@ -1248,5 +741,3 @@ export default function ExpensesPage() {
     </div>
   );
 }
-
-    

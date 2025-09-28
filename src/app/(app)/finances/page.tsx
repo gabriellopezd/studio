@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -38,11 +37,8 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
-  WalletCards,
   CheckCircle,
   Undo2,
-  TrendingDown,
-  TrendingUp,
   Landmark,
   PiggyBank,
   Heart,
@@ -969,7 +965,7 @@ export default function FinancesPage() {
                                 </AlertDialog>
                             </div>
                            ))}
-                           {recurringIncomes?.length === 0 && <p className="text-sm text-center text-muted-foreground pt-4">No has definido ingresos fijos.</p>}
+                           {recurringIncomes?.length === 0 && !recurringIncomesLoading && <p className="text-sm text-center text-muted-foreground pt-4">No has definido ingresos fijos.</p>}
                         </CardContent>
                     </Card>
 
@@ -987,7 +983,7 @@ export default function FinancesPage() {
                                     <Button onClick={() => handlePayRecurringItem(income, 'income')}><CheckCircle className="mr-2 h-4 w-4" />Recibir</Button>
                                 </div>
                             ))}
-                            {pendingRecurringIncomes.length === 0 && <p className="text-sm text-center text-muted-foreground">No tienes ingresos pendientes este mes.</p>}
+                            {pendingRecurringIncomes.length === 0 && !recurringIncomesLoading && <p className="text-sm text-center text-muted-foreground">No tienes ingresos pendientes este mes.</p>}
                         </CardContent>
                     </Card>
                     
@@ -1003,7 +999,7 @@ export default function FinancesPage() {
                                     <Button variant="ghost" onClick={() => handleRevertRecurringItem(income, 'income')}><Undo2 className="mr-2 h-4 w-4" />Revertir</Button>
                                 </div>
                             ))}
-                             {receivedRecurringIncomes.length === 0 && <p className="text-sm text-center text-muted-foreground">No has recibido ingresos fijos este mes.</p>}
+                             {receivedRecurringIncomes.length === 0 && !recurringIncomesLoading && <p className="text-sm text-center text-muted-foreground">No has recibido ingresos fijos este mes.</p>}
                         </CardContent>
                     </Card>
                 </div>
@@ -1037,7 +1033,7 @@ export default function FinancesPage() {
                                 </AlertDialog>
                             </div>
                            ))}
-                           {recurringExpenses?.length === 0 && <p className="text-sm text-center text-muted-foreground pt-4">No has definido gastos fijos.</p>}
+                           {recurringExpenses?.length === 0 && !recurringExpensesLoading && <p className="text-sm text-center text-muted-foreground pt-4">No has definido gastos fijos.</p>}
                         </CardContent>
                     </Card>
 
@@ -1055,7 +1051,7 @@ export default function FinancesPage() {
                                     <Button onClick={() => handlePayRecurringItem(expense, 'expense')}><CheckCircle className="mr-2 h-4 w-4" />Pagar</Button>
                                 </div>
                             ))}
-                            {pendingRecurringExpenses.length === 0 && <p className="text-sm text-center text-muted-foreground">No tienes gastos pendientes este mes.</p>}
+                            {pendingRecurringExpenses.length === 0 && !recurringExpensesLoading && <p className="text-sm text-center text-muted-foreground">No tienes gastos pendientes este mes.</p>}
                         </CardContent>
                     </Card>
 
@@ -1071,7 +1067,7 @@ export default function FinancesPage() {
                                     <Button variant="ghost" onClick={() => handleRevertRecurringItem(expense, 'expense')}><Undo2 className="mr-2 h-4 w-4" />Revertir</Button>
                                 </div>
                             ))}
-                            {paidRecurringExpenses.length === 0 && <p className="text-sm text-center text-muted-foreground">No has pagado gastos fijos este mes.</p>}
+                            {paidRecurringExpenses.length === 0 && !recurringExpensesLoading && <p className="text-sm text-center text-muted-foreground">No has pagado gastos fijos este mes.</p>}
                         </CardContent>
                     </Card>
                 </div>
@@ -1232,5 +1228,3 @@ export default function FinancesPage() {
     </>
   );
 }
-
-    
