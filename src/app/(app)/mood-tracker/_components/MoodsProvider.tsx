@@ -51,7 +51,7 @@ export const MoodsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }, {} as Record<string, number>);
 
         return Object.entries(counts)
-            .sort(([, a], [, b]) => b - a)
+            .sort(([, a]: [string, number], [, b]: [string, number]) => b - a)
             .slice(0, 5);
     }, [moods]);
 
@@ -63,7 +63,7 @@ export const MoodsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }, {} as Record<string, number>);
 
         return Object.entries(counts)
-            .sort(([, a], [, b]) => b - a)
+            .sort(([, a]: [string, number], [, b]: [string, number]) => b - a)
             .slice(0, 5);
     }, [moods]);
     
