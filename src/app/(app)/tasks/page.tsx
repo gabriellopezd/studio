@@ -86,11 +86,14 @@ export default function TasksPage() {
 
   const tasksQuery = useMemo(() => {
     if (!user) return null;
-    return query(
-      collection(firestore, 'users', user.uid, 'tasks'),
-      where('userId', '==', user.uid)
-    );
-  }, [firestore, user]);
+    let q = query(collection(firestore, 'users', user.uid, 'tasks'));
+    if (activeTab !== 'completed') {
+      q = query(q, where('isCompleted', '==', false));
+    } else {
+      q = query(q, where('isCompleted', '==', true));
+    }
+    return q;
+  }, [firestore, user, activeTab]);
 
   const { data: allTasks, isLoading: tasksLoading } = useCollection(tasksQuery);
 
@@ -166,7 +169,7 @@ export default function TasksPage() {
     switch (activeTab) {
       case 'today':
         tasksToShow = allTasks.filter(task => {
-          if (task.isCompleted || !task.dueDate) return false;
+          if (!task.dueDate) return false;
           const taskDueDate = task.dueDate.toDate();
           taskDueDate.setHours(0,0,0,0);
           return taskDueDate.getTime() === today.getTime();
@@ -176,18 +179,16 @@ export default function TasksPage() {
         const nextWeek = new Date(today);
         nextWeek.setDate(today.getDate() + 7);
         tasksToShow = allTasks.filter(task => {
-            if (task.isCompleted || !task.dueDate) return false;
+            if (!task.dueDate) return false;
             const taskDueDate = task.dueDate.toDate();
             taskDueDate.setHours(0,0,0,0);
             return taskDueDate > today && taskDueDate <= nextWeek;
         });
         break;
       case 'completed':
-        tasksToShow = allTasks.filter(task => task.isCompleted);
-        break;
       case 'all':
       default:
-        tasksToShow = allTasks.filter(task => !task.isCompleted);
+        tasksToShow = allTasks;
         break;
     }
 

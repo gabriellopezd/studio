@@ -76,6 +76,7 @@ import {
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
+  WriteBatch
 } from '@/firebase';
 import {
   collection,
@@ -272,22 +273,26 @@ export default function FinancesPage() {
       userId: user.uid,
     };
 
+    const batch = writeBatch(firestore);
+
     const transactionsColRef = collection(
       firestore,
       'users',
       user.uid,
       'transactions'
     );
-    await addDocumentNonBlocking(transactionsColRef, newTransaction);
+    const newTransactionRef = doc(transactionsColRef);
+    batch.set(newTransactionRef, newTransaction);
     
     if (newTransaction.type === 'expense') {
       const budget = budgets?.find(b => b.categoryName === newTransaction.category);
       if (budget) {
         const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-        const newSpend = (budget.currentSpend || 0) + newTransaction.amount;
-        updateDocumentNonBlocking(budgetRef, { currentSpend: newSpend });
+        batch.update(budgetRef, { currentSpend: increment(newTransaction.amount) });
       }
     }
+
+    await batch.commit();
 
     setNewTransactionDesc('');
     setNewTransactionAmount('');
@@ -357,33 +362,37 @@ export default function FinancesPage() {
       budgetFocus: transactionToEdit.type === 'expense' ? transactionToEdit.budgetFocus : null,
     });
     
-    // Revert old budget spend
-    if (originalTransaction.type === 'expense') {
-      const oldBudget = budgets?.find(b => b.categoryName === originalTransaction.category);
-      if (oldBudget) {
-        const oldBudgetRef = doc(firestore, 'users', user.uid, 'budgets', oldBudget.id);
-        const revertedSpend = (oldBudget.currentSpend || 0) - originalTransaction.amount;
-        batch.update(oldBudgetRef, { currentSpend: Math.max(0, revertedSpend) });
+    const amountDifference = amount - originalTransaction.amount;
+
+    if (originalTransaction.category === transactionToEdit.category) {
+      if (transactionToEdit.type === 'expense') {
+        const budget = budgets?.find(b => b.categoryName === transactionToEdit.category);
+        if (budget) {
+          const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+          batch.update(budgetRef, { currentSpend: increment(amountDifference) });
+        }
+      }
+    } else {
+      // Revert old budget spend
+      if (originalTransaction.type === 'expense') {
+        const oldBudget = budgets?.find(b => b.categoryName === originalTransaction.category);
+        if (oldBudget) {
+          const oldBudgetRef = doc(firestore, 'users', user.uid, 'budgets', oldBudget.id);
+          batch.update(oldBudgetRef, { currentSpend: increment(-originalTransaction.amount) });
+        }
+      }
+      // Apply new budget spend
+      if (transactionToEdit.type === 'expense') {
+        const newBudget = budgets?.find(b => b.categoryName === transactionToEdit.category);
+        if (newBudget) {
+          const newBudgetRef = doc(firestore, 'users', user.uid, 'budgets', newBudget.id);
+          batch.update(newBudgetRef, { currentSpend: increment(amount) });
+        }
       }
     }
+
 
     await batch.commit();
-
-    // Apply new budget spend in a separate step to ensure reverted spend is committed
-    const secondBatch = writeBatch(firestore);
-    if (transactionToEdit.type === 'expense') {
-      const newBudget = budgets?.find(b => b.categoryName === transactionToEdit.category);
-      if (newBudget) {
-         const newBudgetRef = doc(firestore, 'users', user.uid, 'budgets', newBudget.id);
-         const currentBudgetDoc = await getDocs(query(collection(firestore, 'users', user.uid, 'budgets'), where('categoryName', '==', newBudget.categoryName)));
-         const currentBudgetData = currentBudgetDoc.docs[0].data();
-         const newSpend = (currentBudgetData.currentSpend || 0) + amount;
-         secondBatch.update(newBudgetRef, { currentSpend: newSpend });
-      }
-    }
-
-    await secondBatch.commit();
-
     setTransactionToEdit(null);
   };
 
@@ -421,8 +430,7 @@ export default function FinancesPage() {
       const budget = budgets?.find(b => b.categoryName === transactionToDelete.category);
       if (budget) {
           const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-          const newSpend = (budget.currentSpend || 0) - transactionToDelete.amount;
-          batch.update(budgetRef, { currentSpend: Math.max(0, newSpend) });
+          batch.update(budgetRef, { currentSpend: increment(-transactionToDelete.amount) });
       }
     }
     
@@ -546,8 +554,7 @@ export default function FinancesPage() {
       const budget = budgets?.find(b => b.categoryName === transactionData.category);
       if (budget) {
         const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-        const newSpend = Math.max(0, (budget.currentSpend || 0) - transactionData.amount);
-        batch.update(budgetRef, { currentSpend: newSpend });
+        batch.update(budgetRef, { currentSpend: increment(-transactionData.amount) });
       }
     }
     
@@ -573,7 +580,7 @@ export default function FinancesPage() {
   
   const incomeCategories = useMemo(() => {
     const fromTransactions = transactions
-        ?.filter((t) => t.type === 'income')
+        ?.filter((t)_ => t.type === 'income')
         .map((t) => t.category) ?? [];
     return ["Salario", "Bonificación", "Otro", ...fromTransactions];
   }, [transactions]);
