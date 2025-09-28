@@ -362,7 +362,7 @@ export default function ExpensesPage() {
         description: itemToPurchase.name,
         category: selectedList.name,
         amount: finalPrice,
-        budgetFocus: selectedList.budgetFocus,
+        budgetFocus: selectedList.budgetFocus, // This was the source of the error
         date: new Date().toISOString(),
         userId: user.uid,
         createdAt: serverTimestamp(),
