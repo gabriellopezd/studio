@@ -59,6 +59,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { calculateStreak, isHabitCompletedToday } from '@/lib/habits';
 
 const getStartOfWeek = (date: Date) => {
   const d = new Date(date);
@@ -68,9 +69,6 @@ const getStartOfWeek = (date: Date) => {
 };
 const isSameDay = (d1: Date, d2: Date) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
 const isSameWeek = (d1: Date, d2: Date) => isSameDay(getStartOfWeek(d1), getStartOfWeek(d2));
-const isPreviousDay = (d1: Date, d2: Date) => { const y = new Date(d1); y.setDate(d1.getDate() - 1); return isSameDay(d2, y); };
-const isPreviousWeek = (d1: Date, d2: Date) => { const lw = new Date(d1); lw.setDate(d1.getDate() - 7); return isSameWeek(d2, lw); };
-
 
 export default function RoutinesPage() {
   const { firestore, user } = useFirebase();
@@ -83,10 +81,11 @@ export default function RoutinesPage() {
   const [selectedHabitIds, setSelectedHabitIds] = useState<string[]>([]);
   
   const [timerHabit, setTimerHabit] = useState<any | null>(null);
-  const [timerMinutes, setTimerMinutes] = useState(25);
-  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [isTimerDialogOpen, setTimerDialogOpen] = useState(false);
+  const [timerStartTime, setTimerStartTime] = useState<number | null>(null);
+
 
   const routinesQuery = useMemo(
     () => (user ? collection(firestore, 'users', user.uid, 'routines') : null),
@@ -100,27 +99,17 @@ export default function RoutinesPage() {
   );
   const { data: allHabits } = useCollection(habitsQuery);
   
-  useEffect(() => {
+ useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
-    if (isTimerActive && (timerMinutes > 0 || timerSeconds > 0)) {
+    if (isTimerActive) {
       interval = setInterval(() => {
-        if (timerSeconds > 0) {
-          setTimerSeconds(s => s - 1);
-        } else {
-          setTimerMinutes(m => m - 1);
-          setTimerSeconds(59);
-        }
+        setElapsedSeconds(prev => prev + 1);
       }, 1000);
-    } else if (isTimerActive && timerMinutes === 0 && timerSeconds === 0) {
-      handleToggleHabit(timerHabit.id);
-      setIsTimerActive(false);
-      setTimerDialogOpen(false);
-      setTimerHabit(null);
     }
     return () => {
-      if(interval) clearInterval(interval);
+      if (interval) clearInterval(interval);
     };
-  }, [isTimerActive, timerSeconds, timerMinutes]);
+  }, [isTimerActive]);
 
   const resetForm = () => {
     setName('');
@@ -179,27 +168,11 @@ export default function RoutinesPage() {
     if (!habit) return;
 
     const habitRef = doc(firestore, 'users', user.uid, 'habits', habitId);
-    const today = new Date();
 
-    const lastCompletedDate = habit.lastCompletedAt
-      ? (habit.lastCompletedAt as Timestamp).toDate()
-      : null;
+    const isCompleted = isHabitCompletedToday(habit);
 
-    let isCompletedInCurrentPeriod = false;
-    if (lastCompletedDate) {
-      switch (habit.frequency) {
-        case 'Semanal':
-          isCompletedInCurrentPeriod = isSameWeek(lastCompletedDate, today);
-          break;
-        case 'Diario':
-        default:
-          isCompletedInCurrentPeriod = isSameDay(lastCompletedDate, today);
-          break;
-      }
-    }
-
-    if (isCompletedInCurrentPeriod) {
-      // Reverting completion
+    if (isCompleted) {
+      // Reverting completion.
       updateDocumentNonBlocking(habitRef, {
         lastCompletedAt: habit.previousLastCompletedAt ?? null,
         currentStreak: habit.previousStreak ?? 0,
@@ -207,96 +180,65 @@ export default function RoutinesPage() {
         previousLastCompletedAt: null,
       });
     } else {
-      // Completing the habit
-      const currentStreak = habit.currentStreak || 0;
-      let longestStreak = habit.longestStreak || 0;
-      let newStreak = 1;
+      // Completing the habit.
+      const streakData = calculateStreak(habit);
       
-      if (lastCompletedDate) {
-        let isConsecutive = false;
-        switch(habit.frequency) {
-          case 'Semanal': isConsecutive = isPreviousWeek(today, lastCompletedDate); break;
-          default: isConsecutive = isPreviousDay(today, lastCompletedDate); break;
-        }
-        if (isConsecutive) newStreak = currentStreak + 1;
-      }
-      
-      const newLongestStreak = Math.max(longestStreak, newStreak);
-
       updateDocumentNonBlocking(habitRef, {
-        lastCompletedAt: Timestamp.fromDate(today),
-        currentStreak: newStreak,
-        longestStreak: newLongestStreak,
-        previousStreak: currentStreak,
-        previousLastCompletedAt: habit.lastCompletedAt,
+        lastCompletedAt: Timestamp.now(),
+        ...streakData,
+        previousStreak: habit.currentStreak || 0,
+        previousLastCompletedAt: habit.lastCompletedAt ?? null,
       });
     }
   };
   
-  const isHabitCompleted = (habit: any) => {
-      if (!habit || !habit.lastCompletedAt) return false;
-      const lastCompletedDate = (habit.lastCompletedAt as Timestamp).toDate();
-      const today = new Date();
-      switch (habit.frequency) {
-          case 'Semanal': return isSameWeek(lastCompletedDate, today);
-          default: return isSameDay(lastCompletedDate, today);
-      }
-  };
-  
   const handleStartTimer = (habit: any) => {
     setTimerHabit(habit);
-    setTimerMinutes(25); 
-    setTimerSeconds(0);
-    setIsTimerActive(false); 
+    setElapsedSeconds(0);
+    setTimerStartTime(Date.now());
+    setIsTimerActive(true);
     setTimerDialogOpen(true);
   };
   
-  const handleTimeInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const minutes = parseInt(e.target.value, 10);
-    if (!isNaN(minutes)) {
-      setTimerMinutes(minutes);
-      setTimerSeconds(0);
+  const handleStopAndComplete = () => {
+    if (timerHabit && user && timerStartTime) {
+      handleToggleHabit(timerHabit.id);
+
+      const timeLogsColRef = collection(firestore, 'users', user.uid, 'timeLogs');
+      addDocumentNonBlocking(timeLogsColRef, {
+        referenceId: timerHabit.id,
+        referenceType: 'habit',
+        startTime: Timestamp.fromMillis(timerStartTime),
+        endTime: Timestamp.now(),
+        durationSeconds: elapsedSeconds,
+        createdAt: serverTimestamp(),
+        userId: user.uid,
+      });
     }
+    setIsTimerActive(false);
+    setTimerDialogOpen(false);
+    setTimerHabit(null);
   };
 
+  
   const handleCompleteRoutine = async (routine: any) => {
     if (!user || !allHabits) return;
 
     const routineHabits = allHabits.filter(h => routine.habitIds.includes(h.id));
-    const habitsToComplete = routineHabits.filter(h => !isHabitCompleted(h));
+    const habitsToComplete = routineHabits.filter(h => !isHabitCompletedToday(h));
 
     if (habitsToComplete.length === 0) return;
     
     const batch = writeBatch(firestore);
-    const today = new Date();
 
     habitsToComplete.forEach(habit => {
       const habitRef = doc(firestore, "users", user.uid, "habits", habit.id);
+      const streakData = calculateStreak(habit);
       
-      const lastCompletedDate = habit.lastCompletedAt
-        ? (habit.lastCompletedAt as Timestamp).toDate()
-        : null;
-
-      const currentStreak = habit.currentStreak || 0;
-      let longestStreak = habit.longestStreak || 0;
-      let newStreak = 1;
-      
-      if (lastCompletedDate) {
-        let isConsecutive = false;
-        switch(habit.frequency) {
-          case 'Semanal': isConsecutive = isPreviousWeek(today, lastCompletedDate); break;
-          default: isConsecutive = isPreviousDay(today, lastCompletedDate); break;
-        }
-        if (isConsecutive) newStreak = currentStreak + 1;
-      }
-      
-      const newLongestStreak = Math.max(longestStreak, newStreak);
-
       batch.update(habitRef, {
-        lastCompletedAt: Timestamp.fromDate(today),
-        currentStreak: newStreak,
-        longestStreak: newLongestStreak,
-        previousStreak: currentStreak,
+        lastCompletedAt: Timestamp.now(),
+        ...streakData,
+        previousStreak: habit.currentStreak || 0,
         previousLastCompletedAt: habit.lastCompletedAt,
       });
     });
@@ -304,7 +246,9 @@ export default function RoutinesPage() {
     await batch.commit();
   };
   
-  const formatTime = (minutes: number, seconds: number) => {
+  const formatTime = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   };
 
@@ -326,7 +270,7 @@ export default function RoutinesPage() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {routines?.map((routine) => {
             const routineHabits = allHabits?.filter(h => routine.habitIds.includes(h.id)) || [];
-            const completedHabitsCount = routineHabits.filter(isHabitCompleted).length;
+            const completedHabitsCount = routineHabits.filter(isHabitCompletedToday).length;
             const progress = routineHabits.length > 0 ? (completedHabitsCount / routineHabits.length) * 100 : 0;
             const allHabitsInRoutineCompleted = completedHabitsCount === routineHabits.length;
             
@@ -370,7 +314,7 @@ export default function RoutinesPage() {
                       <div key={habit.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50">
                         <Checkbox
                           id={`routine-${routine.id}-habit-${habit.id}`}
-                          checked={isHabitCompleted(habit)}
+                          checked={isHabitCompletedToday(habit)}
                           onCheckedChange={() => handleToggleHabit(habit.id)}
                         />
                         <Label htmlFor={`routine-${routine.id}-habit-${habit.id}`} className="flex-1 items-center gap-2 font-normal cursor-pointer">
@@ -410,23 +354,17 @@ export default function RoutinesPage() {
           </DialogHeader>
           <div className="flex flex-col items-center justify-center gap-4 py-8">
              <div className="text-8xl font-bold font-mono">
-                {formatTime(timerMinutes, timerSeconds)}
+                {formatTime(elapsedSeconds)}
              </div>
-             <div className="flex items-center gap-2">
-                <Label htmlFor="timer-minutes">Duración (minutos)</Label>
-                <Input 
-                    id="timer-minutes"
-                    type="number"
-                    value={timerMinutes}
-                    onChange={handleTimeInputChange}
-                    className="w-20"
-                    disabled={isTimerActive}
-                />
-             </div>
+             <Label>Tiempo Transcurrido</Label>
           </div>
-          <DialogFooter className="justify-center">
-            <Button onClick={() => setIsTimerActive(!isTimerActive)}>
-                {isTimerActive ? 'Pausar' : 'Iniciar'}
+          <DialogFooter className="justify-center gap-2 sm:gap-0">
+            <Button onClick={() => setIsTimerActive(!isTimerActive)} variant="outline">
+                {isTimerActive ? 'Pausar' : 'Reanudar'}
+            </Button>
+            <Button onClick={handleStopAndComplete}>
+                <Check className="mr-2 h-4 w-4" />
+                Detener y Completar
             </Button>
           </DialogFooter>
         </DialogContent>

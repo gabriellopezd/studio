@@ -78,8 +78,6 @@ export default function TodayPage() {
       interval = setInterval(() => {
         setElapsedSeconds(seconds => seconds + 1);
       }, 1000);
-    } else if (!isTimerActive && interval) {
-      clearInterval(interval);
     }
     return () => {
       if (interval) clearInterval(interval);
@@ -354,7 +352,7 @@ export default function TodayPage() {
             </div>
             <DialogFooter className="justify-center gap-2 sm:gap-0">
                 <Button onClick={() => setIsTimerActive(!isTimerActive)} variant="outline">
-                    {isTimerActive ? 'Pausar' : 'Iniciar'}
+                    {isTimerActive ? 'Pausar' : 'Reanudar'}
                 </Button>
                 <Button onClick={handleStopAndComplete}>
                     <Check className="mr-2 h-4 w-4" />
