@@ -18,8 +18,8 @@ interface MoodsContextType {
     setCurrentMonth: React.Dispatch<React.SetStateAction<Date>>;
     moods: any[] | null;
     moodsLoading: boolean;
-    feelingStats: [string, number][];
-    influenceStats: [string, number][];
+    feelingStats: [string, any][];
+    influenceStats: [string, any][];
     todayMood: any;
     handleSaveMood: (moodData: Mood) => Promise<void>;
 }
