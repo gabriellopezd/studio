@@ -5,7 +5,7 @@ import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, MoreHorizontal, Pencil, Trash2, CalendarIcon } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Pencil, Trash2, CalendarIcon, Timer, Check } from 'lucide-react';
 import {
   useFirebase,
   useCollection,
@@ -79,6 +79,25 @@ export default function TasksPage() {
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [priority, setPriority] = useState('medium');
   const [category, setCategory] = useState('Otro');
+
+  const [timerTask, setTimerTask] = useState<any | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [isTimerActive, setIsTimerActive] = useState(false);
+  const [isTimerDialogOpen, setTimerDialogOpen] = useState(false);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isTimerActive) {
+      interval = setInterval(() => {
+        setElapsedSeconds(seconds => seconds + 1);
+      }, 1000);
+    } else if (!isTimerActive && interval) {
+      clearInterval(interval);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isTimerActive]);
   
   useEffect(() => {
     setIsClient(true);
@@ -295,6 +314,28 @@ export default function TasksPage() {
         default: return 'bg-gray-200 text-gray-800';
      }
   }
+
+  const handleStartTimer = (task: any) => {
+    setTimerTask(task);
+    setElapsedSeconds(0);
+    setIsTimerActive(false);
+    setTimerDialogOpen(true);
+  };
+  
+  const handleStopAndComplete = () => {
+    if (timerTask) {
+      handleToggleTask(timerTask.id, false); // Mark as complete
+    }
+    setIsTimerActive(false);
+    setTimerDialogOpen(false);
+    setTimerTask(null);
+  };
+
+  const formatTime = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  };
   
   const categoryOrder = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro", "Sin Categoría"];
 
@@ -344,6 +385,11 @@ export default function TasksPage() {
                                 <Badge className={getPriorityBadge(task.priority)}>
                                     {task.priority}
                                 </Badge>
+                                {!task.isCompleted && (
+                                  <Button variant="outline" size="icon" onClick={() => handleStartTimer(task)} className="h-9 w-9">
+                                      <Timer className="h-4 w-4" />
+                                  </Button>
+                                )}
                                 <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -548,6 +594,32 @@ export default function TasksPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Timer Dialog */}
+      <Dialog open={isTimerDialogOpen} onOpenChange={setTimerDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                    <Timer /> {timerTask?.name}
+                </DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center justify-center gap-4 py-8">
+                <div className="text-8xl font-bold font-mono text-center">
+                    {formatTime(elapsedSeconds)}
+                </div>
+                <Label>Tiempo Transcurrido</Label>
+            </div>
+            <DialogFooter className="justify-center gap-2 sm:gap-0">
+                <Button onClick={() => setIsTimerActive(!isTimerActive)} variant="outline">
+                    {isTimerActive ? 'Pausar' : 'Iniciar'}
+                </Button>
+                <Button onClick={handleStopAndComplete}>
+                    <Check className="mr-2 h-4 w-4" />
+                    Detener y Completar
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
     </>
   );
 }
