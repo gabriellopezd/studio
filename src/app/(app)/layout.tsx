@@ -16,6 +16,7 @@ import {
   SquareCheckBig,
   LogOut,
   Sun,
+  LineChart,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -54,6 +55,7 @@ const navItems = [
   { href: '/mood-tracker', icon: Smile, label: 'Ánimo' },
   { href: '/finances', icon: CircleDollarSign, label: 'Finanzas' },
   { href: '/expenses', icon: ShoppingCart, label: 'Gastos' },
+  { href: '/analytics', icon: LineChart, label: 'Análisis' },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
