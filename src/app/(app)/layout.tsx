@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, createContext, useContext } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -17,6 +17,8 @@ import {
   LogOut,
   Sun,
   LineChart,
+  Timer,
+  X,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -42,8 +44,11 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Logo } from '@/components/icons';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useFirebase, addDocumentNonBlocking } from '@/firebase';
 import { useRouter } from 'next/navigation';
+import { collection, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { useHabits } from './habits/_components/HabitsProvider';
+import { useTasks } from './tasks/_components/TasksProvider';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -54,11 +59,112 @@ const navItems = [
   { href: '/goals', icon: Target, label: 'Metas' },
   { href: '/mood-tracker', icon: Smile, label: 'Ánimo' },
   { href: '/finances', icon: CircleDollarSign, label: 'Finanzas' },
-  { href: '/expenses', icon: ShoppingCart, label: 'Gastos' },
+  { href '/expenses', icon: ShoppingCart, label: 'Gastos' },
   { href: '/analytics', icon: LineChart, label: 'Análisis' },
 ];
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+interface ActiveSession {
+    id: string;
+    name: string;
+    type: 'habit' | 'task';
+    startTime: number;
+}
+
+interface TimerContextType {
+    activeSession: ActiveSession | null;
+    startSession: (id: string, name: string, type: 'habit' | 'task') => void;
+    stopSession: () => void;
+    elapsedTime: number;
+}
+
+const TimerContext = createContext<TimerContextType | undefined>(undefined);
+
+export const useTimer = () => {
+    const context = useContext(TimerContext);
+    if (!context) throw new Error("useTimer must be used within a TimerProvider");
+    return context;
+}
+
+function TimerProvider({ children }: { children: React.ReactNode }) {
+    const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
+    const [elapsedTime, setElapsedTime] = useState(0);
+    const { firestore, user } = useFirebase();
+    const { handleToggleHabit } = useHabits();
+    const { handleToggleTask } = useTasks();
+
+    useEffect(() => {
+        let interval: NodeJS.Timeout | null = null;
+        if (activeSession) {
+            interval = setInterval(() => {
+                setElapsedTime(Math.floor((Date.now() - activeSession.startTime) / 1000));
+            }, 1000);
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [activeSession]);
+
+    const startSession = (id: string, name: string, type: 'habit' | 'task') => {
+        if (activeSession) return; // Prevent starting a new session if one is active
+        setActiveSession({ id, name, type, startTime: Date.now() });
+        setElapsedTime(0);
+    };
+
+    const stopSession = () => {
+        if (!activeSession || !user) return;
+
+        const durationSeconds = Math.floor((Date.now() - activeSession.startTime) / 1000);
+
+        const timeLogsColRef = collection(firestore, 'users', user.uid, 'timeLogs');
+        addDocumentNonBlocking(timeLogsColRef, {
+            referenceId: activeSession.id,
+            referenceType: activeSession.type,
+            startTime: Timestamp.fromMillis(activeSession.startTime),
+            endTime: Timestamp.now(),
+            durationSeconds: durationSeconds,
+            createdAt: serverTimestamp(),
+            userId: user.uid,
+        });
+
+        if (activeSession.type === 'habit') {
+            handleToggleHabit(activeSession.id, false); // Mark as complete
+        } else {
+             handleToggleTask(activeSession.id, false); // Mark as complete
+        }
+
+        setActiveSession(null);
+        setElapsedTime(0);
+    };
+    
+    const formatTime = (totalSeconds: number) => {
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    };
+
+    return (
+        <TimerContext.Provider value={{ activeSession, startSession, stopSession, elapsedTime }}>
+            {children}
+            {activeSession && (
+                <div className="fixed bottom-4 right-4 z-50">
+                    <div className="flex items-center gap-4 rounded-lg bg-primary p-4 text-primary-foreground shadow-lg">
+                        <Timer className="h-6 w-6 animate-pulse" />
+                        <div className="flex-1">
+                            <p className="text-sm font-medium">{activeSession.name}</p>
+                            <p className="font-mono text-lg font-bold">{formatTime(elapsedTime)}</p>
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/80" onClick={stopSession}>
+                            <X className="h-5 w-5" />
+                        </Button>
+                    </div>
+                </div>
+            )}
+        </TimerContext.Provider>
+    );
+}
+
+
+function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
@@ -87,8 +193,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-
-  return (
+  
+    return (
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
@@ -175,5 +281,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
       </SidebarInset>
     </SidebarProvider>
-  );
+    )
+}
+
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+    return (
+        <HabitsProvider>
+            <TasksProvider>
+                <TimerProvider>
+                    <AppLayoutContent>{children}</AppLayoutContent>
+                </TimerProvider>
+            </TasksProvider>
+        </HabitsProvider>
+    )
 }

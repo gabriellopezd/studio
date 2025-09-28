@@ -19,6 +19,7 @@ import {
   Trash2,
   Check,
   Timer,
+  Square,
 } from 'lucide-react';
 import {
   useFirebase,
@@ -60,15 +61,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { calculateStreak, isHabitCompletedToday } from '@/lib/habits';
+import { useTimer } from '../layout';
+import { cn } from '@/lib/utils';
 
-const getStartOfWeek = (date: Date) => {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(d.setDate(diff));
-};
-const isSameDay = (d1: Date, d2: Date) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
-const isSameWeek = (d1: Date, d2: Date) => isSameDay(getStartOfWeek(d1), getStartOfWeek(d2));
 
 export default function RoutinesPage() {
   const { firestore, user } = useFirebase();
@@ -80,11 +75,7 @@ export default function RoutinesPage() {
   const [description, setDescription] = useState('');
   const [selectedHabitIds, setSelectedHabitIds] = useState<string[]>([]);
   
-  const [timerHabit, setTimerHabit] = useState<any | null>(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [isTimerActive, setIsTimerActive] = useState(false);
-  const [isTimerDialogOpen, setTimerDialogOpen] = useState(false);
-  const [timerStartTime, setTimerStartTime] = useState<number | null>(null);
+  const { activeSession, startSession, stopSession } = useTimer();
 
 
   const routinesQuery = useMemo(
@@ -99,18 +90,6 @@ export default function RoutinesPage() {
   );
   const { data: allHabits } = useCollection(habitsQuery);
   
- useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    if (isTimerActive) {
-      interval = setInterval(() => {
-        setElapsedSeconds(prev => prev + 1);
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isTimerActive]);
-
   const resetForm = () => {
     setName('');
     setDescription('');
@@ -192,34 +171,6 @@ export default function RoutinesPage() {
     }
   };
   
-  const handleStartTimer = (habit: any) => {
-    setTimerHabit(habit);
-    setElapsedSeconds(0);
-    setTimerStartTime(Date.now());
-    setIsTimerActive(true);
-    setTimerDialogOpen(true);
-  };
-  
-  const handleStopAndComplete = () => {
-    if (timerHabit && user && timerStartTime) {
-      handleToggleHabit(timerHabit.id);
-
-      const timeLogsColRef = collection(firestore, 'users', user.uid, 'timeLogs');
-      addDocumentNonBlocking(timeLogsColRef, {
-        referenceId: timerHabit.id,
-        referenceType: 'habit',
-        startTime: Timestamp.fromMillis(timerStartTime),
-        endTime: Timestamp.now(),
-        durationSeconds: elapsedSeconds,
-        createdAt: serverTimestamp(),
-        userId: user.uid,
-      });
-    }
-    setIsTimerActive(false);
-    setTimerDialogOpen(false);
-    setTimerHabit(null);
-  };
-
   
   const handleCompleteRoutine = async (routine: any) => {
     if (!user || !allHabits) return;
@@ -244,12 +195,6 @@ export default function RoutinesPage() {
     });
     
     await batch.commit();
-  };
-  
-  const formatTime = (totalSeconds: number) => {
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   };
 
   return (
@@ -310,22 +255,31 @@ export default function RoutinesPage() {
                     <Progress value={progress} />
                   </div>
                   <div className="space-y-3">
-                    {routineHabits.map((habit: any) => (
-                      <div key={habit.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50">
-                        <Checkbox
-                          id={`routine-${routine.id}-habit-${habit.id}`}
-                          checked={isHabitCompletedToday(habit)}
-                          onCheckedChange={() => handleToggleHabit(habit.id)}
-                        />
-                        <Label htmlFor={`routine-${routine.id}-habit-${habit.id}`} className="flex-1 items-center gap-2 font-normal cursor-pointer">
-                          <span className="text-lg">{habit.icon}</span>
-                          <span>{habit.name}</span>
-                        </Label>
-                        <Button variant="ghost" size="icon" onClick={() => handleStartTimer(habit)}>
-                           <Play className="h-4 w-4"/>
-                        </Button>
-                      </div>
-                    ))}
+                    {routineHabits.map((habit: any) => {
+                      const isSessionActive = activeSession?.id === habit.id;
+                      return (
+                        <div key={habit.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50">
+                          <Checkbox
+                            id={`routine-${routine.id}-habit-${habit.id}`}
+                            checked={isHabitCompletedToday(habit)}
+                            onCheckedChange={() => handleToggleHabit(habit.id)}
+                          />
+                          <Label htmlFor={`routine-${routine.id}-habit-${habit.id}`} className="flex-1 items-center gap-2 font-normal cursor-pointer">
+                            <span className="text-lg">{habit.icon}</span>
+                            <span>{habit.name}</span>
+                          </Label>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={() => isSessionActive ? stopSession() : startSession(habit.id, habit.name, 'habit')}
+                            disabled={!isSessionActive && !!activeSession}
+                            className={cn("h-9 w-9", isSessionActive && "bg-primary text-primary-foreground animate-pulse")}
+                          >
+                            {isSessionActive ? <Square className="h-4 w-4"/> : <Play className="h-4 w-4"/>}
+                          </Button>
+                        </div>
+                      )
+                    })}
                   </div>
                 </CardContent>
                  <CardFooter>
@@ -343,32 +297,6 @@ export default function RoutinesPage() {
           })}
         </div>
       </div>
-      
-      {/* Timer Dialog */}
-      <Dialog open={isTimerDialogOpen} onOpenChange={setTimerDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-                <Timer /> {timerHabit?.name}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center justify-center gap-4 py-8">
-             <div className="text-8xl font-bold font-mono">
-                {formatTime(elapsedSeconds)}
-             </div>
-             <Label>Tiempo Transcurrido</Label>
-          </div>
-          <DialogFooter className="justify-center gap-2 sm:gap-0">
-            <Button onClick={() => setIsTimerActive(!isTimerActive)} variant="outline">
-                {isTimerActive ? 'Pausar' : 'Reanudar'}
-            </Button>
-            <Button onClick={handleStopAndComplete}>
-                <Check className="mr-2 h-4 w-4" />
-                Detener y Completar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>

@@ -5,7 +5,7 @@ import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, MoreHorizontal, Pencil, Trash2, CalendarIcon, Timer, Check } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Pencil, Trash2, CalendarIcon, Timer, Check, Play, Square } from 'lucide-react';
 import {
   addDocumentNonBlocking
 } from '@/firebase';
@@ -58,6 +58,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { TasksProvider, useTasks } from './_components/TasksProvider';
+import { useTimer } from '../layout';
 
 
 const taskCategories = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro"];
@@ -91,23 +92,8 @@ function TasksContent() {
   const [priority, setPriority] = useState('medium');
   const [category, setCategory] = useState('Otro');
 
-  const [timerTask, setTimerTask] = useState<any | null>(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [isTimerActive, setIsTimerActive] = useState(false);
-  const [isTimerDialogOpen, setTimerDialogOpen] = useState(false);
-  const [timerStartTime, setTimerStartTime] = useState<number | null>(null);
+  const { activeSession, startSession, stopSession } = useTimer();
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    if (isTimerActive) {
-      interval = setInterval(() => {
-        setElapsedSeconds(seconds => seconds + 1);
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isTimerActive]);
   
   useEffect(() => {
     setIsClient(true);
@@ -226,40 +212,6 @@ function TasksContent() {
         default: return 'bg-gray-200 text-gray-800';
      }
   }
-
-  const handleStartTimer = (task: any) => {
-    setTimerTask(task);
-    setElapsedSeconds(0);
-    setTimerStartTime(Date.now());
-    setIsTimerActive(true);
-    setTimerDialogOpen(true);
-  };
-  
-  const handleStopAndComplete = () => {
-    if (timerTask && user && timerStartTime) {
-      handleToggleTask(timerTask.id, false); // Mark as complete
-
-      const timeLogsColRef = collection(firestore, 'users', user.uid, 'timeLogs');
-      addDocumentNonBlocking(timeLogsColRef, {
-        referenceId: timerTask.id,
-        referenceType: 'task',
-        startTime: Timestamp.fromMillis(timerStartTime),
-        endTime: Timestamp.now(),
-        durationSeconds: elapsedSeconds,
-        createdAt: serverTimestamp(),
-        userId: user.uid,
-      });
-    }
-    setIsTimerActive(false);
-    setTimerDialogOpen(false);
-    setTimerTask(null);
-  };
-
-  const formatTime = (totalSeconds: number) => {
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  };
   
   const categoryOrder = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro", "Sin Categoría"];
 
@@ -279,7 +231,9 @@ function TasksContent() {
                 <div key={category}>
                     <h3 className="text-lg font-semibold mb-2">{category}</h3>
                     <div className="space-y-2 rounded-lg border bg-card p-4">
-                        {groupedTasks[category].map(task => (
+                        {groupedTasks[category].map(task => {
+                          const isSessionActive = activeSession?.id === task.id;
+                          return (
                             <div
                                 key={task.id}
                                 className="flex items-center gap-3 rounded-md p-2 hover:bg-muted/50"
@@ -306,12 +260,18 @@ function TasksContent() {
                                     {getTaskDueDate(task)}
                                 </p>
                                 </label>
-                                <Badge className={getPriorityBadge(task.priority)}>
+                                <Badge className={cn(getPriorityBadge(task.priority), 'ml-auto')}>
                                     {task.priority}
                                 </Badge>
                                 {!task.isCompleted && (
-                                  <Button variant="outline" size="icon" onClick={() => handleStartTimer(task)} className="h-9 w-9">
-                                      <Timer className="h-4 w-4" />
+                                  <Button 
+                                    variant="outline" 
+                                    size="icon" 
+                                    onClick={() => isSessionActive ? stopSession() : startSession(task.id, task.name, 'task')}
+                                    disabled={!isSessionActive && !!activeSession}
+                                    className={cn("h-9 w-9", isSessionActive && "bg-primary text-primary-foreground animate-pulse")}
+                                  >
+                                    {isSessionActive ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                                   </Button>
                                 )}
                                 <DropdownMenu>
@@ -332,7 +292,7 @@ function TasksContent() {
                                 </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
-                        ))}
+                        )})}
                     </div>
                 </div>
             )
@@ -518,32 +478,6 @@ function TasksContent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Timer Dialog */}
-      <Dialog open={isTimerDialogOpen} onOpenChange={setTimerDialogOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                    <Timer /> {timerTask?.name}
-                </DialogTitle>
-            </DialogHeader>
-            <div className="flex flex-col items-center justify-center gap-4 py-8">
-                <div className="text-8xl font-bold font-mono text-center">
-                    {formatTime(elapsedSeconds)}
-                </div>
-                <Label>Tiempo Transcurrido</Label>
-            </div>
-            <DialogFooter className="justify-center gap-2 sm:gap-0">
-                <Button onClick={() => setIsTimerActive(!isTimerActive)} variant="outline">
-                    {isTimerActive ? 'Pausar' : 'Reanudar'}
-                </Button>
-                <Button onClick={handleStopAndComplete}>
-                    <Check className="mr-2 h-4 w-4" />
-                    Detener y Completar
-                </Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
     </>
   );
 }
