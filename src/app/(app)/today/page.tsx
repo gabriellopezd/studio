@@ -573,29 +573,6 @@ export default function TodayPage() {
                             <h3 className="text-lg font-semibold tracking-tight mb-2">{category}</h3>
                             <div className="space-y-2">
                             {groupedHabits[category].map((habit) => {
-                                const lastCompletedDate = habit.lastCompletedAt
-                                ? (habit.lastCompletedAt as Timestamp).toDate()
-                                : null;
-            
-                                let isCompleted = false;
-                                if (lastCompletedDate) {
-                                switch (habit.frequency) {
-                                    case 'Semanal':
-                                    isCompleted = isSameWeek(
-                                        lastCompletedDate,
-                                        new Date()
-                                    );
-                                    break;
-                                    case 'Diario':
-                                    default:
-                                    isCompleted = isSameDay(
-                                        lastCompletedDate,
-                                        new Date()
-                                    );
-                                    break;
-                                }
-                                }
-            
                                 return (
                                 <div
                                     key={habit.id}
@@ -625,14 +602,6 @@ export default function TodayPage() {
                                             className="h-9 w-9"
                                         >
                                             <Timer className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant={isCompleted ? 'secondary' : 'outline'}
-                                            size="sm"
-                                            onClick={() => handleToggleHabit(habit.id)}
-                                        >
-                                            <CheckCircle2 className="mr-2 h-4 w-4" />
-                                            {isCompleted ? 'Completado' : 'Marcar'}
                                         </Button>
                                     </div>
                                 </div>
