@@ -124,6 +124,8 @@ export default function ExpensesPage() {
   
   const [isPurchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [itemToPurchase, setItemToPurchase] = useState<any | null>(null);
+  const [purchasePrice, setPurchasePrice] = useState('');
+
 
   const { toast } = useToast();
 
@@ -388,32 +390,40 @@ export default function ExpensesPage() {
 
       } else { // Purchasing
           setItemToPurchase(item);
+          setPurchasePrice(item.amount.toString());
           setPurchaseDialogOpen(true);
       }
   };
 
   const handleConfirmPurchase = async () => {
-      if (!itemToPurchase || !user || !selectedList) return;
-      
-      const transactionDoc = await addTransaction({
-          type: 'expense',
-          description: itemToPurchase.name,
-          category: selectedList.name,
-          amount: itemToPurchase.amount,
-          budgetFocus: selectedList.budgetFocus,
-      });
+    if (!itemToPurchase || !user || !selectedList || !purchasePrice) return;
+    
+    const finalPrice = parseFloat(purchasePrice);
+    if (isNaN(finalPrice)) {
+        toast({ variant: 'destructive', title: 'Error', description: 'El precio debe ser un número válido.' });
+        return;
+    }
 
-      if (!transactionDoc) return; // Stop if transaction failed
+    const transactionDoc = await addTransaction({
+        type: 'expense',
+        description: itemToPurchase.name,
+        category: selectedList.name,
+        amount: finalPrice,
+        budgetFocus: selectedList.budgetFocus,
+    });
 
-      const updatedItems = selectedList.items.map((i: any) =>
-          i.itemId === itemToPurchase.itemId ? { ...i, isPurchased: true, price: i.amount, transactionId: transactionDoc.id } : i
-      );
-      
-      const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', selectedListId!);
-      await updateDocumentNonBlocking(listRef, { items: updatedItems });
+    if (!transactionDoc) return; // Stop if transaction failed
 
-      setPurchaseDialogOpen(false);
-      setItemToPurchase(null);
+    const updatedItems = selectedList.items.map((i: any) =>
+        i.itemId === itemToPurchase.itemId ? { ...i, isPurchased: true, price: finalPrice, transactionId: transactionDoc.id } : i
+    );
+    
+    const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', selectedListId!);
+    await updateDocumentNonBlocking(listRef, { items: updatedItems });
+
+    setPurchaseDialogOpen(false);
+    setItemToPurchase(null);
+    setPurchasePrice('');
   };
 
 
@@ -719,20 +729,27 @@ export default function ExpensesPage() {
             </div>
         </div>
 
-      <Dialog open={isPurchaseDialogOpen} onOpenChange={setPurchaseDialogOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Confirmar Compra: {itemToPurchase?.name}</DialogTitle>
-                 <CardDescription>
-                    Se registrará un gasto de {formatCurrency(itemToPurchase?.amount)} en la categoría {selectedList?.name}.
-                </CardDescription>
-            </DialogHeader>
-            <DialogFooter>
-                <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-                <Button onClick={handleConfirmPurchase}>Confirmar Gasto</Button>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <Dialog open={isPurchaseDialogOpen} onOpenChange={setPurchaseDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Confirmar Compra: {itemToPurchase?.name}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-2">
+                    <Label htmlFor="purchase-price">Precio Final</Label>
+                    <Input
+                        id="purchase-price"
+                        type="number"
+                        value={purchasePrice}
+                        onChange={(e) => setPurchasePrice(e.target.value)}
+                        placeholder="Introduce el precio final"
+                    />
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                    <Button onClick={handleConfirmPurchase}>Confirmar Gasto</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
