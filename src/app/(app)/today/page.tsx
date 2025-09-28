@@ -7,6 +7,8 @@ import {
   Smile,
   Flame,
   Trophy,
+  Timer,
+  Check,
 } from 'lucide-react';
 import {
   Card,
@@ -46,6 +48,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 
 const getStartOfWeek = (date: Date) => {
   const d = new Date(date);
@@ -336,6 +339,25 @@ export default function TodayPage() {
   const [isClient, setIsClient] = useState(false);
   const { firestore, user } = useFirebase();
 
+  const [timerHabit, setTimerHabit] = useState<any | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [isTimerActive, setIsTimerActive] = useState(false);
+  const [isTimerDialogOpen, setTimerDialogOpen] = useState(false);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isTimerActive) {
+      interval = setInterval(() => {
+        setElapsedSeconds(seconds => seconds + 1);
+      }, 1000);
+    } else if (!isTimerActive && interval) {
+      clearInterval(interval);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isTimerActive]);
+
   const habitsQuery = useMemo(
     () =>
       user
@@ -470,13 +492,11 @@ export default function TodayPage() {
           newStreak = currentStreak + 1;
         }
 
-        // Update longest streak based on the *previous* streak before this completion
         if (currentStreak > longestStreak) {
           longestStreak = currentStreak;
         }
       }
       
-      // Save the current state before updating, so we can revert if needed.
       updateDocumentNonBlocking(habitRef, {
         lastCompletedAt: Timestamp.fromDate(today),
         currentStreak: newStreak,
@@ -487,6 +507,28 @@ export default function TodayPage() {
     }
   };
 
+  const handleStartTimer = (habit: any) => {
+    setTimerHabit(habit);
+    setElapsedSeconds(0);
+    setIsTimerActive(false);
+    setTimerDialogOpen(true);
+  };
+  
+  const handleStopAndComplete = () => {
+    if (timerHabit) {
+      handleToggleHabit(timerHabit.id);
+    }
+    setIsTimerActive(false);
+    setTimerDialogOpen(false);
+    setTimerHabit(null);
+  };
+
+  const formatTime = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  };
+
   const todayString = new Date().toLocaleDateString('es-ES', {
     weekday: 'long',
     year: 'numeric',
@@ -495,6 +537,7 @@ export default function TodayPage() {
   });
 
   return (
+    <>
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Mi Día"
@@ -574,14 +617,24 @@ export default function TodayPage() {
                                         </div>
                                     </div>
                                     </div>
-                                    <Button
-                                    variant={isCompleted ? 'secondary' : 'outline'}
-                                    size="sm"
-                                    onClick={() => handleToggleHabit(habit.id)}
-                                    >
-                                    <CheckCircle2 className="mr-2 h-4 w-4" />
-                                    {isCompleted ? 'Completado' : 'Marcar'}
-                                    </Button>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={() => handleStartTimer(habit)}
+                                            className="h-9 w-9"
+                                        >
+                                            <Timer className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant={isCompleted ? 'secondary' : 'outline'}
+                                            size="sm"
+                                            onClick={() => handleToggleHabit(habit.id)}
+                                        >
+                                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                                            {isCompleted ? 'Completado' : 'Marcar'}
+                                        </Button>
+                                    </div>
                                 </div>
                                 );
                             })}
@@ -641,7 +694,30 @@ export default function TodayPage() {
         </div>
       </div>
     </div>
+    <Dialog open={isTimerDialogOpen} onOpenChange={setTimerDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                    <Timer /> {timerHabit?.name}
+                </DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center justify-center gap-4 py-8">
+                <div className="text-8xl font-bold font-mono text-center">
+                    {formatTime(elapsedSeconds)}
+                </div>
+                <Label>Tiempo Transcurrido</Label>
+            </div>
+            <DialogFooter className="justify-center gap-2 sm:gap-0">
+                <Button onClick={() => setIsTimerActive(!isTimerActive)} variant="outline">
+                    {isTimerActive ? 'Pausar' : 'Iniciar'}
+                </Button>
+                <Button onClick={handleStopAndComplete}>
+                    <Check className="mr-2 h-4 w-4" />
+                    Detener y Completar
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }
-
-    
