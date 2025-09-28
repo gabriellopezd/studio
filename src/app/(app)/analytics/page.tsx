@@ -172,7 +172,7 @@ export default function AnalyticsPage() {
                         <YAxis unit=" min" />
                         <Tooltip formatter={(value) => `${value} min`} />
                         <Bar dataKey="value" fill="hsl(var(--primary))" name="Minutos de Enfoque">
-                           {dailyProductividadData.map((entry, index) => (
+                           {dailyProductivityData.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                         </Bar>
