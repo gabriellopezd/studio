@@ -29,6 +29,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
   ArrowDownCircle,
@@ -131,6 +132,7 @@ export default function FinancesPage() {
   const [newRecurringAmount, setNewRecurringAmount] = useState('');
   const [newRecurringCategory, setNewRecurringCategory] = useState('');
   const [newRecurringDay, setNewRecurringDay] = useState('');
+  const [newRecurringBudgetFocus, setNewRecurringBudgetFocus] = useState('Necesidades');
 
   const { toast } = useToast();
 
@@ -428,12 +430,14 @@ export default function FinancesPage() {
       setNewRecurringAmount(item.amount.toString());
       setNewRecurringCategory(item.category);
       setNewRecurringDay(item.dayOfMonth.toString());
+      setNewRecurringBudgetFocus(item.budgetFocus || 'Necesidades');
     } else {
       setRecurringToEdit(null);
       setNewRecurringName('');
       setNewRecurringAmount('');
       setNewRecurringCategory('');
       setNewRecurringDay('');
+      setNewRecurringBudgetFocus('Necesidades');
     }
     setRecurringDialogOpen(true);
   };
@@ -451,6 +455,7 @@ export default function FinancesPage() {
       amount,
       category: newRecurringCategory,
       dayOfMonth,
+      budgetFocus: recurringType === 'expense' ? newRecurringBudgetFocus : undefined,
       userId: user.uid,
     };
     const collectionName = recurringType === 'income' ? 'recurringIncomes' : 'recurringExpenses';
@@ -570,7 +575,7 @@ export default function FinancesPage() {
 
   return (
     <>
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-8">
         <PageHeader
           title="FINANZAS"
           description="Controla tus ingresos, gastos y presupuestos."
@@ -708,24 +713,24 @@ export default function FinancesPage() {
                 <CardContent className="space-y-4">
                     <div>
                         <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium flex items-center gap-2"><Landmark className="h-4 w-4 text-red-500" />Necesidades</span>
+                            <span className="text-sm font-medium flex items-center gap-2"><Landmark className="size-4 text-red-500" />Necesidades</span>
                             <span className="text-sm text-muted-foreground">{formatCurrency(budget503020.needs.spend)} / {formatCurrency(budget503020.needs.budget)}</span>
                         </div>
-                        <Progress value={budget503020.needs.progress} className="h-4 [&>div]:bg-red-500" />
+                        <Progress value={budget503020.needs.progress} className="h-2 [&>div]:bg-red-500" />
                     </div>
                      <div>
                         <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium flex items-center gap-2"><Heart className="h-4 w-4 text-amber-500" />Deseos</span>
+                            <span className="text-sm font-medium flex items-center gap-2"><Heart className="size-4 text-amber-500" />Deseos</span>
                             <span className="text-sm text-muted-foreground">{formatCurrency(budget503020.wants.spend)} / {formatCurrency(budget503020.wants.budget)}</span>
                         </div>
-                        <Progress value={budget503020.wants.progress} className="h-4 [&>div]:bg-amber-500" />
+                        <Progress value={budget503020.wants.progress} className="h-2 [&>div]:bg-amber-500" />
                     </div>
                      <div>
                         <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium flex items-center gap-2"><PiggyBank className="h-4 w-4 text-emerald-500" />Ahorros y Deudas</span>
+                            <span className="text-sm font-medium flex items-center gap-2"><PiggyBank className="size-4 text-emerald-500" />Ahorros y Deudas</span>
                             <span className="text-sm text-muted-foreground">{formatCurrency(budget503020.savings.spend)} / {formatCurrency(budget503020.savings.budget)}</span>
                         </div>
-                        <Progress value={budget503020.savings.progress} className="h-4 [&>div]:bg-emerald-500" />
+                        <Progress value={budget503020.savings.progress} className="h-2 [&>div]:bg-emerald-500" />
                     </div>
                 </CardContent>
             </Card>
@@ -737,7 +742,7 @@ export default function FinancesPage() {
             <TabsTrigger value="transactions">Transacciones del Mes</TabsTrigger>
             <TabsTrigger value="recurring">Ingresos y Gastos Fijos</TabsTrigger>
           </TabsList>
-          <TabsContent value="transactions" className="mt-4">
+          <TabsContent value="transactions" className="mt-6">
              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <Card className="lg:col-span-2">
                     <CardHeader>
@@ -761,9 +766,9 @@ export default function FinancesPage() {
                             <TableRow key={t.id}>
                                 <TableCell className="flex items-center gap-2 font-medium">
                                 {t.type === 'income' ? (
-                                    <ArrowUpCircle className="h-5 w-5 shrink-0 text-emerald-500" />
+                                    <ArrowUpCircle className="size-5 shrink-0 text-emerald-500" />
                                 ) : (
-                                    <ArrowDownCircle className="h-5 w-5 shrink-0 text-red-500" />
+                                    <ArrowDownCircle className="size-5 shrink-0 text-red-500" />
                                 )}
                                 <span className="truncate">{t.description}</span>
                                 </TableCell>
@@ -785,10 +790,10 @@ export default function FinancesPage() {
                                 {formatCurrency(t.amount)}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                <AlertDialog open={transactionToDelete?.id === t.id} onOpenChange={(open) => !open && setTransactionToDelete(null)}>
+                                <AlertDialog>
                                   <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon">
+                                      <Button variant="ghost" size="icon" className="h-8 w-8">
                                           <MoreHorizontal className="h-4 w-4" />
                                       </Button>
                                       </DropdownMenuTrigger>
@@ -918,7 +923,7 @@ export default function FinancesPage() {
                                         </Button>
                                     </div>
                                     </div>
-                                    <Progress value={progress} className="h-4"/>
+                                    <Progress value={progress} className="h-2"/>
                                 </div>
                                 );
                             })}
@@ -932,7 +937,7 @@ export default function FinancesPage() {
                 </Card>
                 </div>
           </TabsContent>
-          <TabsContent value="recurring" className="mt-4">
+          <TabsContent value="recurring" className="mt-6">
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 {/* Recurring Incomes Column */}
@@ -1103,9 +1108,24 @@ export default function FinancesPage() {
                         </SelectContent>
                     </Select>
                 </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="recurring-day">Día del Mes (1-31)</Label>
-                    <Input id="recurring-day" type="number" min="1" max="31" value={newRecurringDay} onChange={(e) => setNewRecurringDay(e.target.value)} />
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="recurring-day">Día del Mes (1-31)</Label>
+                        <Input id="recurring-day" type="number" min="1" max="31" value={newRecurringDay} onChange={(e) => setNewRecurringDay(e.target.value)} />
+                    </div>
+                     {recurringType === 'expense' && (
+                        <div className="space-y-2">
+                            <Label htmlFor="recurring-budget-focus">Enfoque Presupuesto</Label>
+                            <Select value={newRecurringBudgetFocus} onValueChange={setNewRecurringBudgetFocus}>
+                               <SelectTrigger><SelectValue placeholder="Selecciona enfoque" /></SelectTrigger>
+                               <SelectContent>
+                                    <SelectItem value="Necesidades">Necesidades</SelectItem>
+                                    <SelectItem value="Deseos">Deseos</SelectItem>
+                                    <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
+                               </SelectContent>
+                            </Select>
+                        </div>
+                    )}
                 </div>
             </div>
             <DialogFooter>
