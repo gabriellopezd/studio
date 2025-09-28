@@ -409,6 +409,19 @@ export default function TasksPage() {
             ))}
         </div>
         
+        <Tabs defaultValue="all" onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="all">Pendientes</TabsTrigger>
+            <TabsTrigger value="today">Hoy</TabsTrigger>
+            <TabsTrigger value="upcoming">Próximos 7 días</TabsTrigger>
+            <TabsTrigger value="completed">Completadas</TabsTrigger>
+          </TabsList>
+          <TabsContent value="all">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
+          <TabsContent value="today">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
+          <TabsContent value="upcoming">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
+          <TabsContent value="completed">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
+        </Tabs>
+
         <div className="grid grid-cols-1 gap-6">
           {isClient ? (
             <Card>
@@ -439,19 +452,6 @@ export default function TasksPage() {
             </Card>
           )}
         </div>
-
-        <Tabs defaultValue="all" onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="all">Pendientes</TabsTrigger>
-            <TabsTrigger value="today">Hoy</TabsTrigger>
-            <TabsTrigger value="upcoming">Próximos 7 días</TabsTrigger>
-            <TabsTrigger value="completed">Completadas</TabsTrigger>
-          </TabsList>
-          <TabsContent value="all">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
-          <TabsContent value="today">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
-          <TabsContent value="upcoming">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
-          <TabsContent value="completed">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
-        </Tabs>
       </div>
       
        {/* Create/Edit Dialog */}
