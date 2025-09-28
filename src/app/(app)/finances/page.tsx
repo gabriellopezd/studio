@@ -580,7 +580,7 @@ export default function FinancesPage() {
   
   const incomeCategories = useMemo(() => {
     const fromTransactions = transactions
-        ?.filter((t)_ => t.type === 'income')
+        ?.filter((t) => t.type === 'income')
         .map((t) => t.category) ?? [];
     return ["Salario", "Bonificación", "Otro", ...fromTransactions];
   }, [transactions]);
