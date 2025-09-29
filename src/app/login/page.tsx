@@ -25,14 +25,14 @@ import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 
-export const handleUserLogin = async (user: User, firestore: any) => {
+export const handleUserLogin = async (user: User, firestore: any, displayName?: string) => {
     if (!user) return;
     const userRef = doc(firestore, 'users', user.uid);
     
     const userDoc = await getDoc(userRef);
     if (!userDoc.exists()) {
         const userProfileData = {
-            displayName: user.displayName || user.email?.split('@')[0],
+            displayName: displayName || user.displayName || user.email?.split('@')[0],
             email: user.email,
             photoURL: user.photoURL,
             createdAt: serverTimestamp(),

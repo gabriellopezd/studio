@@ -18,11 +18,13 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import {
   createUserWithEmailAndPassword,
+  updateProfile,
 } from 'firebase/auth';
 import { handleUserLogin } from '@/app/login/page';
 
 
 export default function SignupPage() {
+  const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -32,6 +34,14 @@ export default function SignupPage() {
 
   const handleSignUp = async () => {
     if (!auth || !firestore) return;
+    if (!displayName.trim()) {
+        toast({
+            variant: 'destructive',
+            title: 'Nombre requerido',
+            description: 'Por favor, ingresa tu nombre.',
+        });
+        return;
+    }
     if (password !== confirmPassword) {
       toast({
         variant: 'destructive',
@@ -46,7 +56,10 @@ export default function SignupPage() {
         email,
         password
       );
-      await handleUserLogin(userCredential.user, firestore);
+      
+      await updateProfile(userCredential.user, { displayName });
+      
+      await handleUserLogin(userCredential.user, firestore, displayName);
       
       toast({
         title: '¡Cuenta creada!',
@@ -77,6 +90,17 @@ export default function SignupPage() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
+             <div className="grid gap-2">
+              <Label htmlFor="displayName">Nombre</Label>
+              <Input
+                id="displayName"
+                type="text"
+                placeholder="Tu nombre"
+                required
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+              />
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
