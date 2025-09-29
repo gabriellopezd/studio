@@ -1,20 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import {
-  useFirebase,
-  useCollection,
-  addDocumentNonBlocking,
-  updateDocumentNonBlocking,
-} from '@/firebase';
-import {
-  collection,
-  doc,
-  query,
-  where,
-  limit,
-  serverTimestamp,
-} from 'firebase/firestore';
+import { useState } from 'react';
 import { Smile } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,9 +13,10 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { moodLevels, feelings, influences } from '@/lib/moods';
+import { useAppContext } from '@/app/_providers/AppContext';
 
 export function TodaysMoodCard() {
-  const { firestore, user } = useFirebase();
+  const { todayMood, handleSaveMood } = useAppContext();
 
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [step, setStep] = useState(1);
@@ -42,21 +29,6 @@ export function TodaysMoodCard() {
   const [selectedFeelings, setSelectedFeelings] = useState<string[]>([]);
   const [selectedInfluences, setSelectedInfluences] = useState<string[]>([]);
   
-  const todayISO = useMemo(() => new Date().toISOString().split('T')[0], []);
-
-  const moodsQuery = useMemo(() => {
-    if (!user) return null;
-    return query(
-      collection(firestore, 'users', user.uid, 'moods'),
-      where('date', '>=', `${todayISO}T00:00:00.000Z`),
-      where('date', '<=', `${todayISO}T23:59:59.999Z`),
-      limit(1)
-    );
-  }, [firestore, user, todayISO]);
-  
-  const { data: moods } = useCollection(moodsQuery);
-  const todayEntry = moods?.[0];
-
   const resetForm = () => {
     setStep(1);
     setSelectedMood(null);
@@ -66,11 +38,11 @@ export function TodaysMoodCard() {
   };
 
   const handleStartMoodRegistration = () => {
-    if (todayEntry) {
-      const mood = moodLevels.find(m => m.level === todayEntry.moodLevel);
+    if (todayMood) {
+      const mood = moodLevels.find(m => m.level === todayMood.moodLevel);
       setSelectedMood(mood || null);
-      setSelectedFeelings(todayEntry.feelings || []);
-      setSelectedInfluences(todayEntry.influences || []);
+      setSelectedFeelings(todayMood.feelings || []);
+      setSelectedInfluences(todayMood.influences || []);
     } else {
       resetForm();
     }
@@ -97,29 +69,15 @@ export function TodaysMoodCard() {
     );
   };
 
-  const handleSaveMood = async () => {
-    if (!user || !selectedMood) return;
-
-    const moodData = {
+  const onSaveMood = async () => {
+    if (!selectedMood) return;
+    await handleSaveMood({
       moodLevel: selectedMood.level,
       moodLabel: selectedMood.label,
       emoji: selectedMood.emoji,
       feelings: selectedFeelings,
       influences: selectedInfluences,
-      date: new Date().toISOString(),
-      userId: user.uid,
-    };
-    
-    if (todayEntry) {
-        const existingDocRef = doc(firestore, 'users', user.uid, 'moods', todayEntry.id);
-        await updateDocumentNonBlocking(existingDocRef, moodData);
-    } else {
-        await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'moods'), {
-            ...moodData,
-            createdAt: serverTimestamp(),
-        });
-    }
-    
+    });
     resetForm();
   };
 
@@ -135,21 +93,21 @@ export function TodaysMoodCard() {
         </CardHeader>
         <CardContent>
           <Button onClick={handleStartMoodRegistration} className="w-full mb-4">
-            {todayEntry ? (
+            {todayMood ? (
               <>
-                <span className="mr-2 text-lg">{todayEntry.emoji}</span>
+                <span className="mr-2 text-lg">{todayMood.emoji}</span>
                 Actualizar mi día
               </>
             ) : (
               'Registrar mi día'
             )}
           </Button>
-          {todayEntry && (
+          {todayMood && (
             <div className="space-y-4 text-sm">
                 <div>
                     <h4 className="font-medium mb-2">Sentimientos:</h4>
                     <div className="flex flex-wrap gap-1">
-                        {todayEntry.feelings.map((feeling: string) => (
+                        {todayMood.feelings.map((feeling: string) => (
                             <Badge key={feeling} variant="secondary">{feeling}</Badge>
                         ))}
                     </div>
@@ -157,7 +115,7 @@ export function TodaysMoodCard() {
                  <div>
                     <h4 className="font-medium mb-2">Influencias:</h4>
                     <div className="flex flex-wrap gap-1">
-                        {todayEntry.influences.map((influence: string) => (
+                        {todayMood.influences.map((influence: string) => (
                             <Badge key={influence} variant="secondary">{influence}</Badge>
                         ))}
                     </div>
@@ -259,7 +217,7 @@ export function TodaysMoodCard() {
             )}
             {step === 3 && (
               <Button
-                onClick={handleSaveMood}
+                onClick={onSaveMood}
                 disabled={selectedInfluences.length === 0}
               >
                 Guardar Registro

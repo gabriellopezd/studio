@@ -90,11 +90,6 @@ export default function TasksPage() {
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<any | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<any | null>(null);
-
-  const [name, setName] = useState('');
-  const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
-  const [priority, setPriority] = useState('medium');
-  const [category, setCategory] = useState('Otro');
   
   useEffect(() => {
     setIsClient(true);
@@ -150,37 +145,29 @@ export default function TasksPage() {
 
   }, [tasks, activeTab]);
 
-  const resetForm = () => {
-    setName('');
-    setDueDate(undefined);
-    setPriority('medium');
-    setCategory('Otro');
+  const resetAndCloseForm = () => {
     setTaskToEdit(null);
+    setDialogOpen(false);
   };
 
   const handleOpenDialog = (task?: any) => {
     if (task) {
-      setTaskToEdit(task);
-      setName(task.name);
-      setDueDate(task.dueDate?.toDate ? task.dueDate.toDate() : undefined);
-      setPriority(task.priority || 'medium');
-      setCategory(task.category || 'Otro');
+      setTaskToEdit({ ...task, dueDate: task.dueDate?.toDate() });
     } else {
-      resetForm();
+      setTaskToEdit({
+        name: '',
+        dueDate: undefined,
+        priority: 'medium',
+        category: 'Otro'
+      });
     }
     setDialogOpen(true);
   };
   
   const onSaveTask = async () => {
-    await handleSaveTask({
-      id: taskToEdit?.id,
-      name,
-      dueDate,
-      priority,
-      category,
-    });
-    setDialogOpen(false);
-    resetForm();
+    if (!taskToEdit) return;
+    await handleSaveTask(taskToEdit);
+    resetAndCloseForm();
   };
   
   const onDeleteTask = async () => {
@@ -393,73 +380,75 @@ export default function TasksPage() {
       </div>
       
        {/* Create/Edit Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => { if(!open) resetAndCloseForm(); else setDialogOpen(open);}}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{taskToEdit ? 'Editar Tarea' : 'Crear Nueva Tarea'}</DialogTitle>
+            <DialogTitle>{taskToEdit?.id ? 'Editar Tarea' : 'Crear Nueva Tarea'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-             <div className="space-y-2">
-              <Label htmlFor="task-name">Nombre</Label>
-              <Input id="task-name" value={name} onChange={(e) => setName(e.target.value)} />
+          {taskToEdit && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="task-name">Nombre</Label>
+                <Input id="task-name" value={taskToEdit.name} onChange={(e) => setTaskToEdit({ ...taskToEdit, name: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="task-category">Categoría</Label>
+                    <Select value={taskToEdit.category} onValueChange={(value) => setTaskToEdit({ ...taskToEdit, category: value })}>
+                      <SelectTrigger id="task-category">
+                        <SelectValue placeholder="Selecciona categoría" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {taskCategories.map(cat => (
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="task-priority">Prioridad</Label>
+                    <Select value={taskToEdit.priority} onValueChange={(value) => setTaskToEdit({ ...taskToEdit, priority: value })}>
+                      <SelectTrigger id="task-priority">
+                        <SelectValue placeholder="Selecciona prioridad" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Baja</SelectItem>
+                        <SelectItem value="medium">Media</SelectItem>
+                        <SelectItem value="high">Alta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+              </div>
+              <div className="space-y-2">
+                  <Label htmlFor="task-due-date">Fecha de Vencimiento</Label>
+                  <Popover>
+                  <PopoverTrigger asChild>
+                      <Button
+                      variant={"outline"}
+                      className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !taskToEdit.dueDate && "text-muted-foreground"
+                      )}
+                      >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {taskToEdit.dueDate ? format(taskToEdit.dueDate, "PPP", { locale: es }) : <span>Elige una fecha</span>}
+                      </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                      <Calendar
+                      mode="single"
+                      selected={taskToEdit.dueDate}
+                      onSelect={(date) => setTaskToEdit({ ...taskToEdit, dueDate: date })}
+                      initialFocus
+                      />
+                  </PopoverContent>
+                  </Popover>
+              </div>
             </div>
-             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                   <Label htmlFor="task-category">Categoría</Label>
-                   <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger id="task-category">
-                      <SelectValue placeholder="Selecciona categoría" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {taskCategories.map(cat => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                 <div className="space-y-2">
-                   <Label htmlFor="task-priority">Prioridad</Label>
-                   <Select value={priority} onValueChange={setPriority}>
-                    <SelectTrigger id="task-priority">
-                      <SelectValue placeholder="Selecciona prioridad" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Baja</SelectItem>
-                      <SelectItem value="medium">Media</SelectItem>
-                       <SelectItem value="high">Alta</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="task-due-date">Fecha de Vencimiento</Label>
-                <Popover>
-                <PopoverTrigger asChild>
-                    <Button
-                    variant={"outline"}
-                    className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !dueDate && "text-muted-foreground"
-                    )}
-                    >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dueDate ? format(dueDate, "PPP", { locale: es }) : <span>Elige una fecha</span>}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                    <Calendar
-                    mode="single"
-                    selected={dueDate}
-                    onSelect={setDueDate}
-                    initialFocus
-                    />
-                </PopoverContent>
-                </Popover>
-            </div>
-          </div>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>Cancelar</Button>
-            <Button onClick={onSaveTask}>{taskToEdit ? 'Guardar Cambios' : 'Crear Tarea'}</Button>
+            <Button variant="outline" onClick={resetAndCloseForm}>Cancelar</Button>
+            <Button onClick={onSaveTask}>{taskToEdit?.id ? 'Guardar Cambios' : 'Crear Tarea'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
