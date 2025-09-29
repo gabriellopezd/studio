@@ -12,11 +12,11 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
       strokeLinejoin="round"
       {...props}
     >
-      {/* Outer Circle */}
-      <circle cx="50" cy="50" r="48" />
+      {/* Modern open circle */}
+      <path d="M 90,50 A 40,40 0 1 1 50,10" />
       
       {/* Stylized 'N' Growth Arrow */}
-      <path d="M30 70 L 30 40 L 50 60 L 70 30" />
+      <path d="M35 65 L 35 35 L 65 65 L 65 35" />
     </svg>
   );
 }
