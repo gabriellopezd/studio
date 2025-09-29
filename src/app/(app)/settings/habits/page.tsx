@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { useAppContext } from '@/app/_providers/AppContext';
-import { addDocumentNonBlocking, deleteDocumentNonBlocking, serverTimestamp } from '@/firebase';
-import { collection, query, where, getDocs, writeBatch, doc } from 'firebase/firestore';
+import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, query, where, getDocs, writeBatch, doc, serverTimestamp } from 'firebase/firestore';
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
 
@@ -85,7 +85,7 @@ export default function HabitSettingsPage() {
                                     </div>
                                 </div>
                                 <Switch
-                                    checked={isActive}
+                                    checked={!!isActive}
                                     onCheckedChange={() => handleTogglePresetHabit(preset, !!isActive)}
                                     aria-label={`Activar hábito ${preset.name}`}
                                 />
