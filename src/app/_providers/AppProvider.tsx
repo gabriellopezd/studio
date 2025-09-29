@@ -6,6 +6,35 @@ import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, get
 import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { AppContext, AppState, Habit, Task, Mood, ActiveSession } from './AppContext';
 import { isHabitCompletedToday, checkHabitStreak } from '@/lib/habits';
+import { Button } from '@/components/ui/button';
+import { Timer, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+
+function TimerDisplay({ activeSession, elapsedTime, stopSession }: { activeSession: ActiveSession | null, elapsedTime: number, stopSession: () => void }) {
+    const formatTime = (totalSeconds: number) => {
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    };
+    
+    if (!activeSession) return null;
+
+    return (
+        <div className="fixed bottom-4 right-4 z-50">
+            <div className="flex items-center gap-4 rounded-lg bg-primary p-4 text-primary-foreground shadow-lg">
+                <Timer className="h-6 w-6 animate-pulse" />
+                <div className="flex-1">
+                    <p className="text-sm font-medium">{activeSession.name}</p>
+                    <p className="font-mono text-lg font-bold">{formatTime(elapsedTime)}</p>
+                </div>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/80" onClick={stopSession}>
+                    <X className="h-5 w-5" />
+                </Button>
+            </div>
+        </div>
+    );
+}
 
 // --- Reducer Logic ---
 
@@ -102,7 +131,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (!firestore) return null;
             const baseCollection = collection(firestore, collectionName);
             return queryBuilder ? queryBuilder(baseCollection) : baseCollection;
-        }, [user, firestore, collectionName, enabled]);
+        }, [user, firestore, collectionName, enabled, queryBuilder]);
 
         const { data, isLoading } = useCollection(memoizedQuery);
 
@@ -122,7 +151,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     useCollectionData('shoppingLists', 'users/shoppingLists', c => query(c, orderBy('order')), !!user);
     useCollectionData('recurringExpenses', 'users/recurringExpenses', c => query(c, orderBy('dayOfMonth')), !!user);
     useCollectionData('recurringIncomes', 'users/recurringIncomes', c => query(c, orderBy('dayOfMonth')), !!user);
-    useCollectionData('presetHabits', 'presetHabits', c => query(c, orderBy('category'), orderBy('name')));
+    useCollectionData('presetHabits', 'presetHabits', c => query(c, orderBy('category'), orderBy('name')), !!user);
 
 
     const urgentTasksQuery = useMemo(() => {
@@ -592,6 +621,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return (
         <AppContext.Provider value={value}>
             {children}
+             <TimerDisplay 
+                activeSession={state.activeSession} 
+                elapsedTime={state.elapsedTime} 
+                stopSession={stopSession} 
+            />
         </AppContext.Provider>
     );
 };
