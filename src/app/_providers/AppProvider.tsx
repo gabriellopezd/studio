@@ -10,9 +10,7 @@ import { Timer, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 
-function TimerDisplay() {
-    const { activeSession, elapsedTime, stopSession } = useAppContext();
-
+function TimerDisplay({ activeSession, elapsedTime, stopSession }: { activeSession: ActiveSession | null, elapsedTime: number, stopSession: () => void }) {
     const formatTime = (totalSeconds: number) => {
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = totalSeconds % 60;
@@ -572,7 +570,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return (
         <AppContext.Provider value={value}>
             {children}
-            <TimerDisplay />
+            <TimerDisplay 
+                activeSession={state.activeSession}
+                elapsedTime={state.elapsedTime}
+                stopSession={stopSession}
+            />
         </AppContext.Provider>
     );
 };
