@@ -9,6 +9,7 @@ import { isHabitCompletedToday, checkHabitStreak } from '@/lib/habits';
 import { Button } from '@/components/ui/button';
 import { Timer, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import presetHabitsData from '@/lib/preset-habits.json';
 
 
 function TimerDisplay({ activeSession, elapsedTime, stopSession }: { activeSession: ActiveSession | null, elapsedTime: number, stopSession: () => void }) {
@@ -58,7 +59,7 @@ const initialState: Omit<AppState, keyof ReturnType<typeof useFirebase> | 'handl
     recurringExpenses: null,
     recurringIncomes: null,
     timeLogs: null,
-    presetHabits: null,
+    presetHabits: presetHabitsData.presetHabits,
     habitsLoading: true,
     routinesLoading: true,
     tasksLoading: true,
@@ -70,7 +71,7 @@ const initialState: Omit<AppState, keyof ReturnType<typeof useFirebase> | 'handl
     recurringExpensesLoading: true,
     recurringIncomesLoading: true,
     timeLogsLoading: true,
-    presetHabitsLoading: true,
+    presetHabitsLoading: false,
     currentMonth: new Date(),
     activeSession: null,
     elapsedTime: 0,
@@ -119,39 +120,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [streaksChecked, setStreaksChecked] = useState(false);
     
     // --- Data Fetching using useCollection ---
-    const useCollectionData = (key: string, collectionName: string, queryBuilder?: (c: any) => any, enabled: boolean = true) => {
+    const useCollectionData = (key: string, collectionName: string, queryBuilder?: (c: any) => any) => {
         const memoizedQuery = useMemo(() => {
-            if (!enabled) return null;
-            if (collectionName.startsWith('users/')) {
-                 if (!user || !firestore) return null;
-                 const path = collectionName.replace('users/', `users/${user.uid}/`);
-                 const baseCollection = collection(firestore, path);
-                 return queryBuilder ? queryBuilder(baseCollection) : baseCollection;
-            }
-            if (!firestore) return null;
-            const baseCollection = collection(firestore, collectionName);
+            if (!user || !firestore) return null;
+            const path = collectionName.startsWith('users/') ? collectionName.replace('users/', `users/${user.uid}/`) : collectionName;
+            const baseCollection = collection(firestore, path);
             return queryBuilder ? queryBuilder(baseCollection) : baseCollection;
-        }, [user, firestore, collectionName, enabled, queryBuilder]);
+        }, [user, firestore, collectionName]);
 
         const { data, isLoading } = useCollection(memoizedQuery);
 
         useEffect(() => {
             dispatch({ type: 'SET_DATA', payload: { key, data, loading: isLoading } });
         }, [data, isLoading, key]);
-
-        return { data, isLoading };
     };
 
-    const { data: allHabitsData, isLoading: habitsLoading } = useCollectionData('allHabits', 'users/habits', undefined, !!user);
-    useCollectionData('routines', 'users/routines', undefined, !!user);
-    useCollectionData('tasks', 'users/tasks', c => query(c, orderBy('createdAt', 'desc')), !!user);
-    useCollectionData('goals', 'users/goals', undefined, !!user);
-    useCollectionData('timeLogs', 'users/timeLogs', undefined, !!user);
-    useCollectionData('budgets', 'users/budgets', undefined, !!user);
-    useCollectionData('shoppingLists', 'users/shoppingLists', c => query(c, orderBy('order')), !!user);
-    useCollectionData('recurringExpenses', 'users/recurringExpenses', c => query(c, orderBy('dayOfMonth')), !!user);
-    useCollectionData('recurringIncomes', 'users/recurringIncomes', c => query(c, orderBy('dayOfMonth')), !!user);
-    useCollectionData('presetHabits', 'presetHabits', c => query(c, orderBy('category'), orderBy('name')), !!user);
+    useCollectionData('allHabits', 'users/habits');
+    useCollectionData('routines', 'users/routines');
+    useCollectionData('tasks', 'users/tasks', c => query(c, orderBy('createdAt', 'desc')));
+    useCollectionData('goals', 'users/goals');
+    useCollectionData('timeLogs', 'users/timeLogs');
+    useCollectionData('budgets', 'users/budgets');
+    useCollectionData('shoppingLists', 'users/shoppingLists', c => query(c, orderBy('order')));
+    useCollectionData('recurringExpenses', 'users/recurringExpenses', c => query(c, orderBy('dayOfMonth')));
+    useCollectionData('recurringIncomes', 'users/recurringIncomes', c => query(c, orderBy('dayOfMonth')));
 
 
     const urgentTasksQuery = useMemo(() => {
@@ -210,11 +202,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     
     useEffect(() => {
-        if (!habitsLoading && allHabitsData && user && firestore && !streaksChecked) {
-            checkHabitStreaks(allHabitsData, user, firestore);
+        if (!state.habitsLoading && state.allHabits && user && firestore && !streaksChecked) {
+            checkHabitStreaks(state.allHabits, user, firestore);
             setStreaksChecked(true);
         }
-    }, [habitsLoading, allHabitsData, user, firestore, streaksChecked]);
+    }, [state.habitsLoading, state.allHabits, user, firestore, streaksChecked]);
 
 
     // --- Actions ---
@@ -228,14 +220,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (isHabitCompletedToday(habit)) {
              updateDocumentNonBlocking(habitRef, { 
                 lastCompletedAt: habit.previousLastCompletedAt ?? null,
-                currentStreak: habit.previousStreak ?? 0,
-                previousLastCompletedAt: null, 
-                previousStreak: null,
             });
         } else {
             updateDocumentNonBlocking(habitRef, { 
                 lastCompletedAt: Timestamp.now(),
-                previousStreak: habit.currentStreak || 0,
                 previousLastCompletedAt: habit.lastCompletedAt,
             });
         }

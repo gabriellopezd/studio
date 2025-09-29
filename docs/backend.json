@@ -136,61 +136,6 @@
         "category"
       ]
     },
-    "PresetHabit": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "PresetHabit",
-      "type": "object",
-      "description": "Represents a pre-defined habit that users can choose to adopt.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the preset habit."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the habit."
-        },
-        "icon": {
-          "type": "string",
-          "description": "Icon representing the habit (emoji)."
-        },
-        "frequency": {
-          "type": "string",
-          "description": "Frequency of the habit (e.g., 'Diario', 'Semanal')."
-        },
-        "category": {
-          "type": "string",
-          "description": "The category of the habit.",
-          "enum": [
-            "Productividad",
-            "Conocimiento",
-            "Social",
-            "Físico",
-            "Espiritual",
-            "Hogar",
-            "Profesional",
-            "Relaciones Personales"
-          ]
-        },
-         "description": {
-          "type": "string",
-          "description": "A short description of why this habit is useful."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the preset habit was created.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "icon",
-        "frequency",
-        "createdAt",
-        "category"
-      ]
-    },
     "Routine": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Routine",
@@ -882,30 +827,6 @@
         }
       },
       {
-        "path": "/presetHabits/{presetHabitId}",
-        "definition": {
-          "entityName": "PresetHabit",
-          "schema": {
-            "$ref": "#/backend/entities/PresetHabit"
-          },
-          "description": "Stores pre-defined habits that are available to all users.",
-          "params": [
-            {
-              "name": "presetHabitId",
-              "description": "The unique identifier for the preset habit."
-            }
-          ],
-          "rules": {
-            "allow": {
-              "create": "if false;",
-              "read, list": "if request.auth != null;",
-              "update": "if false;",
-              "delete": "if false;"
-            }
-          }
-        }
-      },
-      {
         "path": "/users/{userId}/routines/{routineId}",
         "definition": {
           "entityName": "Routine",
@@ -1257,4 +1178,4 @@
     "reasoning": "The Firestore structure is designed to ensure data isolation and efficient querying, leveraging subcollections for user-specific data and denormalization for authorization independence. The core principle is that all data related to a user is stored under their respective user document, fostering clear ownership and simplifies security rules. This approach avoids complex queries across collections and maintains data integrity. The design adheres to structural segregation by keeping data with similar access needs in the same collection.\n\nAuthorization Independence is achieved by storing all data belonging to a user under the `/users/{userId}` path. This allows security rules to be written based on `request.auth.uid` and the path, without needing to `get()` data from other documents.\n\nThe data structure supports required QAPs (Rules are not Filters) by employing path-based ownership and structural segregation, allowing secure `list` operations, so a user can only list documents under its user id, not other user's documents."
   }
 }
-
+    
