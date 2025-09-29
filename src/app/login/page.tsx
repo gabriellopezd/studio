@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -21,6 +22,8 @@ import {
   User,
 } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -28,6 +31,8 @@ export default function LoginPage() {
   const { auth, firestore } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
+
+  const loginImage = PlaceHolderImages.find((img) => img.id === 'login-background');
 
   const handleUserLogin = async (user: User) => {
     if (!user) return;
@@ -72,18 +77,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="mx-auto w-full max-w-sm">
-        <CardHeader className="text-center">
-          <div className="mb-4 flex justify-center">
-            <Logo className="h-12 w-12 text-primary" />
+    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
+      <div className="flex items-center justify-center py-12">
+        <div className="mx-auto grid w-[350px] gap-6">
+          <div className="grid gap-2 text-center">
+             <div className="mb-4 flex justify-center">
+              <Logo className="h-12 w-12 text-primary" />
+            </div>
+            <h1 className="text-3xl font-bold">Bienvenido a Inngenia</h1>
+            <p className="text-balance text-muted-foreground">
+              Inicia sesión para continuar con tus metas.
+            </p>
           </div>
-          <CardTitle className="text-2xl">Bienvenido a Inngenia</CardTitle>
-          <CardDescription>
-            Inicia sesión para continuar con tus metas.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
@@ -106,10 +111,10 @@ export default function LoginPage() {
                   ¿Olvidaste tu contraseña?
                 </Link>
               </div>
-              <Input
-                id="password"
-                type="password"
-                required
+              <Input 
+                id="password" 
+                type="password" 
+                required 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -119,13 +124,25 @@ export default function LoginPage() {
             </Button>
           </div>
           <div className="mt-4 text-center text-sm">
-            ¿No tienes una cuenta?{' '}
+            ¿No tienes una cuenta?{" "}
             <Link href="/signup" className="underline">
               Regístrate
             </Link>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+      <div className="hidden bg-muted lg:block">
+        {loginImage && (
+            <Image
+                src={loginImage.imageUrl}
+                alt={loginImage.description}
+                data-ai-hint={loginImage.imageHint}
+                width="1920"
+                height="1080"
+                className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+            />
+        )}
+      </div>
     </div>
   );
 }
