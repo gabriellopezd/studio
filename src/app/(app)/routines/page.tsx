@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,17 +18,15 @@ import {
   Pencil,
   Trash2,
   Check,
-  Timer,
   Square,
 } from 'lucide-react';
 import {
   useFirebase,
-  useCollection,
-  addDocumentNonBlocking,
   updateDocumentNonBlocking,
+  addDocumentNonBlocking,
   deleteDocumentNonBlocking,
 } from '@/firebase';
-import { collection, doc, serverTimestamp, Timestamp, writeBatch } from 'firebase/firestore';
+import { doc, serverTimestamp, Timestamp, writeBatch } from 'firebase/firestore';
 import {
   Dialog,
   DialogContent,
@@ -58,15 +56,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { calculateStreak, isHabitCompletedToday } from '@/lib/habits';
 import { useTimer } from '../layout';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { RoutinesProvider, useRoutines } from './_components/RoutinesProvider';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 
-export default function RoutinesPage() {
-  const { firestore, user } = useFirebase();
+function RoutinesContent() {
+  const { 
+    firestore, 
+    user,
+    routines,
+    routinesLoading,
+    allHabits,
+    routineTimeAnalytics,
+    analyticsLoading,
+  } = useRoutines();
 
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [routineToEdit, setRoutineToEdit] = useState<any | null>(null);
@@ -77,19 +85,6 @@ export default function RoutinesPage() {
   
   const { activeSession, startSession, stopSession } = useTimer();
 
-
-  const routinesQuery = useMemo(
-    () => (user ? collection(firestore, 'users', user.uid, 'routines') : null),
-    [firestore, user]
-  );
-  const { data: routines, isLoading: routinesLoading } = useCollection(routinesQuery);
-  
-  const habitsQuery = useMemo(
-    () => (user ? collection(firestore, 'users', user.uid, 'habits') : null),
-    [firestore, user]
-  );
-  const { data: allHabits } = useCollection(habitsQuery);
-  
   const resetForm = () => {
     setName('');
     setDescription('');
@@ -151,7 +146,6 @@ export default function RoutinesPage() {
     const isCompleted = isHabitCompletedToday(habit);
 
     if (isCompleted) {
-      // Reverting completion.
       updateDocumentNonBlocking(habitRef, {
         lastCompletedAt: habit.previousLastCompletedAt ?? null,
         currentStreak: habit.previousStreak ?? 0,
@@ -159,7 +153,6 @@ export default function RoutinesPage() {
         previousLastCompletedAt: null,
       });
     } else {
-      // Completing the habit.
       const streakData = calculateStreak(habit);
       
       updateDocumentNonBlocking(habitRef, {
@@ -210,95 +203,138 @@ export default function RoutinesPage() {
           </Button>
         </PageHeader>
 
-        {routinesLoading && <p>Cargando rutinas...</p>}
+        <Tabs defaultValue="routines">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="routines">Mis Rutinas</TabsTrigger>
+            <TabsTrigger value="analytics">Análisis de Rutinas</TabsTrigger>
+          </TabsList>
+          <TabsContent value="routines" className="mt-6">
+            {routinesLoading && <p>Cargando rutinas...</p>}
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {routines?.map((routine) => {
-            const routineHabits = allHabits?.filter(h => routine.habitIds.includes(h.id)) || [];
-            const completedHabitsCount = routineHabits.filter(isHabitCompletedToday).length;
-            const progress = routineHabits.length > 0 ? (completedHabitsCount / routineHabits.length) * 100 : 0;
-            const allHabitsInRoutineCompleted = completedHabitsCount === routineHabits.length;
-            
-            return (
-              <Card key={routine.id} className="flex flex-col">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle>{routine.name}</CardTitle>
-                      <CardDescription>{routine.description}</CardDescription>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleOpenDialog(routine)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setRoutineToDelete(routine)} className="text-red-500">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Eliminar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-grow space-y-4">
-                  <div>
-                    <div className="flex justify-between items-center mb-2 text-sm text-muted-foreground">
-                        <span>Progreso</span>
-                        <span>{completedHabitsCount} de {routineHabits.length}</span>
-                    </div>
-                    <Progress value={progress} />
-                  </div>
-                  <div className="space-y-3">
-                    {routineHabits.map((habit: any) => {
-                      const isSessionActive = activeSession?.id === habit.id;
-                      return (
-                        <div key={habit.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50">
-                          <Checkbox
-                            id={`routine-${routine.id}-habit-${habit.id}`}
-                            checked={isHabitCompletedToday(habit)}
-                            onCheckedChange={() => handleToggleHabit(habit.id)}
-                          />
-                          <Label htmlFor={`routine-${routine.id}-habit-${habit.id}`} className="flex-1 items-center gap-2 font-normal cursor-pointer">
-                            <span className="text-lg">{habit.icon}</span>
-                            <span>{habit.name}</span>
-                          </Label>
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            onClick={() => isSessionActive ? stopSession() : startSession(habit.id, habit.name, 'habit')}
-                            disabled={!isSessionActive && !!activeSession}
-                            className={cn("h-9 w-9", isSessionActive && "bg-primary text-primary-foreground animate-pulse")}
-                          >
-                            {isSessionActive ? <Square className="h-4 w-4"/> : <Play className="h-4 w-4"/>}
-                          </Button>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {routines?.map((routine) => {
+                const routineHabits = allHabits?.filter(h => routine.habitIds.includes(h.id)) || [];
+                const completedHabitsCount = routineHabits.filter(isHabitCompletedToday).length;
+                const progress = routineHabits.length > 0 ? (completedHabitsCount / routineHabits.length) * 100 : 0;
+                const allHabitsInRoutineCompleted = completedHabitsCount === routineHabits.length;
+                
+                return (
+                  <Card key={routine.id} className="flex flex-col">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle>{routine.name}</CardTitle>
+                          <CardDescription>{routine.description}</CardDescription>
                         </div>
-                      )
-                    })}
-                  </div>
-                </CardContent>
-                 <CardFooter>
-                    <Button 
-                      className="w-full"
-                      onClick={() => handleCompleteRoutine(routine)}
-                      disabled={allHabitsInRoutineCompleted}
-                    >
-                      <Check className="mr-2 h-4 w-4" />
-                      {allHabitsInRoutineCompleted ? 'Rutina Completa' : 'Completar Rutina'}
-                    </Button>
-                </CardFooter>
-              </Card>
-            )
-          })}
-        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleOpenDialog(routine)}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setRoutineToDelete(routine)} className="text-red-500">
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="flex-grow space-y-4">
+                      <div>
+                        <div className="flex justify-between items-center mb-2 text-sm text-muted-foreground">
+                            <span>Progreso</span>
+                            <span>{completedHabitsCount} de {routineHabits.length}</span>
+                        </div>
+                        <Progress value={progress} />
+                      </div>
+                      <div className="space-y-3">
+                        {routineHabits.map((habit: any) => {
+                          const isSessionActive = activeSession?.id === habit.id;
+                          return (
+                            <div key={habit.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50">
+                              <Checkbox
+                                id={`routine-${routine.id}-habit-${habit.id}`}
+                                checked={isHabitCompletedToday(habit)}
+                                onCheckedChange={() => handleToggleHabit(habit.id)}
+                              />
+                              <Label htmlFor={`routine-${routine.id}-habit-${habit.id}`} className="flex-1 items-center gap-2 font-normal cursor-pointer">
+                                <span className="text-lg">{habit.icon}</span>
+                                <span>{habit.name}</span>
+                              </Label>
+                              <Button 
+                                variant="outline" 
+                                size="icon" 
+                                onClick={() => isSessionActive ? stopSession() : startSession(habit.id, habit.name, 'habit')}
+                                disabled={isHabitCompletedToday(habit) || (!isSessionActive && !!activeSession)}
+                                className={cn("h-9 w-9", isSessionActive && "bg-primary text-primary-foreground animate-pulse")}
+                              >
+                                {isSessionActive ? <Square className="h-4 w-4"/> : <Play className="h-4 w-4"/>}
+                              </Button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                        <Button 
+                          className="w-full"
+                          onClick={() => handleCompleteRoutine(routine)}
+                          disabled={allHabitsInRoutineCompleted}
+                        >
+                          <Check className="mr-2 h-4 w-4" />
+                          {allHabitsInRoutineCompleted ? 'Rutina Completa' : 'Completar Rutina'}
+                        </Button>
+                    </CardFooter>
+                  </Card>
+                )
+              })}
+            </div>
+          </TabsContent>
+          <TabsContent value="analytics" className="mt-6">
+             {analyticsLoading && <p>Cargando análisis...</p>}
+
+            {!analyticsLoading && routineTimeAnalytics?.length === 0 && (
+                <Card className="mt-4 flex flex-col items-center justify-center p-10 text-center">
+                    <CardHeader>
+                    <CardTitle className="mt-4">No hay datos para analizar</CardTitle>
+                    <CardDescription>
+                        Empieza a registrar tiempo en los hábitos de tus rutinas para ver tus analíticas.
+                    </CardDescription>
+                    </CardHeader>
+                </Card>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {routineTimeAnalytics.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Tiempo de Enfoque por Rutina</CardTitle>
+                      <CardDescription>Distribución del tiempo invertido en cada rutina.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={routineTimeAnalytics} layout="vertical" margin={{ left: 20, right: 30 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" unit=" min" />
+                          <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
+                          <Tooltip formatter={(value) => `${value} min`} />
+                          <Bar dataKey="minutos" name="Minutos de Enfoque" fill="hsl(var(--primary))" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                )}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
       
-      {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[80vh] flex flex-col">
           <DialogHeader>
@@ -341,8 +377,7 @@ export default function RoutinesPage() {
         </DialogContent>
       </Dialog>
       
-       {/* Delete Confirmation */}
-      <AlertDialog open={!!routineToDelete} onOpenChange={(open) => !open && setRoutineToDelete(null)}>
+       <AlertDialog open={!!routineToDelete} onOpenChange={(open) => !open && setRoutineToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
@@ -360,4 +395,13 @@ export default function RoutinesPage() {
       </AlertDialog>
     </>
   );
+}
+
+
+export default function RoutinesPage() {
+    return (
+        <RoutinesProvider>
+            <RoutinesContent />
+        </RoutinesProvider>
+    )
 }
