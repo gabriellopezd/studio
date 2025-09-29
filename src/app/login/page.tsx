@@ -77,8 +77,17 @@ export default function LoginPage() {
 
   return (
     <div className="w-full h-screen lg:grid lg:grid-cols-2">
-      <div className="flex items-center justify-center p-6 h-full">
-         <Card className="mx-auto w-full max-w-sm">
+      <div className="relative flex items-center justify-center p-6 h-full">
+         {loginImage && (
+            <Image
+                src={loginImage.imageUrl}
+                alt={loginImage.description}
+                data-ai-hint={loginImage.imageHint}
+                fill
+                className="object-cover dark:brightness-[0.2] lg:hidden"
+            />
+        )}
+         <Card className="relative mx-auto w-full max-w-sm bg-background/80 backdrop-blur-sm lg:bg-background/100 lg:backdrop-blur-none">
             <CardHeader className="text-center">
               <div className="mb-4 flex justify-center">
                 <Logo className="h-12 w-12 text-primary" />
