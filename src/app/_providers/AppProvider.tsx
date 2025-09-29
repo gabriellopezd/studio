@@ -113,6 +113,7 @@ const getEndOfWeek = (date: Date) => {
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { firestore, user } = useFirebase();
     const [state, dispatch] = useReducer(appReducer, initialState);
+    const [streaksChecked, setStreaksChecked] = useState(false);
     
     // --- Data Fetching using useCollection ---
     const useCollectionData = (key: string, collectionName: string, queryBuilder?: (c: any) => any) => {
@@ -178,12 +179,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { data: moods, isLoading: moodsLoading } = useCollection(moodsQuery);
     
     // Streak checking logic
-    useEffect(() => {
-        if (!habitsLoading && allHabitsData && user && firestore) {
-            checkHabitStreaks(allHabitsData, user, firestore);
-        }
-    }, [habitsLoading, allHabitsData, user, firestore]);
-    
     const checkHabitStreaks = async (habits: any[], user: any, firestore: any) => {
         const batch = writeBatch(firestore);
         let hasUpdates = false;
@@ -201,7 +196,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             await batch.commit();
         }
     };
-
+    
+    useEffect(() => {
+        if (!habitsLoading && allHabitsData && user && firestore && !streaksChecked) {
+            checkHabitStreaks(allHabitsData, user, firestore);
+            setStreaksChecked(true);
+        }
+    }, [habitsLoading, allHabitsData, user, firestore, streaksChecked]);
 
 
     // --- Actions ---
