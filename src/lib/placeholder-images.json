@@ -8,9 +8,9 @@
     },
     {
       "id": "login-background",
-      "description": "A calm and focused workspace",
-      "imageUrl": "https://images.unsplash.com/photo-1601642964568-1917224f4e4d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYWxtJTIwd29ya3NwYWNlfGVufDB8fHx8MTc1OTE3MTMyMnww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "calm workspace"
+      "description": "A calm and focused workspace with blue tones",
+      "imageUrl": "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxibHVlJTIwbWluaW1hbGlzdCUyMHdvcmtzcGFjZXxlbnwwfHx8fDE3NTk0ODU3OTB8MA&ixlib=rb-4.1.0&q=80&w=1920",
+      "imageHint": "blue minimalist workspace"
     }
   ]
 }
