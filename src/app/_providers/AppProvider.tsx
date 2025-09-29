@@ -120,13 +120,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [streaksChecked, setStreaksChecked] = useState(false);
     
     // --- Data Fetching using useCollection ---
-    const useCollectionData = (key: string, collectionName: string, queryBuilder?: (c: any) => any) => {
+    const useCollectionData = (key: string, collectionName: string, queryBuilder?: (c: any) => any, enabled = true) => {
         const memoizedQuery = useMemo(() => {
-            if (!user || !firestore) return null;
+            if (!user || !firestore || !enabled) return null;
             const path = collectionName.startsWith('users/') ? collectionName.replace('users/', `users/${user.uid}/`) : collectionName;
             const baseCollection = collection(firestore, path);
             return queryBuilder ? queryBuilder(baseCollection) : baseCollection;
-        }, [user, firestore, collectionName]);
+        }, [user, firestore, collectionName, queryBuilder, enabled]);
 
         const { data, isLoading } = useCollection(memoizedQuery);
 
