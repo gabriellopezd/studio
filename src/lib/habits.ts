@@ -1,3 +1,4 @@
+
 import { Timestamp } from 'firebase/firestore';
 
 const getStartOfWeek = (date: Date) => {
@@ -9,28 +10,33 @@ const getStartOfWeek = (date: Date) => {
 };
 
 const isSameDay = (d1: Date, d2: Date) => {
-  d1.setHours(0,0,0,0);
-  d2.setHours(0,0,0,0);
-  return d1.getTime() === d2.getTime();
+  return d1.getFullYear() === d2.getFullYear() &&
+         d1.getMonth() === d2.getMonth() &&
+         d1.getDate() === d2.getDate();
 };
 
 const isSameWeek = (d1: Date, d2: Date) => {
   const startOfWeek1 = getStartOfWeek(d1);
   const startOfWeek2 = getStartOfWeek(d2);
-  return isSameDay(startOfWeek1, startOfWeek2);
+  return startOfWeek1.getTime() === startOfWeek2.getTime();
 };
 
-const isPreviousDay = (d1: Date, d2: Date) => {
-  const yesterday = new Date(d1);
-  yesterday.setDate(d1.getDate() - 1);
-  return isSameDay(d2, yesterday);
+const isPreviousDay = (today: Date, otherDate: Date) => {
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  return isSameDay(yesterday, otherDate);
 };
 
-const isPreviousWeek = (d1: Date, d2: Date) => {
-  const lastWeek = new Date(d1);
-  lastWeek.setDate(d1.getDate() - 7);
-  return isSameWeek(d2, lastWeek);
+const isPreviousWeek = (today: Date, otherDate: Date) => {
+  const startOfThisWeek = getStartOfWeek(today);
+  const startOfLastWeek = new Date(startOfThisWeek);
+  startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
+  
+  const startOfOtherWeek = getStartOfWeek(otherDate);
+  
+  return startOfLastWeek.getTime() === startOfOtherWeek.getTime();
 };
+
 
 export function isHabitCompletedToday(habit: any) {
     if (!habit || !habit.lastCompletedAt) return false;
@@ -47,49 +53,70 @@ export function isHabitCompletedToday(habit: any) {
 }
 
 export function checkHabitStreak(habit: any) {
+    if (!habit.id) return null;
+
     const today = new Date();
     const lastCompletedDate = habit.lastCompletedAt ? (habit.lastCompletedAt as Timestamp).toDate() : null;
 
-    if (!lastCompletedDate || isSameDay(lastCompletedDate, today)) {
-        return null; // No need to update streak yet or already updated
+    // If the habit was already completed today, no need to check/update streak.
+    if (lastCompletedDate && isSameDay(lastCompletedDate, today)) {
+        return null;
     }
-    
-    const currentStreak = habit.currentStreak || 0;
-    const longestStreak = habit.longestStreak || 0;
-    
+
+    let shouldReset = false;
     let isConsecutive = false;
-    let streakShouldReset = false;
 
-    switch (habit.frequency) {
-        case 'Semanal':
-            isConsecutive = isPreviousWeek(today, lastCompletedDate);
-             if (!isConsecutive && !isSameWeek(today, lastCompletedDate)) {
-                streakShouldReset = true;
+    if (lastCompletedDate) {
+        if (habit.frequency === 'Semanal') {
+            const sameWeek = isSameWeek(today, lastCompletedDate);
+            const prevWeek = isPreviousWeek(today, lastCompletedDate);
+            isConsecutive = prevWeek;
+            if (!sameWeek && !prevWeek) {
+                shouldReset = true;
             }
-            break;
-        case 'Diario':
-        default:
-            isConsecutive = isPreviousDay(today, lastCompletedDate);
-            if (!isConsecutive && !isSameDay(today, lastCompletedDate)) {
-                streakShouldReset = true;
+        } else { // 'Diario'
+            const sameDay = isSameDay(today, lastCompletedDate);
+            const prevDay = isPreviousDay(today, lastCompletedDate);
+            isConsecutive = prevDay;
+            if (!sameDay && !prevDay) {
+                shouldReset = true;
             }
-            break;
+        }
+    } else {
+        // If it has never been completed, it shouldn't have a streak.
+        shouldReset = true;
     }
 
-    if (isConsecutive) {
-        const newStreak = currentStreak + 1;
-        return {
-            currentStreak: newStreak,
-            longestStreak: Math.max(longestStreak, newStreak),
-        };
-    } else if (streakShouldReset && currentStreak > 0) {
-        return {
-            currentStreak: 0,
-        };
+    if (shouldReset && habit.currentStreak > 0) {
+        return { currentStreak: 0 };
     }
-
+    
+    // Note: The logic to increment the streak is now handled when a habit is marked complete.
+    // This function's primary role is to RESET a broken streak.
+    // We return null if no reset is needed.
     return null;
 }
+
+
+export function calculateStreak(habit: any) {
+    const today = new Date();
+    const lastCompletedDate = habit.lastCompletedAt ? (habit.lastCompletedAt as Timestamp).toDate() : null;
+    
+    let newStreak = 1;
+    if(lastCompletedDate) {
+        if(habit.frequency === 'Diario' && isPreviousDay(today, lastCompletedDate)) {
+            newStreak = (habit.currentStreak || 0) + 1;
+        } else if (habit.frequency === 'Semanal' && isPreviousWeek(today, lastCompletedDate)) {
+            newStreak = (habit.currentStreak || 0) + 1;
+        }
+    }
+
+    return {
+        currentStreak: newStreak,
+        longestStreak: Math.max(habit.longestStreak || 0, newStreak),
+    };
+}
+
 
 export function resetStreak() {
   return {

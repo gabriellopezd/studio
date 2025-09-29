@@ -1,16 +1,18 @@
+
 'use client';
 
 import React, { useReducer, useEffect, useMemo, useState } from 'react';
 import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc, limit } from 'firebase/firestore';
 import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { AppContext, AppState, Habit, Task, Mood, ActiveSession } from './AppContext';
-import { isHabitCompletedToday, checkHabitStreak } from '@/lib/habits';
+import { isHabitCompletedToday, checkHabitStreak, calculateStreak } from '@/lib/habits';
 import { Button } from '@/components/ui/button';
 import { Timer, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 
 function TimerDisplay({ activeSession, elapsedTime, stopSession }: { activeSession: ActiveSession | null, elapsedTime: number, stopSession: () => void }) {
+
     const formatTime = (totalSeconds: number) => {
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = totalSeconds % 60;
@@ -216,12 +218,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (isHabitCompletedToday(habit)) {
              updateDocumentNonBlocking(habitRef, { 
                 lastCompletedAt: habit.previousLastCompletedAt ?? null,
+                currentStreak: habit.previousStreak ?? 0,
                 previousLastCompletedAt: null, 
+                previousStreak: null,
             });
         } else {
+            const streakData = calculateStreak(habit);
             updateDocumentNonBlocking(habitRef, { 
                 lastCompletedAt: Timestamp.now(),
-                previousLastCompletedAt: habit.lastCompletedAt ?? null
+                ...streakData,
+                previousStreak: habit.currentStreak || 0,
+                previousLastCompletedAt: habit.lastCompletedAt,
             });
         }
     };
@@ -606,7 +613,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return (
         <AppContext.Provider value={value}>
             {children}
-            <TimerDisplay 
+            <TimerDisplay
                 activeSession={state.activeSession}
                 elapsedTime={state.elapsedTime}
                 stopSession={stopSession}
