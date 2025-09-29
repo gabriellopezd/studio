@@ -135,15 +135,59 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }, [data, isLoading, key]);
     };
 
-    useCollectionData('allHabits', 'users/habits');
-    useCollectionData('routines', 'users/routines');
-    useCollectionData('tasks', 'users/tasks', c => query(c, orderBy('createdAt', 'desc')));
-    useCollectionData('goals', 'users/goals');
-    useCollectionData('timeLogs', 'users/timeLogs');
-    useCollectionData('budgets', 'users/budgets');
-    useCollectionData('shoppingLists', 'users/shoppingLists', c => query(c, orderBy('order')));
-    useCollectionData('recurringExpenses', 'users/recurringExpenses', c => query(c, orderBy('dayOfMonth')));
-    useCollectionData('recurringIncomes', 'users/recurringIncomes', c => query(c, orderBy('dayOfMonth')));
+    const allHabitsQuery = useMemo(() => {
+      if (!user || !firestore) return null;
+      return collection(firestore, `users/${user.uid}/habits`);
+    }, [user, firestore]);
+    const { data: allHabits, isLoading: habitsLoading } = useCollection(allHabitsQuery);
+
+    const routinesQuery = useMemo(() => {
+      if (!user || !firestore) return null;
+      return collection(firestore, `users/${user.uid}/routines`);
+    }, [user, firestore]);
+    const { data: routines, isLoading: routinesLoading } = useCollection(routinesQuery);
+    
+    const tasksQuery = useMemo(() => {
+        if (!user || !firestore) return null;
+        return query(collection(firestore, `users/${user.uid}/tasks`), orderBy('createdAt', 'desc'));
+    }, [user, firestore]);
+    const { data: tasks, isLoading: tasksLoading } = useCollection(tasksQuery);
+
+    const goalsQuery = useMemo(() => {
+        if (!user || !firestore) return null;
+        return collection(firestore, `users/${user.uid}/goals`);
+    }, [user, firestore]);
+    const { data: goals, isLoading: goalsLoading } = useCollection(goalsQuery);
+
+    const timeLogsQuery = useMemo(() => {
+        if (!user || !firestore) return null;
+        return collection(firestore, `users/${user.uid}/timeLogs`);
+    }, [user, firestore]);
+    const { data: timeLogs, isLoading: timeLogsLoading } = useCollection(timeLogsQuery);
+
+    const budgetsQuery = useMemo(() => {
+        if (!user || !firestore) return null;
+        return collection(firestore, `users/${user.uid}/budgets`);
+    }, [user, firestore]);
+    const { data: budgets, isLoading: budgetsLoading } = useCollection(budgetsQuery);
+
+    const shoppingListsQuery = useMemo(() => {
+        if (!user || !firestore) return null;
+        return query(collection(firestore, `users/${user.uid}/shoppingLists`), orderBy('order'));
+    }, [user, firestore]);
+    const { data: shoppingLists, isLoading: shoppingListsLoading } = useCollection(shoppingListsQuery);
+
+    const recurringExpensesQuery = useMemo(() => {
+        if (!user || !firestore) return null;
+        return query(collection(firestore, `users/${user.uid}/recurringExpenses`), orderBy('dayOfMonth'));
+    }, [user, firestore]);
+    const { data: recurringExpenses, isLoading: recurringExpensesLoading } = useCollection(recurringExpensesQuery);
+
+    const recurringIncomesQuery = useMemo(() => {
+        if (!user || !firestore) return null;
+        return query(collection(firestore, `users/${user.uid}/recurringIncomes`), orderBy('dayOfMonth'));
+    }, [user, firestore]);
+    const { data: recurringIncomes, isLoading: recurringIncomesLoading } = useCollection(recurringIncomesQuery);
 
 
     const urgentTasksQuery = useMemo(() => {
@@ -202,18 +246,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     
     useEffect(() => {
-        if (!state.habitsLoading && state.allHabits && user && firestore && !streaksChecked) {
-            checkHabitStreaks(state.allHabits, user, firestore);
+        if (!habitsLoading && allHabits && user && firestore && !streaksChecked) {
+            checkHabitStreaks(allHabits, user, firestore);
             setStreaksChecked(true);
         }
-    }, [state.habitsLoading, state.allHabits, user, firestore, streaksChecked]);
+    }, [habitsLoading, allHabits, user, firestore, streaksChecked]);
 
 
     // --- Actions ---
 
     const handleToggleHabit = (habitId: string) => {
-        if (!user || !state.allHabits || !firestore) return;
-        const habit = state.allHabits.find((h) => h.id === habitId);
+        if (!user || !allHabits || !firestore) return;
+        const habit = allHabits.find((h) => h.id === habitId);
         if (!habit) return;
         const habitRef = doc(firestore, 'users', user.uid, 'habits', habitId);
 
@@ -348,30 +392,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
 
     // --- Derived State & Selectors ---
-    const analyticsLoading = state.habitsLoading || state.timeLogsLoading || state.tasksLoading || state.routinesLoading;
+    const analyticsLoading = habitsLoading || timeLogsLoading || tasksLoading || routinesLoading;
     
     // Habit Selectors
     const { groupedHabits, dailyHabits, weeklyHabits, completedDaily, completedWeekly, longestStreak, longestCurrentStreak, habitCategoryData, dailyProductivityData, topHabitsByStreak, topHabitsByTime, monthlyCompletionData } = useMemo(() => {
-        if (!state.allHabits || !state.timeLogs) return { groupedHabits: {}, dailyHabits: [], weeklyHabits: [], completedDaily: 0, completedWeekly: 0, longestStreak: 0, longestCurrentStreak: 0, habitCategoryData: [], dailyProductivityData: [], topHabitsByStreak: [], topHabitsByTime: [], monthlyCompletionData: [] };
+        if (!allHabits || !timeLogs) return { groupedHabits: {}, dailyHabits: [], weeklyHabits: [], completedDaily: 0, completedWeekly: 0, longestStreak: 0, longestCurrentStreak: 0, habitCategoryData: [], dailyProductivityData: [], topHabitsByStreak: [], topHabitsByTime: [], monthlyCompletionData: [] };
 
-        const grouped = state.allHabits.reduce((acc, habit) => {
+        const grouped = allHabits.reduce((acc, habit) => {
             const category = habit.category || 'Sin Categoría';
             if (!acc[category]) acc[category] = [];
             acc[category].push(habit);
             return acc;
         }, {});
 
-        const daily = state.allHabits.filter(h => h.frequency === 'Diario');
-        const weekly = state.allHabits.filter(h => h.frequency === 'Semanal');
+        const daily = allHabits.filter(h => h.frequency === 'Diario');
+        const weekly = allHabits.filter(h => h.frequency === 'Semanal');
         const completedD = daily.filter(h => isHabitCompletedToday(h)).length;
         const completedW = weekly.filter(h => isHabitCompletedToday(h)).length;
-        const longestS = state.allHabits.reduce((max, h) => Math.max(max, h.longestStreak || 0), 0);
-        const longestCS = state.allHabits.reduce((max, h) => Math.max(max, h.currentStreak || 0), 0);
+        const longestS = allHabits.reduce((max, h) => Math.max(max, h.longestStreak || 0), 0);
+        const longestCS = allHabits.reduce((max, h) => Math.max(max, h.currentStreak || 0), 0);
 
-        const habitLogs = state.timeLogs.filter((log: any) => log.referenceType === 'habit');
+        const habitLogs = timeLogs.filter((log: any) => log.referenceType === 'habit');
         const categoryTotals: Record<string, number> = {};
         habitLogs.forEach((log: any) => {
-            const habit = state.allHabits.find((h: any) => h.id === log.referenceId);
+            const habit = allHabits.find((h: any) => h.id === log.referenceId);
             if (habit) {
                 const category = habit.category || 'Sin Categoría';
                 categoryTotals[category] = (categoryTotals[category] || 0) + log.durationSeconds;
@@ -381,18 +425,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
         const dailyTotals = Array(7).fill(0).map((_, i) => ({ name: daysOfWeek[i], value: 0}));
-        state.timeLogs.forEach((log: any) => {
+        timeLogs.forEach((log: any) => {
             const date = log.startTime.toDate();
             const dayIndex = date.getDay();
             dailyTotals[dayIndex].value += log.durationSeconds;
         });
         const dailyData = dailyTotals.map(day => ({...day, value: Math.round(day.value / 60)}));
 
-        const topStreak = [...state.allHabits].sort((a,b) => (b.longestStreak || 0) - (a.longestStreak || 0)).slice(0, 5).map(h => ({ name: h.name, racha: h.longestStreak || 0 }));
+        const topStreak = [...allHabits].sort((a,b) => (b.longestStreak || 0) - (a.longestStreak || 0)).slice(0, 5).map(h => ({ name: h.name, racha: h.longestStreak || 0 }));
 
         const timeTotals: Record<string, number> = {};
         habitLogs.forEach((log: any) => {
-            const habit = state.allHabits.find((h: any) => h.id === log.referenceId);
+            const habit = allHabits.find((h: any) => h.id === log.referenceId);
             if (habit) timeTotals[habit.name] = (timeTotals[habit.name] || 0) + log.durationSeconds;
         });
         const topTime = Object.entries(timeTotals).map(([name, time]) => ({ name, minutos: Math.round(time / 60) })).sort((a, b) => b.minutos - a.minutos).slice(0, 5);
@@ -401,10 +445,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const year = today.getFullYear();
         const month = today.getMonth();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const dailyHabitsForMonth = state.allHabits.filter(h => h.frequency === 'Diario');
+        const dailyHabitsForMonth = allHabits.filter(h => h.frequency === 'Diario');
         const completionByDay: Record<number, {completed: number, total: number}> = {};
         if (dailyHabitsForMonth.length > 0) {
-            state.allHabits.forEach(habit => {
+            allHabits.forEach(habit => {
                 if (habit.lastCompletedAt) {
                     const completedDate = habit.lastCompletedAt.toDate();
                     if (completedDate.getFullYear() === year && completedDate.getMonth() === month) {
@@ -422,45 +466,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
 
         return { groupedHabits: grouped, dailyHabits: daily, weeklyHabits: weekly, completedDaily: completedD, completedWeekly: completedW, longestStreak: longestS, longestCurrentStreak: longestCS, habitCategoryData: categoryData, dailyProductivityData: dailyData, topHabitsByStreak: topStreak, topHabitsByTime: topTime, monthlyCompletionData: monthlyData };
-    }, [state.allHabits, state.timeLogs]);
+    }, [allHabits, timeLogs]);
     
     // Routines Selectors
     const routineTimeAnalytics = useMemo(() => {
-        if (!state.routines || !state.allHabits || !state.timeLogs) return [];
+        if (!routines || !allHabits || !timeLogs) return [];
         const habitTimeTotals: Record<string, number> = {};
-        state.timeLogs.filter(log => log.referenceType === 'habit').forEach(log => {
+        timeLogs.filter(log => log.referenceType === 'habit').forEach(log => {
             habitTimeTotals[log.referenceId] = (habitTimeTotals[log.referenceId] || 0) + log.durationSeconds;
         });
         const routineTotals: Record<string, number> = {};
-        state.routines.forEach(routine => {
+        routines.forEach(routine => {
             routine.habitIds.forEach((habitId: string) => {
                 if (habitTimeTotals[habitId]) routineTotals[routine.name] = (routineTotals[routine.name] || 0) + habitTimeTotals[habitId];
             });
         });
         return Object.entries(routineTotals).map(([name, time]) => ({ name, minutos: Math.round(time / 60) })).sort((a, b) => b.minutos - a.minutos);
-    }, [state.routines, state.allHabits, state.timeLogs]);
+    }, [routines, allHabits, timeLogs]);
 
     // Task Selectors
     const { totalStats, categoryStats, weeklyTaskStats, pendingTasks, completedWeeklyTasks, totalWeeklyTasks, weeklyTasksProgress } = useMemo(() => {
         const taskCategories = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro"];
-        if (!state.tasks) return { totalStats: { completed: 0, total: 0, completionRate: 0 }, categoryStats: {}, weeklyTaskStats: [], pendingTasks: [], completedWeeklyTasks: 0, totalWeeklyTasks: 0, weeklyTasksProgress: 0 };
+        if (!tasks) return { totalStats: { completed: 0, total: 0, completionRate: 0 }, categoryStats: {}, weeklyTaskStats: [], pendingTasks: [], completedWeeklyTasks: 0, totalWeeklyTasks: 0, weeklyTasksProgress: 0 };
         
         const today = new Date();
         const startOfWeek = getStartOfWeek(today);
         const endOfWeek = getEndOfWeek(today);
-        const weeklyTasks = state.tasks.filter(t => t.dueDate && t.dueDate.toDate() >= startOfWeek && t.dueDate.toDate() <= endOfWeek);
+        const weeklyTasks = tasks.filter(t => t.dueDate && t.dueDate.toDate() >= startOfWeek && t.dueDate.toDate() <= endOfWeek);
 
         const pending = weeklyTasks.filter(t => !t.isCompleted).sort((a, b) => a.dueDate.seconds - b.dueDate.seconds);
         const completedWeekly = weeklyTasks.filter(t => t.isCompleted).length;
         const totalWeekly = weeklyTasks.length;
         const weeklyProgress = totalWeekly > 0 ? (completedWeekly / totalWeekly) * 100 : 0;
         
-        const completed = state.tasks.filter(t => t.isCompleted).length;
-        const total = state.tasks.length;
+        const completed = tasks.filter(t => t.isCompleted).length;
+        const total = tasks.length;
         const totalStats = { completed, total, completionRate: total > 0 ? (completed / total) * 100 : 0 };
 
         const catStats = taskCategories.reduce((acc, category) => {
-            const tasksInCategory = state.tasks.filter(t => t.category === category);
+            const tasksInCategory = tasks.filter(t => t.category === category);
             if (tasksInCategory.length > 0) {
                 const completed = tasksInCategory.filter(t => t.isCompleted).length;
                 acc[category] = { completed, total: tasksInCategory.length, completionRate: (completed / tasksInCategory.length) * 100 };
@@ -469,7 +513,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }, {} as Record<string, any>);
 
         const weekData = Array(7).fill(0).map((_, i) => ({ name: new Date(startOfWeek.getTime() + i * 86400000).toLocaleDateString('es-ES', { weekday: 'short' }), tasks: 0 }));
-        state.tasks.forEach(task => {
+        tasks.forEach(task => {
             if (task.dueDate?.toDate() >= startOfWeek && task.dueDate?.toDate() <= endOfWeek) {
                 const dayIndex = (task.dueDate.toDate().getDay() + 6) % 7;
                 if(dayIndex >= 0 && dayIndex < 7) weekData[dayIndex].tasks++;
@@ -477,7 +521,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
         
         return { totalStats, categoryStats: catStats, weeklyTaskStats: weekData, pendingTasks: pending, completedWeeklyTasks: completedWeekly, totalWeeklyTasks: totalWeekly, weeklyTasksProgress: weeklyProgress };
-    }, [state.tasks]);
+    }, [tasks]);
 
     // Mood Selectors
     const { feelingStats, influenceStats, todayMood } = useMemo(() => {
@@ -509,34 +553,92 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             savings: { budget: income * 0.2, spend: transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((s, t) => s + t.amount, 0) ?? 0, progress: ((transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((s, t) => s + t.amount, 0) ?? 0) / (income * 0.2)) * 100 },
         } : null;
 
-        const pendingRE = state.recurringExpenses?.filter(e => e.lastInstanceCreated !== monthYear) ?? [];
-        const paidRE = state.recurringExpenses?.filter(e => e.lastInstanceCreated === monthYear) ?? [];
-        const pendingRI = state.recurringIncomes?.filter(i => i.lastInstanceCreated !== monthYear) ?? [];
-        const receivedRI = state.recurringIncomes?.filter(i => i.lastInstanceCreated === monthYear) ?? [];
-        const pendingETotal = (pendingRE.reduce((s, e) => s + e.amount, 0)) + (state.shoppingLists?.reduce((s, l) => s + l.items.filter((i: any) => !i.isPurchased).reduce((iS: number, i: any) => iS + (i.amount || 0), 0), 0) ?? 0);
+        const pendingRE = recurringExpenses?.filter(e => e.lastInstanceCreated !== monthYear) ?? [];
+        const paidRE = recurringExpenses?.filter(e => e.lastInstanceCreated === monthYear) ?? [];
+        const pendingRI = recurringIncomes?.filter(i => i.lastInstanceCreated !== monthYear) ?? [];
+        const receivedRI = recurringIncomes?.filter(i => i.lastInstanceCreated === monthYear) ?? [];
+        const pendingETotal = (pendingRE.reduce((s, e) => s + e.amount, 0)) + (shoppingLists?.reduce((s, l) => s + l.items.filter((i: any) => !i.isPurchased).reduce((iS: number, i: any) => iS + (i.amount || 0), 0), 0) ?? 0);
         
-        const expCats = [...new Set(["Arriendo", "Servicios", "Transporte", "Salud", ...(state.budgets?.map(b => b.categoryName) ?? []), ...(transactions?.filter(t => t.type === 'expense').map(t => t.category) ?? [])])].filter(Boolean);
+        const expCats = [...new Set(["Arriendo", "Servicios", "Transporte", "Salud", ...(budgets?.map(b => b.categoryName) ?? []), ...(transactions?.filter(t => t.type === 'expense').map(t => t.category) ?? [])])].filter(Boolean);
         const incCats = [...new Set(["Salario", "Bonificación", "Otro", ...(transactions?.filter(t => t.type === 'income').map(t => t.category) ?? [])])].filter(Boolean);
-        const catsNoBudget = expCats.filter(cat => !state.budgets?.some(b => b.categoryName === cat));
+        const catsNoBudget = expCats.filter(cat => !budgets?.some(b => b.categoryName === cat));
 
-        const sorted = state.shoppingLists ? [...state.shoppingLists].sort((a, b) => a.order - b.order) : [];
+        const sorted = shoppingLists ? [...shoppingLists].sort((a, b) => a.order - b.order) : [];
 
-        const spendingByCat = state.shoppingLists?.map(l => ({ name: l.name, gasto: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.gasto > 0) ?? [];
-        const budgetAcc = state.shoppingLists?.map(l => ({ name: l.name, estimado: l.items.filter((i:any) => i.isPurchased).reduce((s:number, i:any) => s + i.amount, 0), real: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.real > 0 || d.estimado > 0) ?? [];
-        const spendingByF = Object.entries(state.shoppingLists?.reduce((acc, l) => {
+        const spendingByCat = shoppingLists?.map(l => ({ name: l.name, gasto: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.gasto > 0) ?? [];
+        const budgetAcc = shoppingLists?.map(l => ({ name: l.name, estimado: l.items.filter((i:any) => i.isPurchased).reduce((s:number, i:any) => s + i.amount, 0), real: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.real > 0 || d.estimado > 0) ?? [];
+        const spendingByF = Object.entries(shoppingLists?.reduce((acc, l) => {
             const total = l.items.filter((i: any) => i.isPurchased && i.price).reduce((s: number, i: any) => s + i.price, 0);
             if(l.budgetFocus && acc.hasOwnProperty(l.budgetFocus)) acc[l.budgetFocus] += total;
             return acc;
         }, {'Necesidades':0, 'Deseos':0, 'Ahorros y Deudas':0}) ?? {}).map(([name, value]) => ({name, value})).filter(d => d.value > 0);
 
         return { currentMonthName: monthName.charAt(0).toUpperCase() + monthName.slice(1), currentMonthYear: monthYear, monthlyIncome: income, monthlyExpenses: expenses, balance: bal, budget503020: b503020, pendingRecurringExpenses: pendingRE, paidRecurringExpenses: paidRE, pendingRecurringIncomes: pendingRI, receivedRecurringIncomes: receivedRI, pendingExpensesTotal: pendingETotal, expenseCategories: expCats, incomeCategories: incCats, categoriesWithoutBudget: catsNoBudget, sortedLists: sorted, spendingByCategory: spendingByCat, budgetAccuracy: budgetAcc, spendingByFocus: spendingByF };
-    }, [transactions, state.recurringExpenses, state.recurringIncomes, state.shoppingLists, state.budgets]);
+    }, [transactions, recurringExpenses, recurringIncomes, shoppingLists, budgets]);
+
+    useEffect(() => {
+        dispatch({ type: 'SET_DATA', payload: { key: 'allHabits', data: allHabits, loading: habitsLoading } });
+    }, [allHabits, habitsLoading]);
+
+    useEffect(() => {
+        dispatch({ type: 'SET_DATA', payload: { key: 'routines', data: routines, loading: routinesLoading } });
+    }, [routines, routinesLoading]);
+
+    useEffect(() => {
+        dispatch({ type: 'SET_DATA', payload: { key: 'tasks', data: tasks, loading: tasksLoading } });
+    }, [tasks, tasksLoading]);
+
+    useEffect(() => {
+        dispatch({ type: 'SET_DATA', payload: { key: 'goals', data: goals, loading: goalsLoading } });
+    }, [goals, goalsLoading]);
+
+    useEffect(() => {
+        dispatch({ type: 'SET_DATA', payload: { key: 'timeLogs', data: timeLogs, loading: timeLogsLoading } });
+    }, [timeLogs, timeLogsLoading]);
+    
+    useEffect(() => {
+        dispatch({ type: 'SET_DATA', payload: { key: 'budgets', data: budgets, loading: budgetsLoading } });
+    }, [budgets, budgetsLoading]);
+
+    useEffect(() => {
+        dispatch({ type: 'SET_DATA', payload: { key: 'shoppingLists', data: shoppingLists, loading: shoppingListsLoading } });
+    }, [shoppingLists, shoppingListsLoading]);
+    
+    useEffect(() => {
+        dispatch({ type: 'SET_DATA', payload: { key: 'recurringExpenses', data: recurringExpenses, loading: recurringExpensesLoading } });
+    }, [recurringExpenses, recurringExpensesLoading]);
+    
+    useEffect(() => {
+        dispatch({ type: 'SET_DATA', payload: { key: 'recurringIncomes', data: recurringIncomes, loading: recurringIncomesLoading } });
+    }, [recurringIncomes, recurringIncomesLoading]);
 
 
     const value: AppState = {
         ...state,
         firestore,
         user,
+        allHabits,
+        habitsLoading,
+        routines,
+        routinesLoading,
+        tasks,
+        tasksLoading,
+        goals,
+        goalsLoading,
+        moods: moods ?? [],
+        moodsLoading,
+        transactions: transactions ?? [],
+        transactionsLoading,
+        budgets,
+        budgetsLoading,
+        shoppingLists,
+        shoppingListsLoading,
+        recurringExpenses,
+        recurringExpensesLoading,
+        recurringIncomes,
+        recurringIncomesLoading,
+        timeLogs,
+        timeLogsLoading,
         analyticsLoading,
         groupedHabits,
         dailyHabits,
@@ -580,8 +682,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         budgetAccuracy,
         spendingByFocus,
         urgentTasks: urgentTasks ?? [],
-        transactions: transactions ?? [],
-        moods: moods ?? [],
         handleToggleHabit,
         handleCreateOrUpdateHabit,
         handleDeleteHabit,
@@ -618,3 +718,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
+
+
+      
