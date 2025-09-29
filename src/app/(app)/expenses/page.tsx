@@ -53,7 +53,6 @@ import { formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import {
   useFirebase,
-  useCollection,
   updateDocumentNonBlocking,
   addDocumentNonBlocking,
   deleteDocumentNonBlocking,
@@ -62,8 +61,6 @@ import {
   collection,
   doc,
   serverTimestamp,
-  query,
-  orderBy,
   writeBatch,
   getDoc,
   increment,
@@ -83,6 +80,9 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ExpensesProvider, useExpenses } from './_components/ExpensesProvider';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 function SortableListItem({
   list,
@@ -114,8 +114,17 @@ function SortableListItem({
   );
 }
 
-export default function ExpensesPage() {
-  const { firestore, user } = useFirebase();
+function ExpensesContent() {
+  const { 
+    firestore, 
+    user,
+    lists,
+    listsLoading,
+    budgets,
+    sortedLists,
+    spendingByCategory,
+    budgetAccuracy,
+  } = useExpenses();
 
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [newListName, setNewListName] = useState('');
@@ -128,34 +137,10 @@ export default function ExpensesPage() {
   const [itemToPurchase, setItemToPurchase] = useState<any | null>(null);
   const [purchasePrice, setPurchasePrice] = useState('');
 
-
   const { toast } = useToast();
-
-  const shoppingListsQuery = useMemo(
-    () =>
-      user
-        ? query(
-            collection(firestore, 'users', user.uid, 'shoppingLists'),
-            orderBy('order')
-          )
-        : null,
-    [firestore, user]
-  );
-  const { data: lists, isLoading: listsLoading } =
-    useCollection(shoppingListsQuery);
-
-  const budgetsQuery = useMemo(
-    () =>
-      user ? collection(firestore, 'users', user.uid, 'budgets') : null,
-    [firestore, user]
-  );
-  const { data: budgets } = useCollection(budgetsQuery);
 
   const sensors = useSensors(useSensor(PointerSensor));
 
-  const sortedLists = useMemo(() => {
-    return lists ? [...lists].sort((a, b) => a.order - b.order) : [];
-  }, [lists]);
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -514,195 +499,243 @@ export default function ExpensesPage() {
           </DialogContent>
         </Dialog>
       </PageHeader>
-
-        <div className="md:hidden">
-            <Select
-            value={String(selectedListId)}
-            onValueChange={(val) => setSelectedListId(val)}
-            >
-            <SelectTrigger className="w-full mb-4">
-                <SelectValue placeholder="Selecciona una categoría" />
-            </SelectTrigger>
-            <SelectContent>
-                {sortedLists?.map((list) => (
-                    <SelectItem key={list.id} value={String(list.id)}>
-                    {list.name}
-                    </SelectItem>
-                ))}
-            </SelectContent>
-            </Select>
-        </div>
         
-        {listsLoading && <p>Cargando categorías...</p>}
-
-        <div className="grid grid-cols-1 md:grid-cols-4 mt-6 md:mt-0 gap-6">
-            <div className="hidden md:block md:col-span-1">
-                { !listsLoading && sortedLists.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Categorías</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-2">
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={handleDragEnd}
-                    >
-                      <SortableContext
-                        items={sortedLists.map((list) => list.id)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        <ul className="space-y-1">
-                          {sortedLists.map((list) => (
-                            <SortableListItem
-                              key={list.id}
-                              list={list}
-                              selectedListId={selectedListId}
-                              setSelectedListId={setSelectedListId}
-                            >
-                              <ShoppingCart className="mr-2 h-4 w-4" />
-                              {list.name}
-                            </SortableListItem>
-                          ))}
-                        </ul>
-                      </SortableContext>
-                    </DndContext>
-                  </CardContent>
-                </Card>
-                )}
+        <Tabs defaultValue="lists">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="lists">Listas de Compra</TabsTrigger>
+            <TabsTrigger value="analytics">Análisis de Gastos</TabsTrigger>
+          </TabsList>
+          <TabsContent value="lists" className="mt-6">
+            <div className="md:hidden">
+                <Select
+                value={String(selectedListId)}
+                onValueChange={(val) => setSelectedListId(val)}
+                >
+                <SelectTrigger className="w-full mb-4">
+                    <SelectValue placeholder="Selecciona una categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                    {sortedLists?.map((list) => (
+                        <SelectItem key={list.id} value={String(list.id)}>
+                        {list.name}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+                </Select>
             </div>
+            
+            {listsLoading && <p>Cargando categorías...</p>}
 
-            <div className="md:col-span-3">
-              {selectedList ? (
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle>{selectedList.name}</CardTitle>
-                      <CardDescription>
-                        {selectedList.items?.length || 0} artículos en la lista
-                      </CardDescription>
-                    </div>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-muted-foreground hover:text-destructive"
+            <div className="grid grid-cols-1 md:grid-cols-4 mt-6 md:mt-0 gap-6">
+                <div className="hidden md:block md:col-span-1">
+                    { !listsLoading && sortedLists.length > 0 && (
+                    <Card>
+                    <CardHeader>
+                        <CardTitle>Categorías</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-2">
+                        <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
                         >
-                          <Trash2 className="h-5 w-5" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Esta acción no se puede deshacer. Esto eliminará
-                            permanentemente la categoría "{selectedList.name}"
-                            y todos sus artículos.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeleteList(selectedList.id)}
-                            className="bg-destructive hover:bg-destructive/90"
-                          >
-                            Eliminar
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="mb-6 space-y-4 rounded-lg border bg-muted/50 p-4">
-                        <h4 className="font-medium">Planificar Nuevo Artículo</h4>
-                        <div className="space-y-2">
-                           <Label htmlFor="new-item-name">Descripción</Label>
-                           <Input id="new-item-name" placeholder="Leche, pan, etc." value={newItemName} onChange={(e) => setNewItemName(e.target.value)} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="new-item-amount">Monto Estimado</Label>
-                            <Input id="new-item-amount" type="number" placeholder="5000" value={newItemAmount} onChange={(e) => setNewItemAmount(e.target.value)} />
-                        </div>
-                        <Button onClick={handleAddItem} disabled={!newItemName.trim() || !newItemAmount.trim()} className="w-full sm:w-auto">
-                            <PlusCircle className="mr-2 h-4 w-4"/> Añadir a la Lista
-                        </Button>
-                    </div>
-                    
-                    <Separator className="my-6" />
+                        <SortableContext
+                            items={sortedLists.map((list) => list.id)}
+                            strategy={verticalListSortingStrategy}
+                        >
+                            <ul className="space-y-1">
+                            {sortedLists.map((list) => (
+                                <SortableListItem
+                                key={list.id}
+                                list={list}
+                                selectedListId={selectedListId}
+                                setSelectedListId={setSelectedListId}
+                                >
+                                <ShoppingCart className="mr-2 h-4 w-4" />
+                                {list.name}
+                                </SortableListItem>
+                            ))}
+                            </ul>
+                        </SortableContext>
+                        </DndContext>
+                    </CardContent>
+                    </Card>
+                    )}
+                </div>
 
-                    <div className="space-y-6">
+                <div className="md:col-span-3">
+                {selectedList ? (
+                    <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
                         <div>
-                            <h4 className="font-medium mb-3">Artículos Pendientes</h4>
-                            <div className="space-y-3">
-                                {pendingItems.length > 0 ? (
-                                    pendingItems.map((item: any) => (
-                                    <div key={item.itemId} className="flex items-center gap-3 rounded-lg border p-3 shadow-sm">
-                                        <div className="flex-1">
-                                            <p className="font-medium">{item.name}</p>
-                                            <p className="text-sm font-semibold text-primary">{formatCurrency(item.amount)} (Estimado)</p>
+                        <CardTitle>{selectedList.name}</CardTitle>
+                        <CardDescription>
+                            {selectedList.items?.length || 0} artículos en la lista
+                        </CardDescription>
+                        </div>
+                        <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-destructive"
+                            >
+                            <Trash2 className="h-5 w-5" />
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Esta acción no se puede deshacer. Esto eliminará
+                                permanentemente la categoría "{selectedList.name}"
+                                y todos sus artículos.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={() => handleDeleteList(selectedList.id)}
+                                className="bg-destructive hover:bg-destructive/90"
+                            >
+                                Eliminar
+                            </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                        </AlertDialog>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="mb-6 space-y-4 rounded-lg border bg-muted/50 p-4">
+                            <h4 className="font-medium">Planificar Nuevo Artículo</h4>
+                            <div className="space-y-2">
+                            <Label htmlFor="new-item-name">Descripción</Label>
+                            <Input id="new-item-name" placeholder="Leche, pan, etc." value={newItemName} onChange={(e) => setNewItemName(e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="new-item-amount">Monto Estimado</Label>
+                                <Input id="new-item-amount" type="number" placeholder="5000" value={newItemAmount} onChange={(e) => setNewItemAmount(e.target.value)} />
+                            </div>
+                            <Button onClick={handleAddItem} disabled={!newItemName.trim() || !newItemAmount.trim()} className="w-full sm:w-auto">
+                                <PlusCircle className="mr-2 h-4 w-4"/> Añadir a la Lista
+                            </Button>
+                        </div>
+                        
+                        <Separator className="my-6" />
+
+                        <div className="space-y-6">
+                            <div>
+                                <h4 className="font-medium mb-3">Artículos Pendientes</h4>
+                                <div className="space-y-3">
+                                    {pendingItems.length > 0 ? (
+                                        pendingItems.map((item: any) => (
+                                        <div key={item.itemId} className="flex items-center gap-3 rounded-lg border p-3 shadow-sm">
+                                            <div className="flex-1">
+                                                <p className="font-medium">{item.name}</p>
+                                                <p className="text-sm font-semibold text-primary">{formatCurrency(item.amount)} (Estimado)</p>
+                                            </div>
+                                            <Button onClick={() => handleOpenPurchaseDialog(item)} size="sm">
+                                                <CheckCircle className="mr-2 h-4 w-4" />
+                                                Pagar
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteItem(item.itemId)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
                                         </div>
-                                        <Button onClick={() => handleOpenPurchaseDialog(item)} size="sm">
-                                            <CheckCircle className="mr-2 h-4 w-4" />
-                                            Pagar
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteItem(item.itemId)}>
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground text-center">No hay artículos pendientes.</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 className="font-medium mb-3">Artículos Comprados</h4>
+                                <div className="space-y-3">
+                                {purchasedItems.length > 0 ? (
+                                    purchasedItems.map((item: any) => (
+                                        <div key={item.itemId} className="flex items-center gap-3 rounded-lg border bg-muted/50 p-3">
+                                            <div className="flex-1">
+                                                <p className="font-medium line-through text-muted-foreground">{item.name}</p>
+                                                <p className="text-sm font-semibold">{formatCurrency(item.price)} (Final)</p>
+                                            </div>
+                                            <Button variant="ghost" size="sm" onClick={() => handleRevertPurchase(item.itemId)}>
+                                                <Undo2 className="mr-2 h-4 w-4" />
+                                                Revertir
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteItem(item.itemId)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     ))
                                 ) : (
-                                    <p className="text-sm text-muted-foreground text-center">No hay artículos pendientes.</p>
+                                    <p className="text-sm text-muted-foreground text-center">No hay artículos comprados en esta lista.</p>
                                 )}
+                                </div>
                             </div>
                         </div>
 
-                        <div>
-                            <h4 className="font-medium mb-3">Artículos Comprados</h4>
-                            <div className="space-y-3">
-                            {purchasedItems.length > 0 ? (
-                                purchasedItems.map((item: any) => (
-                                    <div key={item.itemId} className="flex items-center gap-3 rounded-lg border bg-muted/50 p-3">
-                                        <div className="flex-1">
-                                            <p className="font-medium line-through text-muted-foreground">{item.name}</p>
-                                            <p className="text-sm font-semibold">{formatCurrency(item.price)} (Final)</p>
-                                        </div>
-                                        <Button variant="ghost" size="sm" onClick={() => handleRevertPurchase(item.itemId)}>
-                                            <Undo2 className="mr-2 h-4 w-4" />
-                                            Revertir
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteItem(item.itemId)}>
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-sm text-muted-foreground text-center">No hay artículos comprados en esta lista.</p>
-                            )}
-                            </div>
-                        </div>
-                    </div>
 
-
-                  </CardContent>
-                </Card>
-              ) : (
-                  !listsLoading && (
-                  <Card className="flex flex-col items-center justify-center p-10 text-center md:min-h-96">
-                      <CardHeader>
-                      <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground" />
-                      <CardTitle className="mt-4">
-                          No hay categorías de gastos
-                      </CardTitle>
-                      <CardDescription>
-                          Crea una categoría para empezar a registrar gastos.
-                      </CardDescription>
-                      </CardHeader>
-                  </Card>
-                  )
-              )}
+                    </CardContent>
+                    </Card>
+                ) : (
+                    !listsLoading && (
+                    <Card className="flex flex-col items-center justify-center p-10 text-center md:min-h-96">
+                        <CardHeader>
+                        <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground" />
+                        <CardTitle className="mt-4">
+                            No hay categorías de gastos
+                        </CardTitle>
+                        <CardDescription>
+                            Crea una categoría para empezar a registrar gastos.
+                        </CardDescription>
+                        </CardHeader>
+                    </Card>
+                    )
+                )}
+                </div>
             </div>
-        </div>
+          </TabsContent>
+          <TabsContent value="analytics" className="mt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Gasto Total por Categoría</CardTitle>
+                  <CardDescription>Gasto real registrado por cada lista de compra.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={spendingByCategory} layout="vertical" margin={{ left: 20, right: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" tickFormatter={(value) => formatCurrency(value as number)} />
+                      <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
+                      <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                      <Bar dataKey="gasto" name="Gasto Total" fill="hsl(var(--primary))" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Precisión del Presupuesto</CardTitle>
+                  <CardDescription>Comparación entre el gasto estimado y el gasto real.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={budgetAccuracy} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                        <YAxis tickFormatter={(value) => formatCurrency(value as number)} />
+                        <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                        <Legend />
+                        <Bar dataKey="estimado" name="Estimado" fill="hsl(var(--secondary))" />
+                        <Bar dataKey="real" name="Real" fill="hsl(var(--primary))" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
 
         <Dialog open={isPurchaseDialogOpen} onOpenChange={setPurchaseDialogOpen}>
             <DialogContent>
@@ -727,4 +760,12 @@ export default function ExpensesPage() {
         </Dialog>
     </div>
   );
+}
+
+export default function ExpensesPage() {
+    return (
+        <ExpensesProvider>
+            <ExpensesContent />
+        </ExpensesProvider>
+    )
 }
