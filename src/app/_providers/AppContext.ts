@@ -126,7 +126,9 @@ export interface AppState {
     handleToggleHabit: (habitId: string) => void;
     handleCreateOrUpdateHabit: (habitData: Habit) => Promise<void>;
     handleDeleteHabit: (habitId: string) => Promise<void>;
-    handleResetStreak: (habitId: string) => Promise<void>;
+    handleResetAllStreaks: () => Promise<void>;
+    handleResetTimeLogs: () => Promise<void>;
+    handleResetMoods: () => Promise<void>;
     handleToggleTask: (taskId: string, currentStatus: boolean) => void;
     handleSaveTask: (taskData: Task) => Promise<void>;
     handleDeleteTask: (taskId: string) => Promise<void>;

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Timer, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import presetHabitsData from '@/lib/preset-habits.json';
+import { useToast } from '@/hooks/use-toast';
 
 
 function TimerDisplay({ activeSession, elapsedTime, stopSession }: { activeSession: ActiveSession | null, elapsedTime: number, stopSession: () => void }) {
@@ -45,7 +46,7 @@ type Action =
     | { type: 'SET_ACTIVE_SESSION'; payload: ActiveSession | null }
     | { type: 'SET_ELAPSED_TIME'; payload: number };
 
-const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetStreak' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'longestCurrentStreak' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'totalStats' | 'categoryStats' | 'weeklyTaskStats' | 'pendingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' > = {
+const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'longestCurrentStreak' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'totalStats' | 'categoryStats' | 'weeklyTaskStats' | 'pendingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' > = {
     allHabits: null,
     routines: null,
     tasks: null,
@@ -116,6 +117,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { firestore, user } = useFirebase();
     const [state, dispatch] = useReducer(appReducer, initialState);
     const [streaksChecked, setStreaksChecked] = useState(false);
+    const { toast } = useToast();
     
     // --- Data Fetching using useCollection ---
     const allHabitsQuery = useMemo(() => {
@@ -272,15 +274,65 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         await deleteDocumentNonBlocking(doc(firestore, 'users', user.uid, 'habits', habitId));
     };
 
-    const handleResetStreak = async (habitId: string) => {
+    const handleResetAllStreaks = async () => {
         if (!user || !firestore) return;
-        await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'habits', habitId), {
-            currentStreak: 0,
-            longestStreak: 0,
-            lastCompletedAt: null,
-            previousStreak: null,
-            previousLastCompletedAt: null,
-        });
+
+        try {
+            const batch = writeBatch(firestore);
+            const habitsQuery = collection(firestore, 'users', user.uid, 'habits');
+            const querySnapshot = await getDocs(habitsQuery);
+            
+            querySnapshot.forEach((document) => {
+                const habitRef = doc(firestore, 'users', user.uid, 'habits', document.id);
+                batch.update(habitRef, {
+                    currentStreak: 0,
+                    longestStreak: 0,
+                    lastCompletedAt: null,
+                    previousStreak: null,
+                    previousLastCompletedAt: null,
+                });
+            });
+            
+            await batch.commit();
+            toast({ title: 'Rachas reiniciadas', description: 'Todas las rachas y récords de tus hábitos han sido reiniciados.' });
+        } catch (error) {
+            console.error("Error resetting streaks:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron reiniciar las rachas.' });
+        }
+    };
+
+    const handleResetTimeLogs = async () => {
+        if (!user || !firestore) return;
+        try {
+            const batch = writeBatch(firestore);
+            const timeLogsRef = collection(firestore, 'users', user.uid, 'timeLogs');
+            const querySnapshot = await getDocs(timeLogsRef);
+            querySnapshot.forEach((doc) => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+            toast({ title: 'Tiempo de enfoque reiniciado', description: 'Se han eliminado todos los registros de tiempo.' });
+        } catch (error) {
+            console.error("Error resetting time logs:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo reiniciar el tiempo de enfoque.' });
+        }
+    };
+
+    const handleResetMoods = async () => {
+        if (!user || !firestore) return;
+        try {
+            const batch = writeBatch(firestore);
+            const moodsRef = collection(firestore, 'users', user.uid, 'moods');
+            const querySnapshot = await getDocs(moodsRef);
+            querySnapshot.forEach((doc) => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+            toast({ title: 'Historial de ánimo reiniciado', description: 'Se han eliminado todos los registros de ánimo.' });
+        } catch (error) {
+            console.error("Error resetting moods:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo reiniciar el historial de ánimo.' });
+        }
     };
 
     const handleToggleTask = (taskId: string, currentStatus: boolean) => {
@@ -673,7 +725,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         handleToggleHabit,
         handleCreateOrUpdateHabit,
         handleDeleteHabit,
-        handleResetStreak,
+        handleResetAllStreaks,
+        handleResetTimeLogs,
+        handleResetMoods,
         handleToggleTask,
         handleSaveTask,
         handleDeleteTask,

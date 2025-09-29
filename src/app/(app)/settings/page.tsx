@@ -1,3 +1,4 @@
+
 'use client';
 
 import PageHeader from '@/components/page-header';
@@ -14,9 +15,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { Upload, RotateCcw } from 'lucide-react';
+import { Upload, RotateCcw, TimerOff, SmileOff } from 'lucide-react';
 import { useFirebase, useUser, updateDocumentNonBlocking } from '@/firebase';
-import { collection, doc, writeBatch, getDocs } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
 import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -39,11 +39,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { useAppContext } from '@/app/_providers/AppContext';
 
 export default function SettingsPage() {
-  const { firestore, auth } = useFirebase();
-  const { user } = useUser();
+  const { auth, user } = useUser();
+  const { firestore } = useFirebase();
   const { theme, setTheme } = useTheme();
+  const { handleResetAllStreaks, handleResetTimeLogs, handleResetMoods } = useAppContext();
   const userAvatar = PlaceHolderImages.find((img) => img.id === 'default-user-avatar');
   const { toast } = useToast();
 
@@ -90,34 +92,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleResetAllStreaks = async () => {
-    if (!user) return;
-
-    try {
-        const batch = writeBatch(firestore);
-        const habitsQuery = collection(firestore, 'users', user.uid, 'habits');
-        const querySnapshot = await getDocs(habitsQuery);
-        
-        querySnapshot.forEach((document) => {
-            const habitRef = doc(firestore, 'users', user.uid, 'habits', document.id);
-            batch.update(habitRef, {
-                currentStreak: 0,
-                longestStreak: 0,
-                lastCompletedAt: null,
-                previousStreak: null,
-                previousLastCompletedAt: null,
-            });
-        });
-        
-        await batch.commit();
-        toast({ title: 'Rachas reiniciadas', description: 'Todas las rachas y récords de tus hábitos han sido reiniciados.' });
-    } catch (error) {
-        console.error("Error resetting streaks:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron reiniciar las rachas.' });
-    }
-  };
-
-
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
@@ -126,10 +100,11 @@ export default function SettingsPage() {
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Columna Izquierda */}
         <div className="lg:col-span-1 flex flex-col gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Información de Usuario</CardTitle>
+              <CardTitle>Perfil de Usuario</CardTitle>
               <CardDescription>
                 Actualiza tu información de perfil.
               </CardDescription>
@@ -175,6 +150,7 @@ export default function SettingsPage() {
           </Card>
         </div>
 
+        {/* Columna Derecha */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           <Card>
             <CardHeader>
@@ -245,17 +221,17 @@ export default function SettingsPage() {
                 Acciones permanentes sobre los datos de tu cuenta.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive">
+                  <Button variant="destructive" className="w-full">
                     <RotateCcw className="mr-2 h-4 w-4" />
-                    Reiniciar Rachas de Hábitos
+                    Rachas de Hábitos
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                    <AlertDialogTitle>¿Restablecer todas las rachas?</AlertDialogTitle>
                     <AlertDialogDescription>
                       Esta acción no se puede deshacer. Se reiniciarán las rachas
                       y récords de **todos** tus hábitos a cero.
@@ -268,6 +244,60 @@ export default function SettingsPage() {
                       className="bg-destructive hover:bg-destructive/90"
                     >
                       Sí, reiniciar todo
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              
+               <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full">
+                    <TimerOff className="mr-2 h-4 w-4" />
+                    Tiempo de Enfoque
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Restablecer tiempo de enfoque?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta acción no se puede deshacer. Se eliminarán permanentemente
+                      todos los registros de tiempo de tus sesiones de enfoque para hábitos y tareas.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleResetTimeLogs}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      Sí, eliminar registros
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+               <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full">
+                    <SmileOff className="mr-2 h-4 w-4" />
+                    Historial de Ánimo
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Restablecer historial de ánimo?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                       Esta acción no se puede deshacer. Se eliminarán permanentemente
+                       todos tus registros de estado de ánimo.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleResetMoods}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      Sí, eliminar historial
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
