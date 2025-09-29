@@ -16,7 +16,7 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
       <circle cx="50" cy="50" r="48" />
       
       {/* Stylized 'N' Growth Arrow */}
-      <path d="M30 70 L 30 30 L 70 70 L 70 30" />
+      <path d="M30 70 L 30 40 L 50 60 L 70 30" />
     </svg>
   );
 }
