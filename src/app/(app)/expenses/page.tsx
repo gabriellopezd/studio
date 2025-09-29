@@ -52,7 +52,6 @@ import { Separator } from '@/components/ui/separator';
 import { formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import {
-  useFirebase,
   updateDocumentNonBlocking,
   addDocumentNonBlocking,
   deleteDocumentNonBlocking,
@@ -81,7 +80,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useExpenses } from './_components/ExpensesProvider';
+import { useAppContext } from '@/app/_providers/AppContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 function SortableListItem({
@@ -125,14 +124,14 @@ export default function ExpensesPage() {
   const { 
     firestore, 
     user,
-    lists,
-    listsLoading,
+    shoppingLists,
+    shoppingListsLoading,
     budgets,
     sortedLists,
     spendingByCategory,
     budgetAccuracy,
     spendingByFocus,
-  } = useExpenses();
+  } = useAppContext();
 
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [newListName, setNewListName] = useState('');
@@ -153,7 +152,7 @@ export default function ExpensesPage() {
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
 
-    if (active.id !== over?.id && user && over) {
+    if (active.id !== over?.id && user && over && firestore) {
       const oldIndex = sortedLists.findIndex((list) => list.id === active.id);
       const newIndex = sortedLists.findIndex((list) => list.id === over.id);
 
@@ -184,13 +183,13 @@ export default function ExpensesPage() {
     }
   };
 
-  const selectedList = lists?.find((list) => list.id === selectedListId);
+  const selectedList = shoppingLists?.find((list) => list.id === selectedListId);
   const pendingItems = useMemo(() => selectedList?.items.filter((i: any) => !i.isPurchased) || [], [selectedList]);
   const purchasedItems = useMemo(() => selectedList?.items.filter((i: any) => i.isPurchased) || [], [selectedList]);
 
 
   const handleCreateList = async () => {
-    if (newListName.trim() && user) {
+    if (newListName.trim() && user && firestore) {
       const categoryName = newListName.trim();
 
       const batch = writeBatch(firestore);
@@ -201,7 +200,7 @@ export default function ExpensesPage() {
         createdAt: serverTimestamp(),
         items: [],
         userId: user.uid,
-        order: lists?.length || 0,
+        order: shoppingLists?.length || 0,
       };
       const listsColRef = collection(
         firestore,
@@ -247,9 +246,9 @@ export default function ExpensesPage() {
   };
 
   const handleDeleteList = async (listId: string) => {
-    if (!user) return;
+    if (!user || !firestore) return;
 
-    const listToDelete = lists?.find((l) => l.id === listId);
+    const listToDelete = shoppingLists?.find((l) => l.id === listId);
     if (!listToDelete) return;
     
     const batch = writeBatch(firestore);
@@ -273,7 +272,7 @@ export default function ExpensesPage() {
   };
 
   const handleAddItem = async () => {
-    if (!newItemName.trim() || !newItemAmount.trim() || !selectedListId || !user) return;
+    if (!newItemName.trim() || !newItemAmount.trim() || !selectedListId || !user || !firestore) return;
 
     const amount = parseFloat(newItemAmount);
     if (isNaN(amount)) {
@@ -307,7 +306,7 @@ export default function ExpensesPage() {
   };
 
   const handleRevertPurchase = async (itemId: string) => {
-    if (!selectedList || !user) return;
+    if (!selectedList || !user || !firestore) return;
     const item = selectedList.items.find((i: any) => i.itemId === itemId);
     if (!item || !item.isPurchased) return;
 
@@ -337,7 +336,7 @@ export default function ExpensesPage() {
   };
 
   const handleConfirmPurchase = async () => {
-    if (!itemToPurchase || !user || !selectedList || !purchasePrice) return;
+    if (!itemToPurchase || !user || !selectedList || !purchasePrice || !firestore) return;
     
     const finalPrice = parseFloat(purchasePrice);
     if (isNaN(finalPrice)) {
@@ -389,7 +388,7 @@ export default function ExpensesPage() {
 
 
   const handleDeleteItem = async (itemId: string) => {
-    if (!selectedList || !user) return;
+    if (!selectedList || !user || !firestore) return;
     const itemToDelete = selectedList.items.find(
       (item: any) => item.itemId === itemId
     );
@@ -446,16 +445,16 @@ export default function ExpensesPage() {
   };
 
   useEffect(() => {
-    if (!listsLoading && !selectedListId && sortedLists && sortedLists.length > 0) {
+    if (!shoppingListsLoading && !selectedListId && sortedLists && sortedLists.length > 0) {
       setSelectedListId(sortedLists[0].id);
     }
-  }, [lists, listsLoading, selectedListId, sortedLists]);
+  }, [shoppingLists, shoppingListsLoading, selectedListId, sortedLists]);
   
 
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        title="REGISTRO DE GASTOS"
+        title="LISTAS DE COMPRA"
         description="Planifica tus compras y registra tus gastos diarios."
       >
         <Dialog>
@@ -532,11 +531,11 @@ export default function ExpensesPage() {
                 </Select>
             </div>
             
-            {listsLoading && <p>Cargando categorías...</p>}
+            {shoppingListsLoading && <p>Cargando categorías...</p>}
 
             <div className="grid grid-cols-1 md:grid-cols-4 mt-6 md:mt-0 gap-6">
                 <div className="hidden md:block md:col-span-1">
-                    { !listsLoading && sortedLists.length > 0 && (
+                    { !shoppingListsLoading && sortedLists.length > 0 && (
                     <Card>
                     <CardHeader>
                         <CardTitle>Categorías</CardTitle>
@@ -686,7 +685,7 @@ export default function ExpensesPage() {
                     </CardContent>
                     </Card>
                 ) : (
-                    !listsLoading && (
+                    !shoppingListsLoading && (
                     <Card className="flex flex-col items-center justify-center p-10 text-center md:min-h-96">
                         <CardHeader>
                         <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground" />

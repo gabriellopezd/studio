@@ -24,7 +24,6 @@ import {
   CalendarClock,
 } from 'lucide-react';
 import {
-  useFirebase,
   useCollection,
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
@@ -68,9 +67,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useAppContext } from '@/app/_providers/AppContext';
 
 export default function GoalsPage() {
-  const { firestore, user } = useFirebase();
+  const { firestore, user, goals, goalsLoading } = useAppContext();
 
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [isProgressDialogOpen, setProgressDialogOpen] = useState(false);
@@ -89,19 +89,13 @@ export default function GoalsPage() {
   const [type, setType] = useState('generic');
   const [monthlyContribution, setMonthlyContribution] = useState('');
 
-  const goalsQuery = useMemo(
-    () => (user ? collection(firestore, 'users', user.uid, 'goals') : null),
-    [firestore, user]
-  );
-  const { data: allGoals, isLoading: goalsLoading } = useCollection(goalsQuery);
-
   const { savingsGoals, debtGoals, genericGoals } = useMemo(() => {
     return {
-        savingsGoals: allGoals?.filter(g => g.type === 'savings') || [],
-        debtGoals: allGoals?.filter(g => g.type === 'debt') || [],
-        genericGoals: allGoals?.filter(g => g.type === 'generic' || !g.type) || [],
+        savingsGoals: goals?.filter(g => g.type === 'savings') || [],
+        debtGoals: goals?.filter(g => g.type === 'debt') || [],
+        genericGoals: goals?.filter(g => g.type === 'generic' || !g.type) || [],
     }
-  }, [allGoals]);
+  }, [goals]);
 
 
   const resetForm = () => {
@@ -140,7 +134,7 @@ export default function GoalsPage() {
   };
 
   const handleSaveGoal = async () => {
-    if (!user || !name || !targetValue) return;
+    if (!user || !name || !targetValue || !firestore) return;
 
     const goalData = {
       name,
@@ -170,7 +164,7 @@ export default function GoalsPage() {
   };
   
   const handleUpdateProgress = async () => {
-    if (!user || !goalToUpdateProgress || newProgress === '') return;
+    if (!user || !goalToUpdateProgress || newProgress === '' || !firestore) return;
 
     const progressValue = parseFloat(newProgress);
     if (isNaN(progressValue)) return;
@@ -190,7 +184,7 @@ export default function GoalsPage() {
   };
 
   const handleDeleteGoal = async () => {
-    if (!user || !goalToDelete) return;
+    if (!user || !goalToDelete || !firestore) return;
     const goalRef = doc(firestore, 'users', user.uid, 'goals', goalToDelete.id);
     await deleteDocumentNonBlocking(goalRef);
     setGoalToDelete(null);

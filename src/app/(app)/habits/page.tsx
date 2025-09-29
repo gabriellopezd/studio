@@ -48,12 +48,12 @@ import {
 import { Check, Flame, MoreHorizontal, Pencil, PlusCircle, Trash2, Trophy, RotateCcw, Play, Square, CalendarDays } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { isHabitCompletedToday } from '@/lib/habits';
-import { useHabits } from './_components/HabitsProvider';
+import { useAppContext } from '@/app/_providers/AppContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTimer } from '../layout';
 import { cn } from '@/lib/utils';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Label as RechartsLabel } from 'recharts';
-import { TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipProvider, Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
@@ -88,7 +88,7 @@ function MonthlyHabitHeatmap({ data }: { data: { day: number, value: number }[] 
                 }
                 return (
                     <TooltipProvider key={dayData.day}>
-                        <Tooltip>
+                        <UITooltip>
                             <TooltipTrigger asChild>
                                 <div className={cn(
                                     "aspect-square rounded-md flex items-center justify-center",
@@ -100,7 +100,7 @@ function MonthlyHabitHeatmap({ data }: { data: { day: number, value: number }[] 
                             <TooltipContent>
                                 <p>{dayData.value}% completado</p>
                             </TooltipContent>
-                        </Tooltip>
+                        </UITooltip>
                     </TooltipProvider>
                 );
             })}
@@ -121,7 +121,7 @@ export default function HabitsPage() {
     handleToggleHabit,
     handleCreateOrUpdateHabit,
     handleDeleteHabit,
-  } = useHabits();
+  } = useAppContext();
   
   const { activeSession, startSession, stopSession } = useTimer();
 

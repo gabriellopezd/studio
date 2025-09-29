@@ -94,7 +94,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { useFinances } from './_components/FinancesProvider';
+import { useAppContext } from '@/app/_providers/AppContext';
 
 
 export default function FinancesPage() {
@@ -124,7 +124,7 @@ export default function FinancesPage() {
     expenseCategories,
     incomeCategories,
     categoriesWithoutBudget,
-  } = useFinances();
+  } = useAppContext();
   
   const [isTransactionDialogOpen, setTransactionDialogOpen] = useState(false);
   const [isBudgetDialogOpen, setBudgetDialogOpen] = useState(false);
@@ -162,7 +162,8 @@ export default function FinancesPage() {
       !newTransactionAmount ||
       !newTransactionCategory ||
       !newTransactionDate ||
-      !user
+      !user ||
+      !firestore
     )
       return;
     const amount = parseFloat(newTransactionAmount);
@@ -201,7 +202,7 @@ export default function FinancesPage() {
   };
   
   const handleSaveBudget = () => {
-    if (!user) return;
+    if (!user || !firestore) return;
   
     const category = budgetToEdit ? budgetToEdit.categoryName : newBudgetCategory;
     const limit = parseFloat(newBudgetLimit);
@@ -242,7 +243,7 @@ export default function FinancesPage() {
   };
 
   const handleUpdateTransaction = async () => {
-    if (!transactionToEdit || !user) return;
+    if (!transactionToEdit || !user || !firestore) return;
     const amount = parseFloat(transactionToEdit.amount);
     if (isNaN(amount)) return;
 
@@ -297,7 +298,7 @@ export default function FinancesPage() {
   };
 
   const handleDeleteTransaction = async () => {
-    if (!transactionToDelete || !user) return;
+    if (!transactionToDelete || !user || !firestore) return;
     
     const batch = writeBatch(firestore);
 
@@ -364,7 +365,7 @@ export default function FinancesPage() {
   };
 
   const handleSaveRecurringItem = async () => {
-    if (!user || !newRecurringName || !newRecurringAmount || !newRecurringCategory || !newRecurringDay) {
+    if (!user || !newRecurringName || !newRecurringAmount || !newRecurringCategory || !newRecurringDay || !firestore) {
         toast({ variant: "destructive", title: "Error", description: "Todos los campos son obligatorios." });
         return;
     }
@@ -392,7 +393,7 @@ export default function FinancesPage() {
   };
 
   const handleDeleteRecurringItem = async () => {
-    if (!recurringToDelete || !user) return;
+    if (!recurringToDelete || !user || !firestore) return;
     const collectionName = recurringToDelete.type === 'income' ? 'recurringIncomes' : 'recurringExpenses';
     const itemRef = doc(firestore, 'users', user.uid, collectionName, recurringToDelete.id);
     await deleteDocumentNonBlocking(itemRef);
@@ -400,7 +401,7 @@ export default function FinancesPage() {
   };
 
   const handlePayRecurringItem = async (item: any, type: 'income' | 'expense') => {
-    if (!user) return;
+    if (!user || !firestore) return;
     
     const batch = writeBatch(firestore);
 
@@ -438,7 +439,7 @@ export default function FinancesPage() {
   };
   
   const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') => {
-    if (!user || !item.lastTransactionId) return;
+    if (!user || !item.lastTransactionId || !firestore) return;
 
     const transactionRef = doc(firestore, 'users', user.uid, 'transactions', item.lastTransactionId);
     const transactionSnap = await getDoc(transactionRef);
@@ -475,7 +476,7 @@ export default function FinancesPage() {
     <>
       <div className="flex flex-col gap-8">
         <PageHeader
-          title="FINANZAS"
+          title="MIS FINANZAS"
           description="Controla tus ingresos, gastos y presupuestos."
         >
           <Dialog open={isTransactionDialogOpen} onOpenChange={setTransactionDialogOpen}>

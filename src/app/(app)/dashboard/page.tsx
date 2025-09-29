@@ -25,9 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { useHabits } from '@/app/(app)/habits/_components/HabitsProvider';
-import { useTasks } from '@/app/(app)/tasks/_components/TasksProvider';
-import { useMoods } from '@/app/(app)/mood-tracker/_components/MoodsProvider';
+import { useAppContext } from '@/app/_providers/AppContext';
 
 
 export default function DashboardPage() {
@@ -40,18 +38,16 @@ export default function DashboardPage() {
     completedWeekly,
     longestStreak,
     longestCurrentStreak,
-    habitsLoading
-  } = useHabits();
-  
-  const { 
+    habitsLoading,
     pendingTasks, 
     completedWeeklyTasks, 
     totalWeeklyTasks, 
     weeklyTasksProgress,
-    tasksLoading
-  } = useTasks();
+    tasksLoading,
+    todayMood, 
+    moodsLoading
+  } = useAppContext();
 
-  const { todayMood, moodsLoading } = useMoods();
 
   const dailyProgress = dailyHabits.length > 0 ? (completedDaily / dailyHabits.length) * 100 : 0;
   const weeklyProgress = weeklyHabits.length > 0 ? (completedWeekly / weeklyHabits.length) * 100 : 0;

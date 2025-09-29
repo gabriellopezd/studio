@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { moodLevels, feelings, influences } from '@/lib/moods';
-import { useMoods } from './_components/MoodsProvider';
+import { useAppContext } from '@/app/_providers/AppContext';
 
 
 export default function MoodTrackerPage() {
@@ -26,7 +26,7 @@ export default function MoodTrackerPage() {
     feelingStats,
     influenceStats,
     handleSaveMood,
-  } = useMoods();
+  } = useAppContext();
 
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [step, setStep] = useState(1);
@@ -93,10 +93,7 @@ export default function MoodTrackerPage() {
   };
   
   const changeMonth = (offset: number) => {
-    setCurrentMonth(prev => {
-      const newMonth = new Date(prev.getFullYear(), prev.getMonth() + offset, 1);
-      return newMonth;
-    });
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + offset, 1));
   };
   
   const todayEntry = moods?.find(m => new Date(m.date).toDateString() === new Date().toDateString());

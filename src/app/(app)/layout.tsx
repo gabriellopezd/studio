@@ -18,7 +18,6 @@ import {
   Sun,
   Timer,
   X,
-  LineChart,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -44,15 +43,12 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Logo } from '@/components/icons';
-import { useUser, useAuth, useFirebase, addDocumentNonBlocking } from '@/firebase';
+import { useUser, useAuth, addDocumentNonBlocking } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { collection, Timestamp, serverTimestamp } from 'firebase/firestore';
-import { HabitsProvider, useHabits } from './habits/_components/HabitsProvider';
-import { TasksProvider, useTasks } from './tasks/_components/TasksProvider';
-import { MoodsProvider } from './mood-tracker/_components/MoodsProvider';
-import { FinancesProvider } from './finances/_components/FinancesProvider';
-import { ExpensesProvider } from './expenses/_components/ExpensesProvider';
-import { RoutinesProvider } from './routines/_components/RoutinesProvider';
+import { AppProvider } from '@/app/_providers/AppProvider';
+import { useAppContext } from '@/app/_providers/AppContext';
+import { calculateStreak } from '@/lib/habits';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -62,8 +58,8 @@ const navItems = [
   { href: '/tasks', icon: SquareCheckBig, label: 'Tareas' },
   { href: '/goals', icon: Target, label: 'Metas' },
   { href: '/mood-tracker', icon: Smile, label: 'Ánimo' },
-  { href: '/finances', icon: CircleDollarSign, label: 'Finanzas' },
-  { href: '/expenses', icon: ShoppingCart, label: 'Gastos' },
+  { href: '/finances', icon: CircleDollarSign, label: 'Mis Finanzas' },
+  { href: '/expenses', icon: ShoppingCart, label: 'Listas de Compra' },
 ];
 
 interface ActiveSession {
@@ -91,9 +87,7 @@ export const useTimer = () => {
 function TimerProvider({ children }: { children: React.ReactNode }) {
     const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
     const [elapsedTime, setElapsedTime] = useState(0);
-    const { firestore, user } = useFirebase();
-    const { handleToggleHabit } = useHabits();
-    const { handleToggleTask } = useTasks();
+    const { firestore, user, handleToggleHabit, handleToggleTask } = useAppContext();
 
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
@@ -115,7 +109,7 @@ function TimerProvider({ children }: { children: React.ReactNode }) {
     };
 
     const stopSession = () => {
-        if (!activeSession || !user) return;
+        if (!activeSession || !user || !firestore) return;
 
         const durationSeconds = Math.floor((Date.now() - activeSession.startTime) / 1000);
 
@@ -290,20 +284,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
-        <HabitsProvider>
-            <TasksProvider>
-                <RoutinesProvider>
-                    <FinancesProvider>
-                        <ExpensesProvider>
-                            <MoodsProvider>
-                                <TimerProvider>
-                                    <AppLayoutContent>{children}</AppLayoutContent>
-                                </TimerProvider>
-                            </MoodsProvider>
-                        </ExpensesProvider>
-                    </FinancesProvider>
-                </RoutinesProvider>
-            </TasksProvider>
-        </HabitsProvider>
+        <AppProvider>
+            <TimerProvider>
+                <AppLayoutContent>{children}</AppLayoutContent>
+            </TimerProvider>
+        </AppProvider>
     )
 }

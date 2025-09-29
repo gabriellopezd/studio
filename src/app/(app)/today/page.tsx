@@ -24,20 +24,11 @@ import { Button } from '@/components/ui/button';
 
 import PageHeader from '@/components/page-header';
 import { useState, useEffect, useMemo } from 'react';
-import {
-  useCollection,
-  useFirebase,
-} from '@/firebase';
-import {
-  collection,
-  query,
-  where,
-  limit,
-} from 'firebase/firestore';
-import { TodaysMoodCard } from './_components/TodaysMoodCard';
 import { isHabitCompletedToday } from '@/lib/habits';
 import { useTimer } from '../layout';
 import { cn } from '@/lib/utils';
+import { useAppContext } from '@/app/_providers/AppContext';
+import { TodaysMoodCard } from './_components/TodaysMoodCard';
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
 
@@ -52,24 +43,13 @@ interface Habit {
 
 export default function TodayPage() {
   const [isClient, setIsClient] = useState(false);
-  const { firestore, user } = useFirebase();
+  const { allHabits, habitsLoading, urgentTasks, tasksLoading } = useAppContext();
 
   const { activeSession, startSession, stopSession } = useTimer();
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  const habitsQuery = useMemo(
-    () =>
-      user
-        ? query(collection(firestore, 'users', user.uid, 'habits'))
-        : null,
-    [firestore, user]
-  );
-  const { data: allHabits, isLoading: habitsLoading } =
-    useCollection(habitsQuery);
-
     
   const habitsForToday = useMemo(() => {
     if (!allHabits) return [];
@@ -89,20 +69,6 @@ export default function TodayPage() {
       return acc;
     }, {} as { [key: string]: any[] });
   }, [habitsForToday]);
-
-  const tasksQuery = useMemo(
-    () =>
-      user
-        ? query(
-            collection(firestore, 'users', user.uid, 'tasks'),
-            where('isCompleted', '==', false),
-            limit(3)
-          )
-        : null,
-    [firestore, user]
-  );
-  const { data: urgentTasks, isLoading: tasksLoading } =
-    useCollection(tasksQuery);
 
 
   const completedHabits = allHabits?.filter((h) => isHabitCompletedToday(h)).length ?? 0;

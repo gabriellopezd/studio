@@ -21,7 +21,6 @@ import {
   Square,
 } from 'lucide-react';
 import {
-  useFirebase,
   updateDocumentNonBlocking,
   addDocumentNonBlocking,
   deleteDocumentNonBlocking,
@@ -61,7 +60,7 @@ import { calculateStreak, isHabitCompletedToday } from '@/lib/habits';
 import { useTimer } from '../layout';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useRoutines } from './_components/RoutinesProvider';
+import { useAppContext } from '@/app/_providers/AppContext';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 
@@ -74,7 +73,8 @@ export default function RoutinesPage() {
     allHabits,
     routineTimeAnalytics,
     analyticsLoading,
-  } = useRoutines();
+    handleToggleHabit,
+  } = useAppContext();
 
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [routineToEdit, setRoutineToEdit] = useState<any | null>(null);
@@ -105,7 +105,7 @@ export default function RoutinesPage() {
   };
 
   const handleSaveRoutine = async () => {
-    if (!user || !name) return;
+    if (!user || !name || !firestore) return;
 
     const routineData = {
       name,
@@ -129,44 +129,15 @@ export default function RoutinesPage() {
   };
 
   const handleDeleteRoutine = async () => {
-    if (!user || !routineToDelete) return;
+    if (!user || !routineToDelete || !firestore) return;
     const routineRef = doc(firestore, 'users', user.uid, 'routines', routineToDelete.id);
     await deleteDocumentNonBlocking(routineRef);
     setRoutineToDelete(null);
   };
 
-  const handleToggleHabit = (habitId: string) => {
-    if (!user || !allHabits) return;
-
-    const habit = allHabits.find((h) => h.id === habitId);
-    if (!habit) return;
-
-    const habitRef = doc(firestore, 'users', user.uid, 'habits', habitId);
-
-    const isCompleted = isHabitCompletedToday(habit);
-
-    if (isCompleted) {
-      updateDocumentNonBlocking(habitRef, {
-        lastCompletedAt: habit.previousLastCompletedAt ?? null,
-        currentStreak: habit.previousStreak ?? 0,
-        previousStreak: null,
-        previousLastCompletedAt: null,
-      });
-    } else {
-      const streakData = calculateStreak(habit);
-      
-      updateDocumentNonBlocking(habitRef, {
-        lastCompletedAt: Timestamp.now(),
-        ...streakData,
-        previousStreak: habit.currentStreak || 0,
-        previousLastCompletedAt: habit.lastCompletedAt ?? null,
-      });
-    }
-  };
-  
   
   const handleCompleteRoutine = async (routine: any) => {
-    if (!user || !allHabits) return;
+    if (!user || !allHabits || !firestore) return;
 
     const routineHabits = allHabits.filter(h => routine.habitIds.includes(h.id));
     const habitsToComplete = routineHabits.filter(h => !isHabitCompletedToday(h));

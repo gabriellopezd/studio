@@ -6,9 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle, MoreHorizontal, Pencil, Trash2, CalendarIcon, Timer, Check, Play, Square } from 'lucide-react';
-import {
-  addDocumentNonBlocking
-} from '@/firebase';
+import { addDocumentNonBlocking } from '@/firebase';
 import { collection, doc, query, Timestamp, serverTimestamp, where } from 'firebase/firestore';
 import {
   Dialog,
@@ -57,7 +55,7 @@ import {
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { useTasks } from './_components/TasksProvider';
+import { useAppContext } from '@/app/_providers/AppContext';
 import { useTimer } from '../layout';
 
 
@@ -69,19 +67,15 @@ export default function TasksPage() {
   const [isClient, setIsClient] = useState(false);
 
   const {
-    firestore,
-    user,
     tasks,
     tasksLoading,
-    allTasksData,
-    allTasksLoading,
     totalStats,
     categoryStats,
     weeklyTaskStats,
     handleToggleTask,
     handleSaveTask,
     handleDeleteTask
-  } = useTasks();
+  } = useAppContext();
 
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<any | null>(null);
@@ -222,8 +216,8 @@ export default function TasksPage() {
 
     return (
       <div className="mt-4 space-y-6">
-        {(tasksLoading || allTasksLoading) && <p>Cargando tareas...</p>}
-        {!allTasksInView?.length && !(tasksLoading || allTasksLoading) && (
+        {tasksLoading && <p>Cargando tareas...</p>}
+        {!allTasksInView?.length && !tasksLoading && (
            <p className="text-muted-foreground text-center p-4">No hay tareas en esta vista.</p>
         )}
         {sortedCategories.map(category => (
