@@ -52,6 +52,7 @@ export interface AppState {
     recurringExpenses: any[] | null;
     recurringIncomes: any[] | null;
     timeLogs: any[] | null;
+    presetHabits: any[] | null;
 
     // Loading states
     habitsLoading: boolean;
@@ -65,6 +66,7 @@ export interface AppState {
     recurringExpensesLoading: boolean;
     recurringIncomesLoading: boolean;
     timeLogsLoading: boolean;
+    presetHabitsLoading: boolean;
     analyticsLoading: boolean;
     
     // UI State

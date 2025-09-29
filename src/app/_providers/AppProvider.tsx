@@ -6,36 +6,6 @@ import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, get
 import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { AppContext, AppState, Habit, Task, Mood, ActiveSession } from './AppContext';
 import { isHabitCompletedToday, checkHabitStreak } from '@/lib/habits';
-import { Button } from '@/components/ui/button';
-import { Timer, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
-
-function TimerDisplay({ activeSession, elapsedTime, stopSession }: { activeSession: ActiveSession | null, elapsedTime: number, stopSession: () => void }) {
-
-    const formatTime = (totalSeconds: number) => {
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-    };
-    
-    if (!activeSession) return null;
-
-    return (
-        <div className="fixed bottom-4 right-4 z-50">
-            <div className="flex items-center gap-4 rounded-lg bg-primary p-4 text-primary-foreground shadow-lg">
-                <Timer className="h-6 w-6 animate-pulse" />
-                <div className="flex-1">
-                    <p className="text-sm font-medium">{activeSession.name}</p>
-                    <p className="font-mono text-lg font-bold">{formatTime(elapsedTime)}</p>
-                </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/80" onClick={stopSession}>
-                    <X className="h-5 w-5" />
-                </Button>
-            </div>
-        </div>
-    );
-}
 
 // --- Reducer Logic ---
 
@@ -59,6 +29,7 @@ const initialState: Omit<AppState, keyof ReturnType<typeof useFirebase> | 'handl
     recurringExpenses: null,
     recurringIncomes: null,
     timeLogs: null,
+    presetHabits: null,
     habitsLoading: true,
     routinesLoading: true,
     tasksLoading: true,
@@ -70,6 +41,7 @@ const initialState: Omit<AppState, keyof ReturnType<typeof useFirebase> | 'handl
     recurringExpensesLoading: true,
     recurringIncomesLoading: true,
     timeLogsLoading: true,
+    presetHabitsLoading: true,
     currentMonth: new Date(),
     activeSession: null,
     elapsedTime: 0,
@@ -118,12 +90,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [streaksChecked, setStreaksChecked] = useState(false);
     
     // --- Data Fetching using useCollection ---
-    const useCollectionData = (key: string, collectionName: string, queryBuilder?: (c: any) => any) => {
+    const useCollectionData = (key: string, collectionName: string, queryBuilder?: (c: any) => any, enabled: boolean = true) => {
         const memoizedQuery = useMemo(() => {
-            if (!user || !firestore) return null;
-            const baseCollection = collection(firestore, 'users', user.uid, collectionName);
+            if (!enabled) return null;
+            if (collectionName.startsWith('users/')) {
+                 if (!user || !firestore) return null;
+                 const path = collectionName.replace('users/', `users/${user.uid}/`);
+                 const baseCollection = collection(firestore, path);
+                 return queryBuilder ? queryBuilder(baseCollection) : baseCollection;
+            }
+            if (!firestore) return null;
+            const baseCollection = collection(firestore, collectionName);
             return queryBuilder ? queryBuilder(baseCollection) : baseCollection;
-        }, [user, firestore, collectionName]);
+        }, [user, firestore, collectionName, enabled]);
 
         const { data, isLoading } = useCollection(memoizedQuery);
 
@@ -134,15 +113,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return { data, isLoading };
     };
 
-    const { data: allHabitsData, isLoading: habitsLoading } = useCollectionData('allHabits', 'habits');
-    useCollectionData('routines', 'routines');
-    useCollectionData('tasks', 'tasks', c => query(c, orderBy('createdAt', 'desc')));
-    useCollectionData('goals', 'goals');
-    useCollectionData('timeLogs', 'timeLogs');
-    useCollectionData('budgets', 'budgets');
-    useCollectionData('shoppingLists', 'shoppingLists', c => query(c, orderBy('order')));
-    useCollectionData('recurringExpenses', 'recurringExpenses', c => query(c, orderBy('dayOfMonth')));
-    useCollectionData('recurringIncomes', 'recurringIncomes', c => query(c, orderBy('dayOfMonth')));
+    const { data: allHabitsData, isLoading: habitsLoading } = useCollectionData('allHabits', 'users/habits', undefined, !!user);
+    useCollectionData('routines', 'users/routines', undefined, !!user);
+    useCollectionData('tasks', 'users/tasks', c => query(c, orderBy('createdAt', 'desc')), !!user);
+    useCollectionData('goals', 'users/goals', undefined, !!user);
+    useCollectionData('timeLogs', 'users/timeLogs', undefined, !!user);
+    useCollectionData('budgets', 'users/budgets', undefined, !!user);
+    useCollectionData('shoppingLists', 'users/shoppingLists', c => query(c, orderBy('order')), !!user);
+    useCollectionData('recurringExpenses', 'users/recurringExpenses', c => query(c, orderBy('dayOfMonth')), !!user);
+    useCollectionData('recurringIncomes', 'users/recurringIncomes', c => query(c, orderBy('dayOfMonth')), !!user);
+    useCollectionData('presetHabits', 'presetHabits', c => query(c, orderBy('category'), orderBy('name')));
+
 
     const urgentTasksQuery = useMemo(() => {
         if (!user || !firestore) return null;
@@ -611,11 +592,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return (
         <AppContext.Provider value={value}>
             {children}
-            <TimerDisplay
-                activeSession={state.activeSession}
-                elapsedTime={state.elapsedTime}
-                stopSession={stopSession}
-            />
         </AppContext.Provider>
     );
 };

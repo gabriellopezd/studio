@@ -120,11 +120,70 @@
             "Profesional",
             "Relaciones Personales"
           ]
+        },
+        "presetHabitId": {
+          "type": ["string", "null"],
+          "description": "The ID of the preset habit this user habit was created from, if any."
         }
       },
       "required": [
         "id",
         "userId",
+        "name",
+        "icon",
+        "frequency",
+        "createdAt",
+        "category"
+      ]
+    },
+    "PresetHabit": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PresetHabit",
+      "type": "object",
+      "description": "Represents a pre-defined habit that users can choose to adopt.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the preset habit."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the habit."
+        },
+        "icon": {
+          "type": "string",
+          "description": "Icon representing the habit (emoji)."
+        },
+        "frequency": {
+          "type": "string",
+          "description": "Frequency of the habit (e.g., 'Diario', 'Semanal')."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the habit.",
+          "enum": [
+            "Productividad",
+            "Conocimiento",
+            "Social",
+            "Físico",
+            "Espiritual",
+            "Hogar",
+            "Profesional",
+            "Relaciones Personales"
+          ]
+        },
+         "description": {
+          "type": "string",
+          "description": "A short description of why this habit is useful."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the preset habit was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
         "name",
         "icon",
         "frequency",
@@ -818,6 +877,31 @@
               "update": "if request.auth != null && request.auth.uid == userId;",
               "delete": "if request.auth != null && request.auth.uid == userId;",
               "list": "if request.auth != null && request.auth.uid == userId;"
+            }
+          }
+        }
+      },
+      {
+        "path": "/presetHabits/{presetHabitId}",
+        "definition": {
+          "entityName": "PresetHabit",
+          "schema": {
+            "$ref": "#/backend/entities/PresetHabit"
+          },
+          "description": "Stores pre-defined habits that are available to all users.",
+          "params": [
+            {
+              "name": "presetHabitId",
+              "description": "The unique identifier for the preset habit."
+            }
+          ],
+          "rules": {
+            "allow": {
+              "create": "if false;",
+              "read": "if request.auth != null;",
+              "update": "if false;",
+              "delete": "if false;",
+              "list": "if request.auth != null;"
             }
           }
         }
