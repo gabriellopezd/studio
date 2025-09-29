@@ -57,14 +57,14 @@ import {
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { TasksProvider, useTasks } from './_components/TasksProvider';
+import { useTasks } from './_components/TasksProvider';
 import { useTimer } from '../layout';
 
 
 const taskCategories = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro"];
 
 
-function TasksContent() {
+export default function TasksPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [isClient, setIsClient] = useState(false);
 
@@ -480,13 +480,4 @@ function TasksContent() {
       </AlertDialog>
     </>
   );
-}
-
-
-export default function TasksPage() {
-    return (
-        <TasksProvider>
-            <TasksContent />
-        </TasksProvider>
-    )
 }

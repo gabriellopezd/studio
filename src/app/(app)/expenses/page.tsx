@@ -81,7 +81,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ExpensesProvider, useExpenses } from './_components/ExpensesProvider';
+import { useExpenses } from './_components/ExpensesProvider';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 function SortableListItem({
@@ -121,7 +121,7 @@ const COLORS = {
 };
 
 
-function ExpensesContent() {
+export default function ExpensesPage() {
   const { 
     firestore, 
     user,
@@ -796,12 +796,4 @@ function ExpensesContent() {
         </Dialog>
     </div>
   );
-}
-
-export default function ExpensesPage() {
-    return (
-        <ExpensesProvider>
-            <ExpensesContent />
-        </ExpensesProvider>
-    )
 }

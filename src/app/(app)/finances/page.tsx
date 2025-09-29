@@ -94,10 +94,10 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { FinancesProvider, useFinances } from './_components/FinancesProvider';
+import { useFinances } from './_components/FinancesProvider';
 
 
-function FinancesContent() {
+export default function FinancesPage() {
   const {
     firestore,
     user,
@@ -1129,12 +1129,4 @@ function FinancesContent() {
       </Dialog>
     </>
   );
-}
-
-export default function FinancesPage() {
-    return (
-        <FinancesProvider>
-            <FinancesContent />
-        </FinancesProvider>
-    )
 }

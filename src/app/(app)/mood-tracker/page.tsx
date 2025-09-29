@@ -14,10 +14,10 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { moodLevels, feelings, influences } from '@/lib/moods';
-import { MoodsProvider, useMoods } from './_components/MoodsProvider';
+import { useMoods } from './_components/MoodsProvider';
 
 
-function MoodTrackerContent() {
+export default function MoodTrackerPage() {
   const { 
     currentMonth, 
     setCurrentMonth,
@@ -281,13 +281,4 @@ function MoodTrackerContent() {
       </Dialog>
     </>
   );
-}
-
-
-export default function MoodTrackerPage() {
-  return (
-    <MoodsProvider>
-      <MoodTrackerContent />
-    </MoodsProvider>
-  )
 }

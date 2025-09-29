@@ -26,7 +26,7 @@ import {
   addDocumentNonBlocking,
   deleteDocumentNonBlocking,
 } from '@/firebase';
-import { doc, serverTimestamp, Timestamp, writeBatch } from 'firebase/firestore';
+import { doc, serverTimestamp, Timestamp, writeBatch, collection } from 'firebase/firestore';
 import {
   Dialog,
   DialogContent,
@@ -61,11 +61,11 @@ import { calculateStreak, isHabitCompletedToday } from '@/lib/habits';
 import { useTimer } from '../layout';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RoutinesProvider, useRoutines } from './_components/RoutinesProvider';
+import { useRoutines } from './_components/RoutinesProvider';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 
-function RoutinesContent() {
+export default function RoutinesPage() {
   const { 
     firestore, 
     user,
@@ -395,13 +395,4 @@ function RoutinesContent() {
       </AlertDialog>
     </>
   );
-}
-
-
-export default function RoutinesPage() {
-    return (
-        <RoutinesProvider>
-            <RoutinesContent />
-        </RoutinesProvider>
-    )
 }

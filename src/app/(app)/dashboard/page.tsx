@@ -25,12 +25,12 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { HabitsProvider, useHabits } from '@/app/(app)/habits/_components/HabitsProvider';
-import { TasksProvider, useTasks } from '@/app/(app)/tasks/_components/TasksProvider';
-import { MoodsProvider, useMoods } from '@/app/(app)/mood-tracker/_components/MoodsProvider';
+import { useHabits } from '@/app/(app)/habits/_components/HabitsProvider';
+import { useTasks } from '@/app/(app)/tasks/_components/TasksProvider';
+import { useMoods } from '@/app/(app)/mood-tracker/_components/MoodsProvider';
 
 
-function DashboardContent() {
+export default function DashboardPage() {
   const [isClient, setIsClient] = useState(false);
   
   const { 
@@ -201,16 +201,4 @@ function DashboardContent() {
       </div>
     </div>
   );
-}
-
-export default function DashboardPage() {
-    return (
-        <HabitsProvider>
-            <TasksProvider>
-                <MoodsProvider>
-                    <DashboardContent />
-                </MoodsProvider>
-            </TasksProvider>
-        </HabitsProvider>
-    )
 }

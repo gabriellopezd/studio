@@ -48,7 +48,7 @@ import {
 import { Check, Flame, MoreHorizontal, Pencil, PlusCircle, Trash2, Trophy, RotateCcw, Play, Square, CalendarDays } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { isHabitCompletedToday } from '@/lib/habits';
-import { HabitsProvider, useHabits } from './_components/HabitsProvider';
+import { useHabits } from './_components/HabitsProvider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTimer } from '../layout';
 import { cn } from '@/lib/utils';
@@ -108,7 +108,7 @@ function MonthlyHabitHeatmap({ data }: { data: { day: number, value: number }[] 
     );
 }
 
-function HabitsContent() {
+export default function HabitsPage() {
   const { 
     groupedHabits, 
     habitsLoading,
@@ -497,13 +497,4 @@ function HabitsContent() {
       </AlertDialog>
     </>
   );
-}
-
-
-export default function HabitsPage() {
-  return (
-    <HabitsProvider>
-      <HabitsContent />
-    </HabitsProvider>
-  )
 }

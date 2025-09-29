@@ -49,6 +49,10 @@ import { useRouter } from 'next/navigation';
 import { collection, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { HabitsProvider, useHabits } from './habits/_components/HabitsProvider';
 import { TasksProvider, useTasks } from './tasks/_components/TasksProvider';
+import { MoodsProvider } from './mood-tracker/_components/MoodsProvider';
+import { FinancesProvider } from './finances/_components/FinancesProvider';
+import { ExpensesProvider } from './expenses/_components/ExpensesProvider';
+import { RoutinesProvider } from './routines/_components/RoutinesProvider';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -286,12 +290,20 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
-      <HabitsProvider>
-        <TasksProvider>
-          <TimerProvider>
-            <AppLayoutContent>{children}</AppLayoutContent>
-          </TimerProvider>
-        </TasksProvider>
-      </HabitsProvider>
+        <HabitsProvider>
+            <TasksProvider>
+                <RoutinesProvider>
+                    <FinancesProvider>
+                        <ExpensesProvider>
+                            <MoodsProvider>
+                                <TimerProvider>
+                                    <AppLayoutContent>{children}</AppLayoutContent>
+                                </TimerProvider>
+                            </MoodsProvider>
+                        </ExpensesProvider>
+                    </FinancesProvider>
+                </RoutinesProvider>
+            </TasksProvider>
+        </HabitsProvider>
     )
 }
