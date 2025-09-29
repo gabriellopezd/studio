@@ -18,6 +18,7 @@ import {
   Sun,
   Timer,
   X,
+  LineChart,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -285,12 +286,12 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
-        <HabitsProvider>
-            <TasksProvider>
-                <TimerProvider>
-                    <AppLayoutContent>{children}</AppLayoutContent>
-                </TimerProvider>
-            </TasksProvider>
-        </HabitsProvider>
+      <HabitsProvider>
+        <TasksProvider>
+          <TimerProvider>
+            <AppLayoutContent>{children}</AppLayoutContent>
+          </TimerProvider>
+        </TasksProvider>
+      </HabitsProvider>
     )
 }
