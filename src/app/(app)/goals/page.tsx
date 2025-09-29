@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -69,6 +69,14 @@ import {
 } from '@/components/ui/select';
 import { useAppContext } from '@/app/_providers/AppContext';
 
+const motivationalQuotes = [
+    "Una meta sin un plan es solo un deseo.",
+    "El futuro pertenece a quienes creen en la belleza de sus sueños.",
+    "Ponte metas grandes y no pares hasta llegar allí.",
+    "La distancia entre tus sueños y la realidad se llama acción.",
+    "No es la meta lo que importa, sino el camino."
+];
+
 export default function GoalsPage() {
   const { firestore, user, goals, goalsLoading } = useAppContext();
 
@@ -88,6 +96,11 @@ export default function GoalsPage() {
   const [newProgress, setNewProgress] = useState('');
   const [type, setType] = useState('generic');
   const [monthlyContribution, setMonthlyContribution] = useState('');
+  const [motivation, setMotivation] = useState('');
+
+  useEffect(() => {
+    setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
+  }, []);
 
   const { savingsGoals, debtGoals, genericGoals } = useMemo(() => {
     return {
@@ -300,6 +313,7 @@ export default function GoalsPage() {
         <PageHeader
           title="METAS"
           description="Define y sigue el progreso de tus metas a largo plazo."
+          motivation={motivation}
         >
           <Button onClick={() => handleOpenDialog()}>
             <PlusCircle className="mr-2 h-4 w-4" />

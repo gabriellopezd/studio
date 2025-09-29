@@ -40,12 +40,22 @@ interface Habit {
   [key: string]: any;
 }
 
+const motivationalQuotes = [
+    "El día es tuyo. ¡Haz que cuente!",
+    "Enfócate en el hoy para construir el mañana.",
+    "Un día a la vez. Eso es todo lo que se necesita.",
+    "La mejor manera de predecir el futuro es crearlo. Empieza hoy.",
+    "El presente es el único momento que realmente posees."
+];
+
 export default function TodayPage() {
   const [isClient, setIsClient] = useState(false);
+  const [motivation, setMotivation] = useState('');
   const { allHabits, habitsLoading, urgentTasks, tasksLoading, activeSession, startSession, stopSession } = useAppContext();
 
   useEffect(() => {
     setIsClient(true);
+    setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, []);
     
   const habitsForToday = useMemo(() => {
@@ -91,6 +101,7 @@ export default function TodayPage() {
             ? `Resumen de tu actividad para hoy, ${todayString}.`
             : 'Resumen de tu actividad para hoy.'
         }
+        motivation={motivation}
       />
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         <div className="lg:col-span-2 flex flex-col gap-6">

@@ -27,9 +27,17 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useAppContext } from '@/app/_providers/AppContext';
 
+const motivationalQuotes = [
+    "El progreso de hoy es el éxito de mañana.",
+    "Cada pequeño paso te acerca a un gran resultado.",
+    "Tu vista general hacia una vida mejor.",
+    "La consistencia es la clave del progreso.",
+    "Visualiza tu éxito y hazlo realidad."
+];
 
 export default function DashboardPage() {
   const [isClient, setIsClient] = useState(false);
+  const [motivation, setMotivation] = useState('');
   
   const { 
     dailyHabits,
@@ -54,6 +62,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setIsClient(true);
+    setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, []);
 
   const todayString = new Date().toLocaleDateString('es-ES', {
@@ -72,6 +81,7 @@ export default function DashboardPage() {
             ? `Tu resumen de hoy, ${todayString}.`
             : 'Tu resumen de hoy.'
         }
+        motivation={motivation}
       />
       
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">

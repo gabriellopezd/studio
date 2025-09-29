@@ -60,10 +60,18 @@ import { useAppContext } from '@/app/_providers/AppContext';
 
 const taskCategories = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro"];
 
+const motivationalQuotes = [
+    "Una tarea completada es un paso más hacia tu meta.",
+    "No dejes para mañana lo que puedas tachar de la lista hoy.",
+    "Organiza tus tareas, conquista tu día.",
+    "La satisfacción de una lista de tareas vacía no tiene precio.",
+    "Divide y vencerás. Una tarea a la vez."
+];
 
 export default function TasksPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [isClient, setIsClient] = useState(false);
+  const [motivation, setMotivation] = useState('');
 
   const {
     tasks,
@@ -90,6 +98,7 @@ export default function TasksPage() {
   
   useEffect(() => {
     setIsClient(true);
+    setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, []);
 
   const filteredTasks = useMemo(() => {
@@ -300,6 +309,7 @@ export default function TasksPage() {
         <PageHeader
           title="TAREAS"
           description="Organiza tus tareas y mantente enfocado."
+          motivation={motivation}
         >
           <Button onClick={() => handleOpenDialog()}>
             <PlusCircle className="mr-2 h-4 w-4" />

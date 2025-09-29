@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,13 @@ import { Badge } from '@/components/ui/badge';
 import { moodLevels, feelings, influences } from '@/lib/moods';
 import { useAppContext } from '@/app/_providers/AppContext';
 
+const motivationalQuotes = [
+    "Tus emociones son válidas. Escúchalas.",
+    "Comprender tu ánimo es el primer paso para mejorarlo.",
+    "Cada sentimiento es un dato. Úsalo para conocerte mejor.",
+    "Reconocer cómo te sientes es un acto de valentía.",
+    "El autoconocimiento emocional es una superpotencia."
+];
 
 export default function MoodTrackerPage() {
   const { 
@@ -34,6 +41,11 @@ export default function MoodTrackerPage() {
   const [selectedMood, setSelectedMood] = useState<{ level: number; emoji: string; label: string } | null>(null);
   const [selectedFeelings, setSelectedFeelings] = useState<string[]>([]);
   const [selectedInfluences, setSelectedInfluences] = useState<string[]>([]);
+  const [motivation, setMotivation] = useState('');
+
+  useEffect(() => {
+    setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
+  }, []);
 
   const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month + 1, 0).getDate();
@@ -104,6 +116,7 @@ export default function MoodTrackerPage() {
       <PageHeader
         title="RASTREADOR DE ÁNIMO"
         description="Registra tu ánimo diario y observa tus tendencias emocionales."
+        motivation={motivation}
       >
         <Button onClick={handleStartMoodRegistration}>
           {todayEntry ? 'Actualizar mi día' : 'Registrar mi día'}

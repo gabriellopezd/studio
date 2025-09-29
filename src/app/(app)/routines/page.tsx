@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -62,6 +62,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppContext } from '@/app/_providers/AppContext';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
+const motivationalQuotes = [
+    "La disciplina es el puente entre las metas y los logros.",
+    "Una rutina sólida es el secreto de la productividad.",
+    "Crea rutinas que te lleven a la vida que deseas.",
+    "La automatización de tus mañanas es el primer paso hacia el éxito.",
+    "Las cadenas del hábito son demasiado débiles para sentirlas hasta que son demasiado fuertes para romperlas."
+];
+
 
 export default function RoutinesPage() {
   const { 
@@ -84,6 +92,11 @@ export default function RoutinesPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedHabitIds, setSelectedHabitIds] = useState<string[]>([]);
+  const [motivation, setMotivation] = useState('');
+
+  useEffect(() => {
+    setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
+  }, []);
   
   const resetForm = () => {
     setName('');
@@ -167,6 +180,7 @@ export default function RoutinesPage() {
         <PageHeader
           title="RUTINAS"
           description="Crea y sigue tus rutinas diarias para construir consistencia."
+          motivation={motivation}
         >
           <Button onClick={() => handleOpenDialog()}>
             <PlusCircle className="mr-2 h-4 w-4" />

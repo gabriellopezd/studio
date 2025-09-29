@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -60,6 +60,14 @@ import Link from 'next/link';
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#d0ed57'];
+
+const motivationalQuotes = [
+    "La constancia es la madre de la maestría.",
+    "Pequeños hábitos, grandes resultados.",
+    "Un hábito al día mantiene la mediocridad a raya.",
+    "Siembra un hábito y cosecha un carácter.",
+    "Eres lo que haces repetidamente."
+];
 
 function MonthlyHabitHeatmap({ data }: { data: { day: number, value: number }[] }) {
     const today = new Date();
@@ -133,11 +141,16 @@ export default function HabitsPage() {
   const [habitToEdit, setHabitToEdit] = useState<any>(null);
   const [habitToDelete, setHabitToDelete] = useState<any>(null);
   const [habitToReset, setHabitToReset] = useState<any>(null);
+  const [motivation, setMotivation] = useState('');
 
   const [newHabitName, setNewHabitName] = useState('');
   const [newHabitIcon, setNewHabitIcon] = useState('');
   const [newHabitFrequency, setNewHabitFrequency] = useState('Diario');
   const [newHabitCategory, setNewHabitCategory] = useState('');
+
+  useEffect(() => {
+    setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
+  }, []);
   
   const resetForm = () => {
     setNewHabitName('');
@@ -192,6 +205,7 @@ export default function HabitsPage() {
         <PageHeader
           title="Hábitos"
           description="Gestiona tus hábitos y sigue tu progreso."
+          motivation={motivation}
         >
           <Button variant="outline" asChild>
             <Link href="/settings/habits">

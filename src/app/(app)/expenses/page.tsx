@@ -119,6 +119,13 @@ const COLORS = {
     'Ahorros y Deudas': '#22c55e' // green-500
 };
 
+const motivationalQuotes = [
+    "Cuida de los pequeños gastos; un pequeño agujero hunde un barco.",
+    "Un presupuesto es decirle a tu dinero a dónde ir, en lugar de preguntarte a dónde se fue.",
+    "La compra inteligente de hoy es la tranquilidad financiera de mañana.",
+    "Planifica tus compras para comprar tu libertad.",
+    "Cada peso que no gastas es un peso que trabaja para ti."
+];
 
 export default function ExpensesPage() {
   const { 
@@ -143,10 +150,15 @@ export default function ExpensesPage() {
   const [isPurchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [itemToPurchase, setItemToPurchase] = useState<any | null>(null);
   const [purchasePrice, setPurchasePrice] = useState('');
+  const [motivation, setMotivation] = useState('');
 
   const { toast } = useToast();
 
   const sensors = useSensors(useSensor(PointerSensor));
+
+  useEffect(() => {
+    setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
+  }, []);
 
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -471,6 +483,7 @@ export default function ExpensesPage() {
       <PageHeader
         title="LISTAS DE COMPRA"
         description="Planifica tus compras y registra tus gastos diarios."
+        motivation={motivation}
       >
         <Dialog>
           <DialogTrigger asChild>
@@ -811,4 +824,3 @@ export default function ExpensesPage() {
     </div>
   );
 }
-

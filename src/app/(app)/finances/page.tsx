@@ -98,6 +98,13 @@ import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/app/_providers/AppContext';
 
+const motivationalQuotes = [
+    "Tus finanzas son el reflejo de tus hábitos. ¡Constrúyelos sabiamente!",
+    "El control de tus finanzas es el primer paso hacia la libertad.",
+    "Un presupuesto bien gestionado es el mapa hacia tus metas.",
+    "No es cuánto ganas, sino cuánto guardas.",
+    "Invierte en tu futuro financiero. Empieza hoy."
+];
 
 export default function FinancesPage() {
   const {
@@ -155,8 +162,13 @@ export default function FinancesPage() {
   const [newRecurringCategory, setNewRecurringCategory] = useState('');
   const [newRecurringDay, setNewRecurringDay] = useState('');
   const [newRecurringBudgetFocus, setNewRecurringBudgetFocus] = useState('Necesidades');
+  const [motivation, setMotivation] = useState('');
 
   const { toast } = useToast();
+  
+  useEffect(() => {
+    setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
+  }, []);
 
   const handleAddTransaction = async () => {
     if (
@@ -515,6 +527,7 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
         <PageHeader
           title="MIS FINANZAS"
           description="Controla tus ingresos, gastos y presupuestos."
+          motivation={motivation}
         >
           <Dialog open={isTransactionDialogOpen} onOpenChange={setTransactionDialogOpen}>
             <DialogTrigger asChild>
