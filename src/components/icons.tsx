@@ -1,4 +1,3 @@
-
 import type { SVGProps } from 'react';
 
 export function Logo(props: SVGProps<SVGSVGElement>) {
@@ -9,7 +8,8 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
       fill="currentColor"
       {...props}
     >
-      <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z" />
+      <path d="M12,2A10,10,0,1,0,22,12,10,10,0,0,0,12,2Zm0,18a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" opacity="0" />
+      <path d="M12,2A10,10,0,1,0,22,12,10,10,0,0,0,12,2ZM15.5,16h-2L10,10.6,8.5,13H7l3.5-6h2L16,13.4,17.5,11H19Z" />
     </svg>
   );
 }
