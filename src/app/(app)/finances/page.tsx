@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -300,40 +301,65 @@ export default function FinancesPage() {
 
   const handleDeleteTransaction = async () => {
     if (!transactionToDelete || !user || !firestore) return;
-    
+  
     const batch = writeBatch(firestore);
-
-    const transactionRef = doc(firestore, 'users', user.uid, 'transactions', transactionToDelete.id);
+    const transactionIdToDelete = transactionToDelete.id;
+  
+    // 1. Delete the transaction
+    const transactionRef = doc(firestore, 'users', user.uid, 'transactions', transactionIdToDelete);
     batch.delete(transactionRef);
-
+  
     if (transactionToDelete.type === 'expense') {
-        // Revert budget spend
-        const budget = budgets?.find(b => b.categoryName === transactionToDelete.category);
-        if (budget) {
-            const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-            batch.update(budgetRef, { currentSpend: increment(-transactionToDelete.amount) });
-        }
-
-        // Find and revert shopping list item if it exists
-        const listWithItem = shoppingLists?.find(list => 
-            list.items.some((item: any) => item.transactionId === transactionToDelete.id)
+      // 2. Revert budget spend
+      const budget = budgets?.find(b => b.categoryName === transactionToDelete.category);
+      if (budget) {
+        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+        batch.update(budgetRef, { currentSpend: increment(-transactionToDelete.amount) });
+      }
+  
+      // 3. Find and revert shopping list item if it exists
+      const listWithItem = shoppingLists?.find(list =>
+        list.items.some((item: any) => item.transactionId === transactionIdToDelete)
+      );
+      if (listWithItem) {
+        const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listWithItem.id);
+        const updatedItems = listWithItem.items.map((item: any) =>
+          item.transactionId === transactionIdToDelete
+            ? { ...item, isPurchased: false, price: null, transactionId: null }
+            : item
         );
-
-        if (listWithItem) {
-            const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listWithItem.id);
-            const updatedItems = listWithItem.items.map((item: any) => {
-                if (item.transactionId === transactionToDelete.id) {
-                    // Revert item to "pending" state
-                    return { ...item, isPurchased: false, price: null, transactionId: null };
-                }
-                return item;
-            });
-            batch.update(listRef, { items: updatedItems });
-        }
+        batch.update(listRef, { items: updatedItems });
+      }
+  
+      // 4. Find and revert recurring expense if it exists
+      const recurringExpense = recurringExpenses?.find(re => re.lastTransactionId === transactionIdToDelete);
+      if (recurringExpense) {
+        const recurringExpenseRef = doc(firestore, 'users', user.uid, 'recurringExpenses', recurringExpense.id);
+        batch.update(recurringExpenseRef, {
+          lastInstanceCreated: null,
+          lastTransactionId: null,
+        });
+      }
+    } else { // type is 'income'
+      // 5. Find and revert recurring income if it exists
+      const recurringIncome = recurringIncomes?.find(ri => ri.lastTransactionId === transactionIdToDelete);
+      if (recurringIncome) {
+        const recurringIncomeRef = doc(firestore, 'users', user.uid, 'recurringIncomes', recurringIncome.id);
+        batch.update(recurringIncomeRef, {
+          lastInstanceCreated: null,
+          lastTransactionId: null,
+        });
+      }
     }
-    
-    await batch.commit();
-
+  
+    try {
+      await batch.commit();
+      toast({ title: 'Transacción eliminada' });
+    } catch (error) {
+      console.error("Error deleting transaction and reverting related items:", error);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo eliminar la transacción.' });
+    }
+  
     setTransactionToDelete(null);
   };
 
@@ -1128,4 +1154,3 @@ export default function FinancesPage() {
     </>
   );
 }
-
