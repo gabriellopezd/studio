@@ -56,7 +56,7 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const budgetAccuracy = useMemo(() => {
         if (!lists) return [];
         return lists.map(list => {
-            const estimated = list.items
+            const estimado = list.items
                 .filter((item: any) => item.isPurchased)
                 .reduce((sum: number, item: any) => sum + item.amount, 0);
             const real = list.items
