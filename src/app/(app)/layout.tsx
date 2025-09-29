@@ -45,7 +45,8 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Logo } from '@/components/icons';
 import { useUser, useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { AppProvider, useAppContext } from '@/app/_providers/AppContext';
+import { AppProvider } from '@/app/_providers/AppProvider';
+import { useAppContext } from '@/app/_providers/AppContext';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -59,33 +60,6 @@ const navItems = [
   { href: '/expenses', label: 'Listas de Compra', icon: ShoppingCart },
 ];
 
-
-function TimerDisplay() {
-    const { activeSession, elapsedTime, stopSession } = useAppContext();
-
-    const formatTime = (totalSeconds: number) => {
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-    };
-    
-    if (!activeSession) return null;
-
-    return (
-        <div className="fixed bottom-4 right-4 z-50">
-            <div className="flex items-center gap-4 rounded-lg bg-primary p-4 text-primary-foreground shadow-lg">
-                <Timer className="h-6 w-6 animate-pulse" />
-                <div className="flex-1">
-                    <p className="text-sm font-medium">{activeSession.name}</p>
-                    <p className="font-mono text-lg font-bold">{formatTime(elapsedTime)}</p>
-                </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/80" onClick={stopSession}>
-                    <X className="h-5 w-5" />
-                </Button>
-            </div>
-        </div>
-    );
-}
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
@@ -204,7 +178,6 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         <main className="flex-1 overflow-auto p-4 sm:p-6">
             {children}
         </main>
-        <TimerDisplay />
       </SidebarInset>
     </SidebarProvider>
     )
