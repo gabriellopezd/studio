@@ -16,7 +16,7 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
       <circle cx="50" cy="50" r="40" />
       
       {/* Growth Chart / Stylized 'N' */}
-      <path d="M30 65 L 45 50 L 55 60 L 70 45" />
+      <path d="M30 65 L 30 45 L 50 65 L 50 25" />
     </svg>
   );
 }
