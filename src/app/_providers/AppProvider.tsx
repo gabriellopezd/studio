@@ -231,6 +231,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const handleCreateOrUpdateHabit = async (habitData: Habit) => {
         if (!habitData.name.trim() || !habitData.icon.trim() || !user || !habitData.category || !firestore) return;
+        
+        console.log('--- Nuevo Preset de Hábito Sugerido ---');
+        console.log(JSON.stringify({
+            id: `preset-${Date.now()}`,
+            name: habitData.name,
+            icon: habitData.icon,
+            frequency: habitData.frequency,
+            category: habitData.category,
+            description: "Añade una descripción útil aquí."
+        }, null, 2));
+        console.log('------------------------------------');
+
         const { id, ...data } = habitData;
         if (id) {
             await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'habits', id), data);
