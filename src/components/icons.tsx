@@ -12,8 +12,20 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
       strokeLinejoin="round"
       {...props}
     >
-      <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-      <path d="m7 15 3-5 2 5 3-10" />
+      {/* Engranaje */}
+      <path d="M12 1v2" />
+      <path d="M12 21v2" />
+      <path d="m4.22 4.22 1.42 1.42" />
+      <path d="m18.36 18.36 1.42 1.42" />
+      <path d="M1 12h2" />
+      <path d="M21 12h2" />
+      <path d="m4.22 19.78 1.42-1.42" />
+      <path d="m18.36 5.64 1.42-1.42" />
+      <circle cx="12" cy="12" r="4" />
+      
+      {/* Bombilla */}
+      <path d="M12 16s-2 1-2 2v1h4v-1c0-1-2-2-2-2z" />
+      <path d="M9 13a5 5 0 0 1 6 0" />
     </svg>
   );
 }
