@@ -27,6 +27,9 @@ interface HabitsContextType {
     longestCurrentStreak: number;
     habitCategoryData: { name: string; value: number }[];
     dailyProductivityData: { name: string; value: number }[];
+    topHabitsByStreak: any[];
+    topHabitsByTime: any[];
+    monthlyCompletionData: { day: number; value: number }[];
     analyticsLoading: boolean;
     handleToggleHabit: (habitId: string) => void;
     handleCreateOrUpdateHabit: (habitData: Habit) => Promise<void>;
@@ -116,6 +119,67 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         return dailyTotals.map(day => ({...day, value: Math.round(day.value / 60)}));
     }, [timeLogs]);
+    
+    const topHabitsByStreak = useMemo(() => {
+        if (!allHabits) return [];
+        return [...allHabits]
+            .sort((a,b) => (b.longestStreak || 0) - (a.longestStreak || 0))
+            .slice(0, 5)
+            .map(h => ({ name: h.name, racha: h.longestStreak || 0 }));
+    }, [allHabits]);
+
+    const topHabitsByTime = useMemo(() => {
+        if (!allHabits || !timeLogs) return [];
+        const habitLogs = timeLogs.filter((log) => log.referenceType === 'habit');
+        const timeTotals: Record<string, number> = {};
+
+        habitLogs.forEach((log) => {
+            const habit = allHabits.find(h => h.id === log.referenceId);
+            if (habit) {
+                 timeTotals[habit.name] = (timeTotals[habit.name] || 0) + log.durationSeconds;
+            }
+        });
+
+        return Object.entries(timeTotals)
+            .map(([name, time]) => ({ name, minutos: Math.round(time / 60) }))
+            .sort((a, b) => b.minutos - a.minutos)
+            .slice(0, 5);
+    }, [allHabits, timeLogs]);
+    
+    const monthlyCompletionData = useMemo(() => {
+        if (!allHabits) return [];
+        
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const dailyHabits = allHabits.filter(h => h.frequency === 'Diario');
+        
+        if (dailyHabits.length === 0) return [];
+        
+        const completionByDay: Record<number, {completed: number, total: number}> = {};
+
+        allHabits.forEach(habit => {
+            if (habit.lastCompletedAt) {
+                const completedDate = habit.lastCompletedAt.toDate();
+                if (completedDate.getFullYear() === year && completedDate.getMonth() === month) {
+                    const dayOfMonth = completedDate.getDate();
+                    if (!completionByDay[dayOfMonth]) {
+                        completionByDay[dayOfMonth] = { completed: 0, total: dailyHabits.length};
+                    }
+                    completionByDay[dayOfMonth].completed += 1;
+                }
+            }
+        });
+
+        return Array.from({ length: daysInMonth }, (_, i) => {
+            const day = i + 1;
+            const data = completionByDay[day];
+            const value = data ? Math.round((data.completed / data.total) * 100) : 0;
+            return { day, value };
+        });
+
+    }, [allHabits]);
 
 
     const handleToggleHabit = (habitId: string) => {
@@ -193,6 +257,9 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         longestCurrentStreak,
         habitCategoryData,
         dailyProductivityData,
+        topHabitsByStreak,
+        topHabitsByTime,
+        monthlyCompletionData,
         analyticsLoading,
         handleToggleHabit,
         handleCreateOrUpdateHabit,

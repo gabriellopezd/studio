@@ -54,6 +54,12 @@ export default {
           '4': 'hsl(var(--chart-4))',
           '5': 'hsl(var(--chart-5))',
         },
+        heatmap: {
+            '1': 'hsl(var(--heatmap-1))',
+            '2': 'hsl(var(--heatmap-2))',
+            '3': 'hsl(var(--heatmap-3))',
+            '4': 'hsl(var(--heatmap-4))',
+        },
         sidebar: {
           DEFAULT: 'hsl(var(--sidebar-background))',
           foreground: 'hsl(var(--sidebar-foreground))',

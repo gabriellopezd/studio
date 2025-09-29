@@ -31,6 +31,11 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 70% 60%;
     --chart-5: 340 80% 60%;
+    
+    --heatmap-1: 210 40% 90%;
+    --heatmap-2: 210 40% 80%;
+    --heatmap-3: 210 40% 70%;
+    --heatmap-4: 210 40% 60%;
 
     --sidebar-background: 240 10% 97%;
     --sidebar-foreground: 240 10% 3.9%;
@@ -70,6 +75,11 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 70% 60%;
     --chart-5: 340 80% 60%;
+    
+    --heatmap-1: 210 30% 20%;
+    --heatmap-2: 210 30% 30%;
+    --heatmap-3: 210 30% 40%;
+    --heatmap-4: 210 30% 50%;
     
     --sidebar-background: 240 4% 9%;
     --sidebar-foreground: 0 0% 98%;

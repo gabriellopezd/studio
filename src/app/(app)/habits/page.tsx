@@ -45,17 +45,66 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Check, Flame, MoreHorizontal, Pencil, PlusCircle, Trash2, Trophy, RotateCcw, Play, Square } from 'lucide-react';
+import { Check, Flame, MoreHorizontal, Pencil, PlusCircle, Trash2, Trophy, RotateCcw, Play, Square, CalendarDays } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { isHabitCompletedToday } from '@/lib/habits';
 import { HabitsProvider, useHabits } from './_components/HabitsProvider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTimer } from '../layout';
 import { cn } from '@/lib/utils';
-import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Label as RechartsLabel } from 'recharts';
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#d0ed57'];
+
+function MonthlyHabitHeatmap({ data }: { data: { day: number, value: number }[] }) {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const firstDayOfMonth = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const emptyDays = Array(firstDayOfMonth).fill(null);
+    const calendarDays = [...emptyDays, ...data];
+
+    const getHeatmapColor = (value: number) => {
+        if (value === 0) return 'bg-muted/30';
+        if (value < 25) return 'bg-heatmap-1';
+        if (value < 50) return 'bg-heatmap-2';
+        if (value < 75) return 'bg-heatmap-3';
+        return 'bg-heatmap-4';
+    };
+    
+    const weekDays = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+    return (
+        <div className="grid grid-cols-7 gap-1 md:gap-2">
+            {weekDays.map(day => <div key={day} className="text-center text-xs font-semibold text-muted-foreground">{day}</div>)}
+            {calendarDays.map((dayData, index) => {
+                if (!dayData) {
+                    return <div key={`empty-${index}`} className="aspect-square rounded-md" />;
+                }
+                return (
+                    <TooltipProvider key={dayData.day}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className={cn(
+                                    "aspect-square rounded-md flex items-center justify-center",
+                                    getHeatmapColor(dayData.value)
+                                )}>
+                                    <span className="text-xs text-foreground/70">{dayData.day}</span>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{dayData.value}% completado</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                );
+            })}
+        </div>
+    );
+}
 
 function HabitsContent() {
   const { 
@@ -63,6 +112,9 @@ function HabitsContent() {
     habitsLoading,
     habitCategoryData,
     dailyProductivityData,
+    topHabitsByStreak,
+    topHabitsByTime,
+    monthlyCompletionData,
     analyticsLoading,
     handleToggleHabit,
     handleCreateOrUpdateHabit,
@@ -237,18 +289,58 @@ function HabitsContent() {
           <TabsContent value="analytics">
             {analyticsLoading && <p className="py-4">Cargando análisis...</p>}
             
-            {!analyticsLoading && habitCategoryData?.length === 0 && (
+            {!analyticsLoading && habitCategoryData?.length === 0 && topHabitsByStreak.length === 0 && topHabitsByTime.length === 0 && monthlyCompletionData.length === 0 && (
                 <Card className="mt-4 flex flex-col items-center justify-center p-10 text-center">
                     <CardHeader>
                     <CardTitle className="mt-4">No hay datos para analizar</CardTitle>
                     <CardDescription>
-                        Empieza a usar el cronómetro en tus hábitos para ver tus analíticas.
+                        Empieza a completar hábitos y a usar el cronómetro para ver tus analíticas.
                     </CardDescription>
                     </CardHeader>
                 </Card>
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                {topHabitsByStreak.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Top 5 Hábitos por Racha Récord</CardTitle>
+                      <CardDescription>Tus hábitos más consistentes a lo largo del tiempo.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={topHabitsByStreak} layout="vertical" margin={{ left: 10, right: 30 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" />
+                          <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
+                          <Tooltip formatter={(value) => `${value} días`} />
+                          <Bar dataKey="racha" name="Racha Récord" fill="hsl(var(--primary))" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {topHabitsByTime.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Top 5 Hábitos por Tiempo de Enfoque</CardTitle>
+                      <CardDescription>Donde más has invertido tu tiempo.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={topHabitsByTime} layout="vertical" margin={{ left: 10, right: 30 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" unit=" min" />
+                          <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
+                          <Tooltip formatter={(value) => `${value} min`} />
+                          <Bar dataKey="minutos" name="Minutos" fill="hsl(var(--accent))" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {habitCategoryData.length > 0 && (
                 <Card>
                     <CardHeader>
@@ -293,6 +385,18 @@ function HabitsContent() {
                         </ResponsiveContainer>
                     </CardContent>
                 </Card>
+                )}
+
+                {monthlyCompletionData.length > 0 && (
+                    <Card className="lg:col-span-2">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5"/>Cumplimiento Mensual</CardTitle>
+                            <CardDescription>Mapa de calor de tu consistencia con los hábitos diarios este mes.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <MonthlyHabitHeatmap data={monthlyCompletionData} />
+                        </CardContent>
+                    </Card>
                 )}
             </div>
           </TabsContent>
