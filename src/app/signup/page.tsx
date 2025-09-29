@@ -18,9 +18,9 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import {
   createUserWithEmailAndPassword,
-  User,
 } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { handleUserLogin } from '@/app/login/page';
+
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -30,21 +30,8 @@ export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const createUserProfileDocument = async (user: User) => {
-    if (!user) return;
-    const userRef = doc(firestore, 'users', user.uid);
-    const userProfileData = {
-      displayName: user.displayName || user.email,
-      email: user.email,
-      photoURL: user.photoURL,
-      createdAt: serverTimestamp(),
-      lastLoginAt: serverTimestamp(),
-    };
-    await setDoc(userRef, userProfileData, { merge: true });
-  };
-
   const handleSignUp = async () => {
-    if (!auth) return;
+    if (!auth || !firestore) return;
     if (password !== confirmPassword) {
       toast({
         variant: 'destructive',
@@ -59,7 +46,8 @@ export default function SignupPage() {
         email,
         password
       );
-      await createUserProfileDocument(userCredential.user);
+      await handleUserLogin(userCredential.user, firestore);
+      
       toast({
         title: '¡Cuenta creada!',
         description: 'Redirigiendo a tu dashboard...',

@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useReducer, useEffect, useMemo, useState, useCallback } from 'react';
@@ -707,4 +705,3 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
-

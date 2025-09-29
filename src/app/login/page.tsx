@@ -25,23 +25,14 @@ import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const { auth, firestore } = useFirebase();
-  const router = useRouter();
-  const { toast } = useToast();
-
-  const loginImage = PlaceHolderImages.find((img) => img.id === 'login-background');
-
-  const handleUserLogin = async (user: User) => {
+export const handleUserLogin = async (user: User, firestore: any) => {
     if (!user) return;
     const userRef = doc(firestore, 'users', user.uid);
     
     const userDoc = await getDoc(userRef);
     if (!userDoc.exists()) {
         const userProfileData = {
-            displayName: user.displayName || user.email,
+            displayName: user.displayName || user.email?.split('@')[0],
             email: user.email,
             photoURL: user.photoURL,
             createdAt: serverTimestamp(),
@@ -51,20 +42,30 @@ export default function LoginPage() {
     } else {
         await setDoc(userRef, { lastLoginAt: serverTimestamp() }, { merge: true });
     }
+};
 
-    toast({
-      title: 'Inicio de sesión exitoso',
-      description: 'Redirigiendo al dashboard...',
-    });
-    router.push('/dashboard');
-  };
 
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const { auth, firestore } = useFirebase();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const loginImage = PlaceHolderImages.find((img) => img.id === 'login-background');
 
   const handleLogin = async () => {
     if (!auth) return;
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      await handleUserLogin(userCredential.user);
+      await handleUserLogin(userCredential.user, firestore);
+      
+      toast({
+        title: 'Inicio de sesión exitoso',
+        description: 'Redirigiendo al dashboard...',
+      });
+      router.push('/dashboard');
+
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -76,7 +77,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="w-full h-screen lg:grid lg:grid-cols-2">
+    <div className="w-full lg:grid lg:grid-cols-2 h-screen">
       <div className="relative flex items-center justify-center p-6 h-full">
          {loginImage && (
             <Image
