@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useReducer, useEffect, useMemo, useState, useCallback } from 'react';
@@ -513,8 +514,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const influences = moods.flatMap(m => m.influences).reduce((acc, i) => { acc[i] = (acc[i] || 0) + 1; return acc; }, {} as Record<string, number>);
         const today = moods.find(m => new Date(m.date).toDateString() === new Date().toDateString());
         return {
-            feelingStats: Object.entries(feelings).sort((a, b) => b[1] - a[1]).slice(0, 5),
-            influenceStats: Object.entries(influences).sort((a, b) => b[1] - a[1]).slice(0, 5),
+            feelingStats: (Object.entries(feelings) as [string, number][]).sort((a, b) => b[1] - a[1]).slice(0, 5),
+            influenceStats: (Object.entries(influences) as [string, number][]).sort((a, b) => b[1] - a[1]).slice(0, 5),
             todayMood: today,
         };
     }, [moods]);
@@ -706,3 +707,4 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
+
