@@ -1,16 +1,30 @@
 {
     "presetHabits": [
         { "id": "preset-1", "name": "Tender la cama", "icon": "🛏️", "frequency": "Diario", "category": "Hogar", "description": "Comenzar el día con un pequeño logro." },
-        { "id": "preset-2", "name": "Beber un vaso de agua", "icon": "💧", "frequency": "Diario", "category": "Salud", "description": "Hidratarse al despertar." },
+        { "id": "preset-2", "name": "Beber un vaso de agua", "icon": "💧", "frequency": "Diario", "category": "Físico", "description": "Hidratarse al despertar." },
         { "id": "preset-3", "name": "Leer 10 páginas", "icon": "📚", "frequency": "Diario", "category": "Conocimiento", "description": "Fomentar el hábito de la lectura." },
         { "id": "preset-4", "name": "Meditar 5 minutos", "icon": "🧘", "frequency": "Diario", "category": "Espiritual", "description": "Reducir el estrés y mejorar el enfoque." },
         { "id": "preset-5", "name": "Caminata de 15 minutos", "icon": "🚶", "frequency": "Diario", "category": "Físico", "description": "Mantenerse activo y despejar la mente." },
         { "id": "preset-6", "name": "Planificar el día", "icon": "📝", "frequency": "Diario", "category": "Productividad", "description": "Organizar tareas y prioridades." },
         { "id": "preset-7", "name": "Escribir 3 cosas por las que estás agradecido", "icon": "🙏", "frequency": "Diario", "category": "Espiritual", "description": "Practicar la gratitud." },
         { "id": "preset-8", "name": "Limpiar el espacio de trabajo", "icon": "🧹", "frequency": "Diario", "category": "Hogar", "description": "Mantener un entorno ordenado." },
-        { "id": "preset-9", "name": "Llamar a un amigo o familiar", "icon": "📞", "frequency": "Semanal", "category": "Social", "description": "Mantener el contacto con seres queridos." },
-        { "id": "preset-10", "name": "Hacer ejercicio intenso", "icon": "💪", "frequency": "Semanal", "category": "Físico", "description": "Mejorar la condición física." },
-        { "id": "preset-11", "name": "Revisar el presupuesto semanal", "icon": "💰", "frequency": "Semanal", "category": "Finanzas", "description": "Controlar los gastos e ingresos." },
-        { "id": "preset-12", "name": "Aprender algo nuevo", "icon": "💡", "frequency": "Semanal", "category": "Conocimiento", "description": "Adquirir una nueva habilidad o conocimiento." }
+        { "id": "preset-9", "name": "Revisar/responder correos", "icon": "📧", "frequency": "Diario", "category": "Productividad", "description": "Mantener la bandeja de entrada al día." },
+        { "id": "preset-10", "name": "Estirarse por 5 minutos", "icon": "🤸", "frequency": "Diario", "category": "Físico", "description": "Mejorar la flexibilidad y reducir la tensión." },
+        { "id": "preset-11", "name": "Preparar la ropa del día siguiente", "icon": "👕", "frequency": "Diario", "category": "Hogar", "description": "Ahorrar tiempo por la mañana." },
+        { "id": "preset-12", "name": "Llamar a un amigo o familiar", "icon": "📞", "frequency": "Semanal", "category": "Social", "description": "Mantener el contacto con seres queridos." },
+        { "id": "preset-13", "name": "Hacer ejercicio intenso", "icon": "💪", "frequency": "Semanal", "category": "Físico", "description": "Mejorar la condición física." },
+        { "id": "preset-14", "name": "Revisar el presupuesto semanal", "icon": "💰", "frequency": "Semanal", "category": "Finanzas", "description": "Controlar los gastos e ingresos." },
+        { "id": "preset-15", "name": "Aprender algo nuevo (curso/tutorial)", "icon": "💡", "frequency": "Semanal", "category": "Conocimiento", "description": "Adquirir una nueva habilidad." },
+        { "id": "preset-16", "name": "Planificar la semana", "icon": "🗓️", "frequency": "Semanal", "category": "Productividad", "description": "Establecer metas y prioridades semanales." },
+        { "id": "preset-17", "name": "Limpieza profunda de un área", "icon": "🧼", "frequency": "Semanal", "category": "Hogar", "description": "Mantener el hogar en orden a fondo." },
+        { "id": "preset-18", "name": "Tiempo de calidad en pareja", "icon": "❤️", "frequency": "Semanal", "category": "Relaciones Personales", "description": "Fortalecer la relación de pareja." },
+        { "id": "preset-19", "name": "Hacer networking", "icon": "🤝", "frequency": "Semanal", "category": "Profesional", "description": "Ampliar la red de contactos profesionales." },
+        { "id": "preset-20", "name": "Actualizar CV / LinkedIn", "icon": "📄", "frequency": "Semanal", "category": "Profesional", "description": "Mantener el perfil profesional al día." },
+        { "id": "preset-21", "name": "Dedicar tiempo a un hobby", "icon": "🎨", "frequency": "Semanal", "category": "Social", "description": "Disfrutar de actividades recreativas." },
+        { "id": "preset-22", "name": "Cena sin pantallas", "icon": "📵", "frequency": "Diario", "category": "Relaciones Personales", "description": "Fomentar la conexión durante la cena." },
+        { "id": "preset-23", "name": "Revisar noticias del sector", "icon": "📰", "frequency": "Diario", "category": "Profesional", "description": "Mantenerse actualizado en el ámbito laboral." },
+        { "id": "preset-24", "name": "Estudiar un idioma", "icon": "🗣️", "frequency": "Diario", "category": "Conocimiento", "description": "Mejorar las habilidades lingüísticas." },
+        { "id": "preset-25", "name": "Agradecer a un colega", "icon": "🤗", "frequency": "Semanal", "category": "Social", "description": "Fomentar un ambiente de trabajo positivo." },
+        { "id": "preset-26", "name": "Contacto visual y sonrisa", "icon": "😊", "frequency": "Diario", "category": "Social", "description": "Mejorar las interacciones sociales diarias." }
     ]
 }
