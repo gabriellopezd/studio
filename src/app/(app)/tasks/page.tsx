@@ -231,7 +231,7 @@ function TasksContent() {
                 <div key={category}>
                     <h3 className="text-lg font-semibold mb-2">{category}</h3>
                     <div className="space-y-2 rounded-lg border bg-card p-4">
-                        {groupedTasks[category].map(task => {
+                        {groupedTasks[category].map((task: any) => {
                           const isSessionActive = activeSession?.id === task.id;
                           return (
                             <div
