@@ -27,6 +27,13 @@ export interface Mood {
     influences: string[];
 }
 
+export interface ActiveSession {
+    id: string;
+    name: string;
+    type: 'habit' | 'task';
+    startTime: number;
+}
+
 // Define the shape of the global state
 export interface AppState {
     firestore: any;
@@ -61,6 +68,8 @@ export interface AppState {
     
     // UI State
     currentMonth: Date;
+    activeSession: ActiveSession | null;
+    elapsedTime: number;
 
     // Derived Data / Selectors
     groupedHabits: { [key: string]: any[] };
@@ -120,6 +129,8 @@ export interface AppState {
     handleDeleteTask: (taskId: string) => Promise<void>;
     handleSaveMood: (moodData: Mood) => Promise<void>;
     setCurrentMonth: (date: Date | ((prev: Date) => Date)) => void;
+    startSession: (id: string, name: string, type: 'habit' | 'task') => void;
+    stopSession: () => void;
 }
 
 

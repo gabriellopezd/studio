@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, createContext, useContext } from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -10,7 +10,6 @@ import {
   LayoutDashboard,
   Repeat,
   Settings,
-  ShoppingCart,
   Smile,
   Target,
   SquareCheckBig,
@@ -18,6 +17,7 @@ import {
   Sun,
   Timer,
   X,
+  ShoppingCart,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -43,124 +43,49 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Logo } from '@/components/icons';
-import { useUser, useAuth, addDocumentNonBlocking } from '@/firebase';
+import { useUser, useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { collection, Timestamp, serverTimestamp } from 'firebase/firestore';
-import { AppProvider } from '@/app/_providers/AppProvider';
-import { useAppContext } from '@/app/_providers/AppContext';
-import { calculateStreak } from '@/lib/habits';
+import { AppProvider, useAppContext } from '@/app/_providers/AppContext';
 
 const navItems = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/today', icon: Sun, label: 'Mi Día' },
-  { href: '/habits', icon: Repeat, label: 'Hábitos' },
-  { href: '/routines', icon: ClipboardList, label: 'Rutinas' },
-  { href: '/tasks', icon: SquareCheckBig, label: 'Tareas' },
-  { href: '/goals', icon: Target, label: 'Metas' },
-  { href: '/mood-tracker', icon: Smile, label: 'Ánimo' },
-  { href: '/finances', icon: CircleDollarSign, label: 'Mis Finanzas' },
-  { href: '/expenses', icon: ShoppingCart, label: 'Listas de Compra' },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/today', label: 'Mi Día', icon: Sun },
+  { href: '/habits', label: 'Hábitos', icon: Repeat },
+  { href: '/routines', label: 'Rutinas', icon: ClipboardList },
+  { href: '/tasks', label: 'Tareas', icon: SquareCheckBig },
+  { href: '/goals', label: 'Metas', icon: Target },
+  { href: '/mood-tracker', label: 'Ánimo', icon: Smile },
+  { href: '/finances', label: 'Mis Finanzas', icon: CircleDollarSign },
+  { href: '/expenses', label: 'Listas de Compra', icon: ShoppingCart },
 ];
 
-interface ActiveSession {
-    id: string;
-    name: string;
-    type: 'habit' | 'task';
-    startTime: number;
-}
 
-interface TimerContextType {
-    activeSession: ActiveSession | null;
-    startSession: (id: string, name: string, type: 'habit' | 'task') => void;
-    stopSession: () => void;
-    elapsedTime: number;
-}
+function TimerDisplay() {
+    const { activeSession, elapsedTime, stopSession } = useAppContext();
 
-const TimerContext = createContext<TimerContextType | undefined>(undefined);
-
-export const useTimer = () => {
-    const context = useContext(TimerContext);
-    if (!context) throw new Error("useTimer must be used within a TimerProvider");
-    return context;
-}
-
-function TimerProvider({ children }: { children: React.ReactNode }) {
-    const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
-    const [elapsedTime, setElapsedTime] = useState(0);
-    const { firestore, user, handleToggleHabit, handleToggleTask } = useAppContext();
-
-    useEffect(() => {
-        let interval: NodeJS.Timeout | null = null;
-        if (activeSession) {
-            setElapsedTime(Math.floor((Date.now() - activeSession.startTime) / 1000));
-            interval = setInterval(() => {
-                setElapsedTime(Math.floor((Date.now() - activeSession.startTime) / 1000));
-            }, 1000);
-        }
-        return () => {
-            if (interval) clearInterval(interval);
-        };
-    }, [activeSession]);
-
-    const startSession = (id: string, name: string, type: 'habit' | 'task') => {
-        if (activeSession) return; // Prevent starting a new session if one is active
-        setActiveSession({ id, name, type, startTime: Date.now() });
-        setElapsedTime(0);
-    };
-
-    const stopSession = () => {
-        if (!activeSession || !user || !firestore) return;
-
-        const durationSeconds = Math.floor((Date.now() - activeSession.startTime) / 1000);
-
-        const timeLogsColRef = collection(firestore, 'users', user.uid, 'timeLogs');
-        addDocumentNonBlocking(timeLogsColRef, {
-            referenceId: activeSession.id,
-            referenceType: activeSession.type,
-            startTime: Timestamp.fromMillis(activeSession.startTime),
-            endTime: Timestamp.now(),
-            durationSeconds: durationSeconds,
-            createdAt: serverTimestamp(),
-            userId: user.uid,
-        });
-
-        if (activeSession.type === 'habit') {
-            handleToggleHabit(activeSession.id);
-        } else {
-             handleToggleTask(activeSession.id, false);
-        }
-
-        setActiveSession(null);
-        setElapsedTime(0);
-    };
-    
     const formatTime = (totalSeconds: number) => {
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = totalSeconds % 60;
         return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     };
+    
+    if (!activeSession) return null;
 
     return (
-        <TimerContext.Provider value={{ activeSession, startSession, stopSession, elapsedTime }}>
-            {children}
-            {activeSession && (
-                <div className="fixed bottom-4 right-4 z-50">
-                    <div className="flex items-center gap-4 rounded-lg bg-primary p-4 text-primary-foreground shadow-lg">
-                        <Timer className="h-6 w-6 animate-pulse" />
-                        <div className="flex-1">
-                            <p className="text-sm font-medium">{activeSession.name}</p>
-                            <p className="font-mono text-lg font-bold">{formatTime(elapsedTime)}</p>
-                        </div>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/80" onClick={stopSession}>
-                            <X className="h-5 w-5" />
-                        </Button>
-                    </div>
+        <div className="fixed bottom-4 right-4 z-50">
+            <div className="flex items-center gap-4 rounded-lg bg-primary p-4 text-primary-foreground shadow-lg">
+                <Timer className="h-6 w-6 animate-pulse" />
+                <div className="flex-1">
+                    <p className="text-sm font-medium">{activeSession.name}</p>
+                    <p className="font-mono text-lg font-bold">{formatTime(elapsedTime)}</p>
                 </div>
-            )}
-        </TimerContext.Provider>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/80" onClick={stopSession}>
+                    <X className="h-5 w-5" />
+                </Button>
+            </div>
+        </div>
     );
 }
-
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
@@ -276,7 +201,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
             </DropdownMenu>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-4 sm:p-6">
+            {children}
+        </main>
+        <TimerDisplay />
       </SidebarInset>
     </SidebarProvider>
     )
@@ -285,9 +213,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
         <AppProvider>
-            <TimerProvider>
-                <AppLayoutContent>{children}</AppLayoutContent>
-            </TimerProvider>
+            <AppLayoutContent>{children}</AppLayoutContent>
         </AppProvider>
     )
 }

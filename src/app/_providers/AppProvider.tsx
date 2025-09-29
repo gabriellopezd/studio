@@ -1,18 +1,20 @@
 'use client';
 
-import React, { useReducer, useEffect, useMemo } from 'react';
+import React, { useReducer, useEffect, useMemo, useState } from 'react';
 import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc, limit } from 'firebase/firestore';
 import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { AppContext, AppState, Habit, Task, Mood } from './AppContext';
+import { AppContext, AppState, Habit, Task, Mood, ActiveSession } from './AppContext';
 import { calculateStreak, isHabitCompletedToday } from '@/lib/habits';
 
 // --- Reducer Logic ---
 
 type Action =
     | { type: 'SET_DATA'; payload: { key: string; data: any; loading: boolean } }
-    | { type: 'SET_CURRENT_MONTH'; payload: Date };
+    | { type: 'SET_CURRENT_MONTH'; payload: Date }
+    | { type: 'SET_ACTIVE_SESSION'; payload: ActiveSession | null }
+    | { type: 'SET_ELAPSED_TIME'; payload: number };
 
-const initialState: Omit<AppState, keyof ReturnType<typeof useFirebase> | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetStreak' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'setCurrentMonth' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'longestCurrentStreak' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'totalStats' | 'categoryStats' | 'weeklyTaskStats' | 'pendingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' > = {
+const initialState: Omit<AppState, keyof ReturnType<typeof useFirebase> | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetStreak' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'longestCurrentStreak' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'totalStats' | 'categoryStats' | 'weeklyTaskStats' | 'pendingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' > = {
     firestore: null,
     user: null,
     allHabits: null,
@@ -38,6 +40,8 @@ const initialState: Omit<AppState, keyof ReturnType<typeof useFirebase> | 'handl
     recurringIncomesLoading: true,
     timeLogsLoading: true,
     currentMonth: new Date(),
+    activeSession: null,
+    elapsedTime: 0,
 };
 
 function appReducer(state: typeof initialState, action: Action) {
@@ -50,6 +54,10 @@ function appReducer(state: typeof initialState, action: Action) {
             };
         case 'SET_CURRENT_MONTH':
             return { ...state, currentMonth: action.payload };
+        case 'SET_ACTIVE_SESSION':
+            return { ...state, activeSession: action.payload };
+        case 'SET_ELAPSED_TIME':
+            return { ...state, elapsedTime: action.payload };
         default:
             return state;
     }
@@ -137,6 +145,137 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         );
     }, [user, firestore, state.currentMonth]);
     const { data: moods, isLoading: moodsLoading } = useCollection(moodsQuery);
+
+
+    // --- Actions ---
+
+    const handleToggleHabit = (habitId: string) => {
+        if (!user || !state.allHabits || !firestore) return;
+        const habit = state.allHabits.find((h) => h.id === habitId);
+        if (!habit) return;
+        const habitRef = doc(firestore, 'users', user.uid, 'habits', habitId);
+        if (isHabitCompletedToday(habit)) {
+            updateDocumentNonBlocking(habitRef, { lastCompletedAt: habit.previousLastCompletedAt ?? null, currentStreak: habit.previousStreak ?? 0, previousStreak: null, previousLastCompletedAt: null });
+        } else {
+            updateDocumentNonBlocking(habitRef, { lastCompletedAt: Timestamp.fromDate(new Date()), ...calculateStreak(habit), previousStreak: habit.currentStreak || 0, previousLastCompletedAt: habit.lastCompletedAt ?? null });
+        }
+    };
+
+    const handleCreateOrUpdateHabit = async (habitData: Habit) => {
+        if (!habitData.name.trim() || !habitData.icon.trim() || !user || !habitData.category || !firestore) return;
+        const { id, ...data } = habitData;
+        if (id) {
+            await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'habits', id), data);
+        } else {
+            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'habits'), { ...data, currentStreak: 0, longestStreak: 0, createdAt: serverTimestamp(), lastCompletedAt: null, userId: user.uid });
+        }
+    };
+
+    const handleDeleteHabit = async (habitId: string) => {
+        if (!user || !firestore) return;
+        await deleteDocumentNonBlocking(doc(firestore, 'users', user.uid, 'habits', habitId));
+    };
+
+    const handleResetStreak = async (habitId: string) => {
+        if (!user || !firestore) return;
+        await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'habits', habitId), {
+            currentStreak: 0,
+            longestStreak: 0,
+            lastCompletedAt: null,
+            previousStreak: null,
+            previousLastCompletedAt: null,
+        });
+    };
+
+    const handleToggleTask = (taskId: string, currentStatus: boolean) => {
+        if (!user || !firestore) return;
+        updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'tasks', taskId), { isCompleted: !currentStatus });
+    };
+
+    const handleSaveTask = async (taskData: Task) => {
+        if (!user || !taskData.name || !firestore) return;
+        const { id, ...data } = taskData;
+        const serializableData = { ...data, dueDate: data.dueDate ? Timestamp.fromDate(data.dueDate) : null, userId: user.uid };
+        if (id) {
+            await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'tasks', id), serializableData);
+        } else {
+            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'tasks'), { ...serializableData, isCompleted: false, createdAt: serverTimestamp() });
+        }
+    };
+
+    const handleDeleteTask = async (taskId: string) => {
+        if (!user || !firestore) return;
+        await deleteDocumentNonBlocking(doc(firestore, 'users', user.uid, 'tasks', taskId));
+    };
+
+    const handleSaveMood = async (moodData: Mood) => {
+        if (!user || !firestore) return;
+        const todayISO = new Date().toISOString().split('T')[0];
+        const fullMoodData = { ...moodData, date: new Date().toISOString(), userId: user.uid };
+        
+        const q = query(collection(firestore, 'users', user.uid, 'moods'), where('date', '>=', `${todayISO}T00:00:00.000Z`), where('date', '<=', `${todayISO}T23:59:59.999Z`));
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+            await updateDocumentNonBlocking(snapshot.docs[0].ref, fullMoodData);
+        } else {
+            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'moods'), { ...fullMoodData, createdAt: serverTimestamp() });
+        }
+    };
+
+    const setCurrentMonth = (date: Date | ((prev: Date) => Date)) => {
+        if (typeof date === 'function') {
+            dispatch({ type: 'SET_CURRENT_MONTH', payload: date(state.currentMonth) });
+        } else {
+            dispatch({ type: 'SET_CURRENT_MONTH', payload: date });
+        }
+    };
+
+    // --- Timer Logic ---
+    useEffect(() => {
+        let interval: NodeJS.Timeout | null = null;
+        if (state.activeSession) {
+            dispatch({ type: 'SET_ELAPSED_TIME', payload: Math.floor((Date.now() - state.activeSession.startTime) / 1000) });
+            interval = setInterval(() => {
+                dispatch({ type: 'SET_ELAPSED_TIME', payload: Math.floor((Date.now() - (state.activeSession?.startTime ?? 0)) / 1000) });
+            }, 1000);
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [state.activeSession]);
+
+    const startSession = (id: string, name: string, type: 'habit' | 'task') => {
+        if (state.activeSession) return;
+        dispatch({ type: 'SET_ACTIVE_SESSION', payload: { id, name, type, startTime: Date.now() } });
+        dispatch({ type: 'SET_ELAPSED_TIME', payload: 0 });
+    };
+
+    const stopSession = () => {
+        if (!state.activeSession || !user || !firestore) return;
+
+        const durationSeconds = Math.floor((Date.now() - state.activeSession.startTime) / 1000);
+
+        const timeLogsColRef = collection(firestore, 'users', user.uid, 'timeLogs');
+        addDocumentNonBlocking(timeLogsColRef, {
+            referenceId: state.activeSession.id,
+            referenceType: state.activeSession.type,
+            startTime: Timestamp.fromMillis(state.activeSession.startTime),
+            endTime: Timestamp.now(),
+            durationSeconds: durationSeconds,
+            createdAt: serverTimestamp(),
+            userId: user.uid,
+        });
+
+        if (state.activeSession.type === 'habit') {
+            handleToggleHabit(state.activeSession.id);
+        } else {
+             handleToggleTask(state.activeSession.id, false);
+        }
+
+        dispatch({ type: 'SET_ACTIVE_SESSION', payload: null });
+        dispatch({ type: 'SET_ELAPSED_TIME', payload: 0 });
+    };
 
 
     // --- Derived State & Selectors ---
@@ -325,90 +464,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [transactions, state.recurringExpenses, state.recurringIncomes, state.shoppingLists, state.budgets]);
 
 
-    // --- Actions ---
-
-    const handleToggleHabit = (habitId: string) => {
-        if (!user || !state.allHabits || !firestore) return;
-        const habit = state.allHabits.find((h) => h.id === habitId);
-        if (!habit) return;
-        const habitRef = doc(firestore, 'users', user.uid, 'habits', habitId);
-        if (isHabitCompletedToday(habit)) {
-            updateDocumentNonBlocking(habitRef, { lastCompletedAt: habit.previousLastCompletedAt ?? null, currentStreak: habit.previousStreak ?? 0, previousStreak: null, previousLastCompletedAt: null });
-        } else {
-            updateDocumentNonBlocking(habitRef, { lastCompletedAt: Timestamp.fromDate(new Date()), ...calculateStreak(habit), previousStreak: habit.currentStreak || 0, previousLastCompletedAt: habit.lastCompletedAt ?? null });
-        }
-    };
-
-    const handleCreateOrUpdateHabit = async (habitData: Habit) => {
-        if (!habitData.name.trim() || !habitData.icon.trim() || !user || !habitData.category || !firestore) return;
-        const { id, ...data } = habitData;
-        if (id) {
-            await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'habits', id), data);
-        } else {
-            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'habits'), { ...data, currentStreak: 0, longestStreak: 0, createdAt: serverTimestamp(), lastCompletedAt: null, userId: user.uid });
-        }
-    };
-
-    const handleDeleteHabit = async (habitId: string) => {
-        if (!user || !firestore) return;
-        await deleteDocumentNonBlocking(doc(firestore, 'users', user.uid, 'habits', habitId));
-    };
-
-    const handleResetStreak = async (habitId: string) => {
-        if (!user || !firestore) return;
-        await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'habits', habitId), {
-            currentStreak: 0,
-            longestStreak: 0,
-            lastCompletedAt: null,
-            previousStreak: null,
-            previousLastCompletedAt: null,
-        });
-    };
-
-    const handleToggleTask = (taskId: string, currentStatus: boolean) => {
-        if (!user || !firestore) return;
-        updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'tasks', taskId), { isCompleted: !currentStatus });
-    };
-
-    const handleSaveTask = async (taskData: Task) => {
-        if (!user || !taskData.name || !firestore) return;
-        const { id, ...data } = taskData;
-        const serializableData = { ...data, dueDate: data.dueDate ? Timestamp.fromDate(data.dueDate) : null, userId: user.uid };
-        if (id) {
-            await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'tasks', id), serializableData);
-        } else {
-            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'tasks'), { ...serializableData, isCompleted: false, createdAt: serverTimestamp() });
-        }
-    };
-
-    const handleDeleteTask = async (taskId: string) => {
-        if (!user || !firestore) return;
-        await deleteDocumentNonBlocking(doc(firestore, 'users', user.uid, 'tasks', taskId));
-    };
-
-    const handleSaveMood = async (moodData: Mood) => {
-        if (!user || !firestore) return;
-        const todayISO = new Date().toISOString().split('T')[0];
-        const fullMoodData = { ...moodData, date: new Date().toISOString(), userId: user.uid };
-        
-        const q = query(collection(firestore, 'users', user.uid, 'moods'), where('date', '>=', `${todayISO}T00:00:00.000Z`), where('date', '<=', `${todayISO}T23:59:59.999Z`));
-        const snapshot = await getDocs(q);
-
-        if (!snapshot.empty) {
-            await updateDocumentNonBlocking(snapshot.docs[0].ref, fullMoodData);
-        } else {
-            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'moods'), { ...fullMoodData, createdAt: serverTimestamp() });
-        }
-    };
-
-    const setCurrentMonth = (date: Date | ((prev: Date) => Date)) => {
-        if (typeof date === 'function') {
-            dispatch({ type: 'SET_CURRENT_MONTH', payload: date(state.currentMonth) });
-        } else {
-            dispatch({ type: 'SET_CURRENT_MONTH', payload: date });
-        }
-    };
-
     const value = {
         ...state,
         firestore,
@@ -467,6 +522,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         handleDeleteTask,
         handleSaveMood,
         setCurrentMonth,
+        startSession,
+        stopSession,
     };
 
     useEffect(() => {

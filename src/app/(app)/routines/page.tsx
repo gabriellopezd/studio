@@ -57,7 +57,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { calculateStreak, isHabitCompletedToday } from '@/lib/habits';
-import { useTimer } from '../layout';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppContext } from '@/app/_providers/AppContext';
@@ -74,6 +73,9 @@ export default function RoutinesPage() {
     routineTimeAnalytics,
     analyticsLoading,
     handleToggleHabit,
+    activeSession, 
+    startSession, 
+    stopSession,
   } = useAppContext();
 
   const [isDialogOpen, setDialogOpen] = useState(false);
@@ -83,8 +85,6 @@ export default function RoutinesPage() {
   const [description, setDescription] = useState('');
   const [selectedHabitIds, setSelectedHabitIds] = useState<string[]>([]);
   
-  const { activeSession, startSession, stopSession } = useTimer();
-
   const resetForm = () => {
     setName('');
     setDescription('');

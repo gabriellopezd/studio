@@ -50,9 +50,8 @@ import { Badge } from '@/components/ui/badge';
 import { isHabitCompletedToday } from '@/lib/habits';
 import { useAppContext } from '@/app/_providers/AppContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useTimer } from '../layout';
 import { cn } from '@/lib/utils';
-import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Label as RechartsLabel } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { TooltipProvider, Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 
@@ -121,10 +120,11 @@ export default function HabitsPage() {
     handleToggleHabit,
     handleCreateOrUpdateHabit,
     handleDeleteHabit,
+    activeSession, 
+    startSession, 
+    stopSession
   } = useAppContext();
   
-  const { activeSession, startSession, stopSession } = useTimer();
-
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [habitToEdit, setHabitToEdit] = useState<any>(null);
   const [habitToDelete, setHabitToDelete] = useState<any>(null);

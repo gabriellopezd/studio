@@ -56,7 +56,6 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAppContext } from '@/app/_providers/AppContext';
-import { useTimer } from '../layout';
 
 
 const taskCategories = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro"];
@@ -74,7 +73,10 @@ export default function TasksPage() {
     weeklyTaskStats,
     handleToggleTask,
     handleSaveTask,
-    handleDeleteTask
+    handleDeleteTask,
+    activeSession, 
+    startSession, 
+    stopSession
   } = useAppContext();
 
   const [isDialogOpen, setDialogOpen] = useState(false);
@@ -85,9 +87,6 @@ export default function TasksPage() {
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [priority, setPriority] = useState('medium');
   const [category, setCategory] = useState('Otro');
-
-  const { activeSession, startSession, stopSession } = useTimer();
-
   
   useEffect(() => {
     setIsClient(true);

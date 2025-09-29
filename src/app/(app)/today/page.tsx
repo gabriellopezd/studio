@@ -25,7 +25,6 @@ import { Button } from '@/components/ui/button';
 import PageHeader from '@/components/page-header';
 import { useState, useEffect, useMemo } from 'react';
 import { isHabitCompletedToday } from '@/lib/habits';
-import { useTimer } from '../layout';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/app/_providers/AppContext';
 import { TodaysMoodCard } from './_components/TodaysMoodCard';
@@ -43,9 +42,7 @@ interface Habit {
 
 export default function TodayPage() {
   const [isClient, setIsClient] = useState(false);
-  const { allHabits, habitsLoading, urgentTasks, tasksLoading } = useAppContext();
-
-  const { activeSession, startSession, stopSession } = useTimer();
+  const { allHabits, habitsLoading, urgentTasks, tasksLoading, activeSession, startSession, stopSession } = useAppContext();
 
   useEffect(() => {
     setIsClient(true);
