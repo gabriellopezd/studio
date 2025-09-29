@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { Upload, RotateCcw, TimerOff, SmileOff } from 'lucide-react';
+import { Upload, RotateCcw, TimerOff, SmileMinus } from 'lucide-react';
 import { useFirebase, useUser, updateDocumentNonBlocking } from '@/firebase';
 import { useState, useEffect } from 'react';
 import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
@@ -279,7 +279,7 @@ export default function SettingsPage() {
                <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" className="w-full">
-                    <SmileOff className="mr-2 h-4 w-4" />
+                    <SmileMinus className="mr-2 h-4 w-4" />
                     Historial de Ánimo
                   </Button>
                 </AlertDialogTrigger>
