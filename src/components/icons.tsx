@@ -7,16 +7,13 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
       viewBox="0 0 100 100"
       fill="none"
       stroke="currentColor"
-      strokeWidth="4"
+      strokeWidth="8"
       strokeLinecap="round"
       strokeLinejoin="round"
       {...props}
     >
-      {/* Circle */}
       <circle cx="50" cy="50" r="40" />
-      
-      {/* Stylized 'N' / Growth chart */}
-      <path d="M30 65 L 45 50 L 55 60 L 70 45" />
+      <path d="M28 60 L 45 40 L 55 55 L 72 35" />
     </svg>
   );
 }
