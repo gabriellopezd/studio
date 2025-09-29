@@ -4,7 +4,7 @@ import React, { useReducer, useEffect, useMemo, useState } from 'react';
 import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc, limit } from 'firebase/firestore';
 import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { AppContext, AppState, Habit, Task, Mood, ActiveSession } from './AppContext';
-import { calculateStreak, isHabitCompletedToday } from '@/lib/habits';
+import { isHabitCompletedToday, checkHabitStreak } from '@/lib/habits';
 import { Button } from '@/components/ui/button';
 import { Timer, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -127,9 +127,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         useEffect(() => {
             dispatch({ type: 'SET_DATA', payload: { key, data, loading: isLoading } });
         }, [data, isLoading, key]);
+
+        return { data, isLoading };
     };
 
-    useCollectionData('allHabits', 'habits');
+    const { data: allHabitsData, isLoading: habitsLoading } = useCollectionData('allHabits', 'habits');
     useCollectionData('routines', 'routines');
     useCollectionData('tasks', 'tasks', c => query(c, orderBy('createdAt', 'desc')));
     useCollectionData('goals', 'goals');
@@ -174,6 +176,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         );
     }, [user, firestore, state.currentMonth]);
     const { data: moods, isLoading: moodsLoading } = useCollection(moodsQuery);
+    
+    // Streak checking logic
+    useEffect(() => {
+        if (!habitsLoading && allHabitsData && user && firestore) {
+            checkHabitStreaks(allHabitsData, user, firestore);
+        }
+    }, [habitsLoading, allHabitsData, user, firestore]);
+    
+    const checkHabitStreaks = async (habits: any[], user: any, firestore: any) => {
+        const batch = writeBatch(firestore);
+        let hasUpdates = false;
+
+        for (const habit of habits) {
+            const streakUpdate = checkHabitStreak(habit);
+            if (streakUpdate) {
+                const habitRef = doc(firestore, 'users', user.uid, 'habits', habit.id);
+                batch.update(habitRef, streakUpdate);
+                hasUpdates = true;
+            }
+        }
+
+        if (hasUpdates) {
+            await batch.commit();
+        }
+    };
+
 
 
     // --- Actions ---
@@ -183,10 +211,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const habit = state.allHabits.find((h) => h.id === habitId);
         if (!habit) return;
         const habitRef = doc(firestore, 'users', user.uid, 'habits', habitId);
+
         if (isHabitCompletedToday(habit)) {
-            updateDocumentNonBlocking(habitRef, { lastCompletedAt: habit.previousLastCompletedAt ?? null, currentStreak: habit.previousStreak ?? 0, previousStreak: null, previousLastCompletedAt: null });
+             updateDocumentNonBlocking(habitRef, { 
+                lastCompletedAt: habit.previousLastCompletedAt ?? null,
+                previousLastCompletedAt: null, 
+            });
         } else {
-            updateDocumentNonBlocking(habitRef, { lastCompletedAt: Timestamp.fromDate(new Date()), ...calculateStreak(habit), previousStreak: habit.currentStreak || 0, previousLastCompletedAt: habit.lastCompletedAt ?? null });
+            updateDocumentNonBlocking(habitRef, { 
+                lastCompletedAt: Timestamp.now(),
+                previousLastCompletedAt: habit.lastCompletedAt ?? null
+            });
         }
     };
 

@@ -9,7 +9,9 @@ const getStartOfWeek = (date: Date) => {
 };
 
 const isSameDay = (d1: Date, d2: Date) => {
-  return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+  d1.setHours(0,0,0,0);
+  d2.setHours(0,0,0,0);
+  return d1.getTime() === d2.getTime();
 };
 
 const isSameWeek = (d1: Date, d2: Date) => {
@@ -44,39 +46,49 @@ export function isHabitCompletedToday(habit: any) {
     }
 }
 
-export function calculateStreak(habit: any) {
+export function checkHabitStreak(habit: any) {
     const today = new Date();
-    const lastCompletedDate = habit.lastCompletedAt
-      ? (habit.lastCompletedAt as Timestamp).toDate()
-      : null;
+    const lastCompletedDate = habit.lastCompletedAt ? (habit.lastCompletedAt as Timestamp).toDate() : null;
 
-    const currentStreak = habit.currentStreak || 0;
-    let longestStreak = habit.longestStreak || 0;
-    let newStreak = 1;
-
-    if (lastCompletedDate) {
-      let isConsecutive = false;
-      switch (habit.frequency) {
-        case 'Semanal':
-          isConsecutive = isPreviousWeek(today, lastCompletedDate);
-          break;
-        case 'Diario':
-        default:
-          isConsecutive = isPreviousDay(today, lastCompletedDate);
-          break;
-      }
-
-      if (isConsecutive) {
-        newStreak = currentStreak + 1;
-      }
+    if (!lastCompletedDate || isSameDay(lastCompletedDate, today)) {
+        return null; // No need to update streak yet or already updated
     }
     
-    longestStreak = Math.max(longestStreak, newStreak);
+    const currentStreak = habit.currentStreak || 0;
+    const longestStreak = habit.longestStreak || 0;
+    
+    let isConsecutive = false;
+    let streakShouldReset = false;
 
-    return {
-        currentStreak: newStreak,
-        longestStreak: longestStreak,
-    };
+    switch (habit.frequency) {
+        case 'Semanal':
+            isConsecutive = isPreviousWeek(today, lastCompletedDate);
+             if (!isConsecutive && !isSameWeek(today, lastCompletedDate)) {
+                streakShouldReset = true;
+            }
+            break;
+        case 'Diario':
+        default:
+            isConsecutive = isPreviousDay(today, lastCompletedDate);
+            if (!isConsecutive && !isSameDay(today, lastCompletedDate)) {
+                streakShouldReset = true;
+            }
+            break;
+    }
+
+    if (isConsecutive) {
+        const newStreak = currentStreak + 1;
+        return {
+            currentStreak: newStreak,
+            longestStreak: Math.max(longestStreak, newStreak),
+        };
+    } else if (streakShouldReset && currentStreak > 0) {
+        return {
+            currentStreak: 0,
+        };
+    }
+
+    return null;
 }
 
 export function resetStreak() {
