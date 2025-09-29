@@ -76,10 +76,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="h-screen w-full lg:grid lg:grid-cols-2">
-      <div className="flex h-full items-center justify-center bg-background p-6">
-        <div className="mx-auto w-full max-w-sm">
-           <Card>
+    <div className="w-full h-screen lg:grid lg:grid-cols-2">
+      <div className="flex items-center justify-center p-6 h-full">
+         <Card className="mx-auto w-full max-w-sm">
             <CardHeader className="text-center">
               <div className="mb-4 flex justify-center">
                 <Logo className="h-12 w-12 text-primary" />
@@ -132,9 +131,8 @@ export default function LoginPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
       </div>
-      <div className="hidden bg-muted lg:block relative">
+       <div className="hidden lg:block relative">
          {loginImage && (
             <Image
                 src={loginImage.imageUrl}
