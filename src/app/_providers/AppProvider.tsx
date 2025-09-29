@@ -5,7 +5,7 @@ import React, { useReducer, useEffect, useMemo, useState } from 'react';
 import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc, limit } from 'firebase/firestore';
 import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { AppContext, AppState, Habit, Task, Mood, ActiveSession } from './AppContext';
-import { isHabitCompletedToday, checkHabitStreak, calculateStreak } from '@/lib/habits';
+import { isHabitCompletedToday, checkHabitStreak } from '@/lib/habits';
 import { Button } from '@/components/ui/button';
 import { Timer, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -223,10 +223,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 previousStreak: null,
             });
         } else {
-            const streakData = calculateStreak(habit);
             updateDocumentNonBlocking(habitRef, { 
                 lastCompletedAt: Timestamp.now(),
-                ...streakData,
                 previousStreak: habit.currentStreak || 0,
                 previousLastCompletedAt: habit.lastCompletedAt,
             });

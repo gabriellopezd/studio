@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -25,6 +26,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
@@ -120,6 +122,7 @@ export default function HabitsPage() {
     handleToggleHabit,
     handleCreateOrUpdateHabit,
     handleDeleteHabit,
+    handleResetStreak,
     activeSession, 
     startSession, 
     stopSession
@@ -128,6 +131,7 @@ export default function HabitsPage() {
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [habitToEdit, setHabitToEdit] = useState<any>(null);
   const [habitToDelete, setHabitToDelete] = useState<any>(null);
+  const [habitToReset, setHabitToReset] = useState<any>(null);
 
   const [newHabitName, setNewHabitName] = useState('');
   const [newHabitIcon, setNewHabitIcon] = useState('');
@@ -158,6 +162,13 @@ export default function HabitsPage() {
     if (habitToDelete) {
       handleDeleteHabit(habitToDelete.id);
       setHabitToDelete(null);
+    }
+  }
+
+  const onReset = () => {
+    if (habitToReset) {
+      handleResetStreak(habitToReset.id);
+      setHabitToReset(null);
     }
   }
 
@@ -250,6 +261,11 @@ export default function HabitsPage() {
                                     <Pencil className="mr-2 h-4 w-4" />
                                     Editar
                                     </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setHabitToReset(habit)}>
+                                        <RotateCcw className="mr-2 h-4 w-4" />
+                                        Reiniciar Racha
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
                                     <DropdownMenuItem
                                     onClick={() => setHabitToDelete(habit)}
                                     className="text-red-500"
@@ -491,6 +507,24 @@ export default function HabitsPage() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={onDelete} className="bg-destructive hover:bg-destructive/90">
               Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+       {/* Reset Streak Confirmation Dialog */}
+      <AlertDialog open={!!habitToReset} onOpenChange={(open) => !open && setHabitToReset(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Reiniciar racha?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se reiniciará la racha y el récord del hábito "{habitToReset?.name}" a cero.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={onReset} className="bg-destructive hover:bg-destructive/90">
+              Sí, reiniciar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
