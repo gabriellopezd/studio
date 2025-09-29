@@ -13,6 +13,7 @@ interface ExpensesContextType {
     sortedLists: any[];
     spendingByCategory: { name: string; gasto: number }[];
     budgetAccuracy: { name: string; estimado: number; real: number }[];
+    spendingByFocus: { name: string; value: number }[];
 }
 
 const ExpensesContext = createContext<ExpensesContextType | undefined>(undefined);
@@ -66,6 +67,29 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }).filter(d => d.real > 0 || d.estimado > 0);
     }, [lists]);
 
+    const spendingByFocus = useMemo(() => {
+        if (!lists) return [];
+        const focusTotals: Record<string, number> = {
+            'Necesidades': 0,
+            'Deseos': 0,
+            'Ahorros y Deudas': 0
+        };
+
+        lists.forEach(list => {
+            const totalSpent = list.items
+                .filter((item: any) => item.isPurchased && item.price)
+                .reduce((sum: number, item: any) => sum + item.price, 0);
+            
+            if (list.budgetFocus && focusTotals.hasOwnProperty(list.budgetFocus)) {
+                focusTotals[list.budgetFocus] += totalSpent;
+            }
+        });
+
+        return Object.entries(focusTotals)
+            .map(([name, value]) => ({ name, value }))
+            .filter(d => d.value > 0);
+    }, [lists]);
+
 
     const value = {
         firestore,
@@ -76,6 +100,7 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         sortedLists,
         spendingByCategory,
         budgetAccuracy,
+        spendingByFocus,
     };
 
     return <ExpensesContext.Provider value={value}>{children}</ExpensesContext.Provider>;

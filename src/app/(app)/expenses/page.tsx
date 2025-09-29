@@ -82,7 +82,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ExpensesProvider, useExpenses } from './_components/ExpensesProvider';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 function SortableListItem({
   list,
@@ -114,6 +114,13 @@ function SortableListItem({
   );
 }
 
+const COLORS = {
+    'Necesidades': '#ef4444', // red-500
+    'Deseos': '#f97316', // orange-500
+    'Ahorros y Deudas': '#22c55e' // green-500
+};
+
+
 function ExpensesContent() {
   const { 
     firestore, 
@@ -124,6 +131,7 @@ function ExpensesContent() {
     sortedLists,
     spendingByCategory,
     budgetAccuracy,
+    spendingByFocus,
   } = useExpenses();
 
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
@@ -730,6 +738,34 @@ function ExpensesContent() {
                         <Bar dataKey="estimado" name="Estimado" fill="hsl(var(--secondary))" />
                         <Bar dataKey="real" name="Real" fill="hsl(var(--primary))" />
                     </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+               <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Gasto por Enfoque de Presupuesto</CardTitle>
+                  <CardDescription>Distribución de tus gastos según la regla 50/30/20.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={spendingByFocus}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {spendingByFocus.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[entry.name as keyof typeof COLORS] || '#8884d8'} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => formatCurrency(value as number)}/>
+                      <Legend />
+                    </PieChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
