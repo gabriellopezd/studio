@@ -8,10 +8,13 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
       fill="currentColor"
       {...props}
     >
-      <path d="M12,2a10,10,0,1,0,10,10A10,10,0,0,0,12,2Zm4.43,6.41-3.6,4.65a.25.25,0,0,1-.28,0L10.37,9.7a.25.25,0,0,0-.43.14l-1.5,4.51a.25.25,0,0,0,.24.3l.05,0,2.52-1a.25.25,0,0,1,.3,0l2.19,1.75a.25.25,0,0,0,.41-.16l1-5.5A.25.25,0,0,0,16.43,8.41Z" />
+      <path d="M5 19V5h1.5v8.5l7.5-8.5H16l-7 8 8 6h-1.5l-7.5-6.5V19H5z" />
+      <path d="M8 10h1.5V5H8v5zm0 9v-5H6.5v5H8z" />
+      <path d="M19 3l-9 9 3 3 6-6 3 3V3h-3z" />
     </svg>
   );
 }
+
 
 export function GoogleIcon(props: SVGProps<SVGSVGElement>) {
   return (
