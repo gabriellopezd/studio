@@ -4,13 +4,19 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="currentColor"
+      viewBox="0 0 100 100"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       {...props}
     >
-      <path d="M5 19V5h1.5v8.5l7.5-8.5H16l-7 8 8 6h-1.5l-7.5-6.5V19H5z" />
-      <path d="M8 10h1.5V5H8v5zm0 9v-5H6.5v5H8z" />
-      <path d="M19 3l-9 9 3 3 6-6 3 3V3h-3z" />
+      {/* Outer Circle */}
+      <circle cx="50" cy="50" r="48" />
+      
+      {/* Stylized 'N' Growth Arrow */}
+      <path d="M30 70 L 30 30 L 70 70 L 70 30" />
     </svg>
   );
 }
