@@ -221,7 +221,12 @@ export default function FinancesPage() {
         currentSpend: 0,
         userId: user.uid,
       };
-      const budgetsColRef = collection(firestore, 'users', user.uid, 'budgets');
+      const budgetsColRef = collection(
+        firestore,
+        'users',
+        user.uid,
+        'budgets'
+      );
       addDocumentNonBlocking(budgetsColRef, newBudget);
     }
   
@@ -461,38 +466,47 @@ export default function FinancesPage() {
     toast({ title: `Registro exitoso`, description: `${item.name} ha sido registrado.` });
   };
   
-  const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') => {
+const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') => {
     if (!user || !item.lastTransactionId || !firestore) return;
 
+    const batch = writeBatch(firestore);
     const transactionRef = doc(firestore, 'users', user.uid, 'transactions', item.lastTransactionId);
     const transactionSnap = await getDoc(transactionRef);
-    if (!transactionSnap.exists()) {
-      toast({ variant: "destructive", title: "Error", description: "La transacción original no se encontró." });
-      return;
-    }
-    const transactionData = transactionSnap.data();
 
-    const batch = writeBatch(firestore);
-    batch.delete(transactionRef);
+    if (transactionSnap.exists()) {
+        const transactionData = transactionSnap.data();
+        batch.delete(transactionRef);
 
-    if (type === 'expense') {
-      const budget = budgets?.find(b => b.categoryName === transactionData.category);
-      if (budget) {
-        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-        batch.update(budgetRef, { currentSpend: increment(-transactionData.amount) });
-      }
+        if (type === 'expense') {
+            const budget = budgets?.find(b => b.categoryName === transactionData.category);
+            if (budget) {
+                const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+                batch.update(budgetRef, { currentSpend: increment(-transactionData.amount) });
+            }
+        }
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Advertencia",
+            description: "La transacción original no se encontró, pero se revertirá el estado del registro fijo."
+        });
     }
-    
+
     const collectionName = type === 'income' ? 'recurringIncomes' : 'recurringExpenses';
     const itemRef = doc(firestore, 'users', user.uid, collectionName, item.id);
     batch.update(itemRef, {
-      lastInstanceCreated: null,
-      lastTransactionId: null,
+        lastInstanceCreated: null,
+        lastTransactionId: null,
     });
-    
-    await batch.commit();
-    toast({ title: 'Reversión exitosa', description: `Se ha deshecho el registro de ${item.name}.` });
-  };
+
+    try {
+        await batch.commit();
+        toast({ title: 'Reversión exitosa', description: `Se ha deshecho el registro de ${item.name}.` });
+    } catch (error) {
+        console.error("Error reverting recurring item:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudo completar la reversión." });
+    }
+};
 
 
   return (
