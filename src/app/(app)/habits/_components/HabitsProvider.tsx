@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useMemo } from 'react';
 import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, doc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, Timestamp, query } from 'firebase/firestore';
 import { calculateStreak, isHabitCompletedToday, resetStreak } from '@/lib/habits';
 
 interface Habit {
@@ -25,6 +25,9 @@ interface HabitsContextType {
     completedWeekly: number;
     longestStreak: number;
     longestCurrentStreak: number;
+    habitCategoryData: { name: string; value: number }[];
+    dailyProductivityData: { name: string; value: number }[];
+    analyticsLoading: boolean;
     handleToggleHabit: (habitId: string) => void;
     handleCreateOrUpdateHabit: (habitData: Habit) => Promise<void>;
     handleDeleteHabit: (habitId: string) => Promise<void>;
@@ -41,6 +44,14 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         [firestore, user]
     );
     const { data: allHabits, isLoading: habitsLoading } = useCollection(habitsQuery);
+    
+    const timeLogsQuery = useMemo(
+        () => (user ? query(collection(firestore, 'users', user.uid, 'timeLogs')) : null),
+        [firestore, user]
+    );
+    const { data: timeLogs, isLoading: timeLogsLoading } = useCollection(timeLogsQuery);
+
+    const analyticsLoading = habitsLoading || timeLogsLoading;
 
     const groupedHabits = useMemo(() => {
         if (!allHabits) return {};
@@ -73,6 +84,38 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const longestStreak = useMemo(() => allHabits?.reduce((max, h) => Math.max(max, h.longestStreak || 0), 0) || 0, [allHabits]);
     const longestCurrentStreak = useMemo(() => allHabits?.reduce((max, h) => Math.max(max, h.currentStreak || 0), 0) || 0, [allHabits]);
+
+    const habitCategoryData = useMemo(() => {
+        if (!timeLogs || !allHabits) return [];
+        const habitLogs = timeLogs.filter((log) => log.referenceType === 'habit');
+        const categoryTotals: Record<string, number> = {};
+
+        habitLogs.forEach((log) => {
+        const habit = allHabits.find((h) => h.id === log.referenceId);
+        if (habit) {
+            const category = habit.category || 'Sin Categoría';
+            categoryTotals[category] = (categoryTotals[category] || 0) + log.durationSeconds;
+        }
+        });
+
+        return Object.entries(categoryTotals)
+            .map(([name, value]) => ({ name, value: Math.round(value / 60) }))
+            .filter(item => item.value > 0);
+    }, [timeLogs, allHabits]);
+
+    const dailyProductivityData = useMemo(() => {
+        if (!timeLogs) return [];
+        const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        const dailyTotals = Array(7).fill(0).map((_, i) => ({ name: daysOfWeek[i], value: 0}));
+
+        timeLogs.forEach((log) => {
+        const date = log.startTime.toDate();
+        const dayIndex = date.getDay();
+        dailyTotals[dayIndex].value += log.durationSeconds;
+        });
+
+        return dailyTotals.map(day => ({...day, value: Math.round(day.value / 60)}));
+    }, [timeLogs]);
 
 
     const handleToggleHabit = (habitId: string) => {
@@ -148,6 +191,9 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         completedWeekly,
         longestStreak,
         longestCurrentStreak,
+        habitCategoryData,
+        dailyProductivityData,
+        analyticsLoading,
         handleToggleHabit,
         handleCreateOrUpdateHabit,
         handleDeleteHabit,

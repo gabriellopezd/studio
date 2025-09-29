@@ -16,7 +16,6 @@ import {
   SquareCheckBig,
   LogOut,
   Sun,
-  LineChart,
   Timer,
   X,
 } from 'lucide-react';
@@ -60,7 +59,6 @@ const navItems = [
   { href: '/mood-tracker', icon: Smile, label: 'Ánimo' },
   { href: '/finances', icon: CircleDollarSign, label: 'Finanzas' },
   { href: '/expenses', icon: ShoppingCart, label: 'Gastos' },
-  { href: '/analytics', icon: LineChart, label: 'Análisis' },
 ];
 
 interface ActiveSession {

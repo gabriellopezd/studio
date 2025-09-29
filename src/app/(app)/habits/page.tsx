@@ -45,23 +45,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Check, Flame, MoreHorizontal, Pencil, PlusCircle, Trash2, Trophy, RotateCcw } from 'lucide-react';
-
-import { doc, serverTimestamp } from 'firebase/firestore';
+import { Check, Flame, MoreHorizontal, Pencil, PlusCircle, Trash2, Trophy, RotateCcw, Play, Square } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { calculateStreak, isHabitCompletedToday, resetStreak } from '@/lib/habits';
+import { isHabitCompletedToday } from '@/lib/habits';
 import { HabitsProvider, useHabits } from './_components/HabitsProvider';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useTimer } from '../layout';
+import { cn } from '@/lib/utils';
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#d0ed57'];
 
 function HabitsContent() {
   const { 
     groupedHabits, 
     habitsLoading,
+    habitCategoryData,
+    dailyProductivityData,
+    analyticsLoading,
     handleToggleHabit,
     handleCreateOrUpdateHabit,
     handleDeleteHabit,
   } = useHabits();
+  
+  const { activeSession, startSession, stopSession } = useTimer();
 
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [habitToEdit, setHabitToEdit] = useState<any>(null);
@@ -125,85 +133,170 @@ function HabitsContent() {
           </Button>
         </PageHeader>
 
-        {habitsLoading && <p>Cargando hábitos...</p>}
-
-        <div className="space-y-8">
-          {habitCategories.map((category) => (
-            groupedHabits[category] && groupedHabits[category].length > 0 && (
-              <div key={category}>
-                <h2 className="text-xl font-bold tracking-tight mb-4">
-                  {category}
-                </h2>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {groupedHabits[category].map((habit: any) => {
-                    const isCompleted = isHabitCompletedToday(habit);
-
-                    return (
-                      <Card key={habit.id} className="flex flex-col">
-                        <CardHeader>
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className="text-4xl">{habit.icon}</div>
-                              <div>
-                                <CardTitle>{habit.name}</CardTitle>
-                                <CardDescription>{habit.frequency}</CardDescription>
+        <Tabs defaultValue="habits">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="habits">Mis Hábitos</TabsTrigger>
+            <TabsTrigger value="analytics">Análisis de Hábitos</TabsTrigger>
+          </TabsList>
+          <TabsContent value="habits">
+            {habitsLoading && <p className="py-4">Cargando hábitos...</p>}
+            <div className="space-y-8 mt-6">
+              {Object.keys(groupedHabits).length === 0 && !habitsLoading ? (
+                <Card className="mt-4 flex flex-col items-center justify-center p-10 text-center">
+                    <CardHeader>
+                        <CardTitle className="mt-4">Aún no tienes hábitos</CardTitle>
+                        <CardDescription>
+                            Crea tu primer hábito para empezar a construir una rutina positiva.
+                        </CardDescription>
+                    </CardHeader>
+                </Card>
+              ) : habitCategories.map((category) => (
+                groupedHabits[category] && groupedHabits[category].length > 0 && (
+                  <div key={category}>
+                    <h2 className="text-xl font-bold tracking-tight mb-4">
+                      {category}
+                    </h2>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      {groupedHabits[category].map((habit: any) => {
+                        const isCompleted = isHabitCompletedToday(habit);
+                        const isSessionActive = activeSession?.id === habit.id;
+                        return (
+                          <Card key={habit.id} className="flex flex-col">
+                            <CardHeader>
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-4">
+                                  <div className="text-4xl">{habit.icon}</div>
+                                  <div>
+                                    <CardTitle>{habit.name}</CardTitle>
+                                    <CardDescription>{habit.frequency}</CardDescription>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col items-end gap-1 text-right">
+                                  <div className="flex items-center gap-1 text-accent">
+                                    <Flame className="h-5 w-5" />
+                                    <span className="font-bold">{habit.currentStreak || 0}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 text-yellow-500">
+                                    <Trophy className="h-4 w-4" />
+                                    <span className="font-semibold text-sm">{habit.longestStreak || 0}</span>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                             <div className="flex flex-col items-end gap-1 text-right">
-                              <div className="flex items-center gap-1 text-accent">
-                                <Flame className="h-5 w-5" />
-                                <span className="font-bold">{habit.currentStreak || 0}</span>
-                              </div>
-                              <div className="flex items-center gap-1 text-yellow-500">
-                                <Trophy className="h-4 w-4" />
-                                <span className="font-semibold text-sm">{habit.longestStreak || 0}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="flex-grow">
-                          <div className="flex items-center justify-between">
-                            {habit.category && <Badge variant="secondary">{habit.category}</Badge>}
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 ml-auto">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleOpenDialog(habit)}>
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  Editar
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => setHabitToDelete(habit)}
-                                  className="text-red-500"
+                            </CardHeader>
+                             <CardContent className="flex-grow flex items-center justify-between">
+                                {habit.category && <Badge variant="secondary">{habit.category}</Badge>}
+                                <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 ml-auto">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleOpenDialog(habit)}>
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Editar
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                    onClick={() => setHabitToDelete(habit)}
+                                    className="text-red-500"
+                                    >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Eliminar
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                                </DropdownMenu>
+                            </CardContent>
+                            <CardFooter className="gap-2">
+                                <Button
+                                    variant={isCompleted ? 'secondary' : 'outline'}
+                                    className="w-full"
+                                    onClick={() => handleToggleHabit(habit.id)}
                                 >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Eliminar
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </CardContent>
-                        <CardFooter>
-                          <Button
-                            variant={isCompleted ? 'secondary' : 'outline'}
-                            className="w-full"
-                            onClick={() => handleToggleHabit(habit.id)}
-                          >
-                            <Check className="mr-2 h-4 w-4" />
-                            {isCompleted ? 'Completado Hoy' : 'Marcar como completado'}
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    );
-                  })}
-                </div>
-              </div>
-            )
-          ))}
-        </div>
+                                    <Check className="mr-2 h-4 w-4" />
+                                    {isCompleted ? 'Completado' : 'Completar'}
+                                </Button>
+                                <Button 
+                                    variant="outline" 
+                                    size="icon" 
+                                    onClick={() => isSessionActive ? stopSession() : startSession(habit.id, habit.name, 'habit')}
+                                    disabled={isCompleted || (!isSessionActive && !!activeSession)}
+                                    className={cn(isSessionActive && "bg-primary text-primary-foreground animate-pulse")}
+                                >
+                                    {isSessionActive ? <Square className="h-4 w-4"/> : <Play className="h-4 w-4"/>}
+                                </Button>
+                            </CardFooter>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )
+              ))}
+            </div>
+          </TabsContent>
+          <TabsContent value="analytics">
+            {analyticsLoading && <p className="py-4">Cargando análisis...</p>}
+            
+            {!analyticsLoading && habitCategoryData?.length === 0 && (
+                <Card className="mt-4 flex flex-col items-center justify-center p-10 text-center">
+                    <CardHeader>
+                    <CardTitle className="mt-4">No hay datos para analizar</CardTitle>
+                    <CardDescription>
+                        Empieza a usar el cronómetro en tus hábitos para ver tus analíticas.
+                    </CardDescription>
+                    </CardHeader>
+                </Card>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                {habitCategoryData.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Tiempo por Categoría de Hábito</CardTitle>
+                        <CardDescription>Distribución de tu tiempo de enfoque en hábitos (en minutos).</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <PieChart>
+                                <Pie data={habitCategoryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
+                                    {habitCategoryData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip formatter={(value) => `${value} min`} />
+                                <Legend />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </CardContent>
+                </Card>
+                )}
+
+                {dailyProductivityData.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Productividad por Día de la Semana</CardTitle>
+                        <CardDescription>Total de minutos de enfoque (hábitos y tareas) por día.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={dailyProductivityData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" />
+                                <YAxis unit=" min" />
+                                <Tooltip formatter={(value) => `${value} min`} />
+                                <Bar dataKey="value" fill="hsl(var(--primary))" name="Minutos de Enfoque">
+                                {dailyProductivityData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </CardContent>
+                </Card>
+                )}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
       
       {/* Create/Edit Dialog */}
