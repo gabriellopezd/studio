@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -306,33 +307,29 @@ export default function FinancesPage() {
     batch.delete(transactionRef);
 
     if (transactionToDelete.type === 'expense') {
-      const shoppingListsQuery = query(
-        collection(firestore, 'users', user.uid, 'shoppingLists'),
-        where('name', '==', transactionToDelete.category)
-      );
-      const querySnapshot = await getDocs(shoppingListsQuery);
-      
-      if (!querySnapshot.empty) {
-        const listDoc = querySnapshot.docs[0];
-        const listRef = listDoc.ref;
-        const listData = listDoc.data();
-        
-        const updatedItems = listData.items.map((item: any) => {
-          if (item.transactionId === transactionToDelete.id) {
-            const { price, transactionId, isPurchased, ...rest } = item;
-            return { ...rest, isPurchased: false, price: null, transactionId: null };
-          }
-          return item;
-        });
+        // Revert budget spend
+        const budget = budgets?.find(b => b.categoryName === transactionToDelete.category);
+        if (budget) {
+            const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+            batch.update(budgetRef, { currentSpend: increment(-transactionToDelete.amount) });
+        }
 
-        batch.update(listRef, { items: updatedItems });
-      }
-      
-      const budget = budgets?.find(b => b.categoryName === transactionToDelete.category);
-      if (budget) {
-          const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-          batch.update(budgetRef, { currentSpend: increment(-transactionToDelete.amount) });
-      }
+        // Find and revert shopping list item if it exists
+        const listWithItem = shoppingLists?.find(list => 
+            list.items.some((item: any) => item.transactionId === transactionToDelete.id)
+        );
+
+        if (listWithItem) {
+            const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listWithItem.id);
+            const updatedItems = listWithItem.items.map((item: any) => {
+                if (item.transactionId === transactionToDelete.id) {
+                    // Revert item to "pending" state
+                    return { ...item, isPurchased: false, price: null, transactionId: null };
+                }
+                return item;
+            });
+            batch.update(listRef, { items: updatedItems });
+        }
     }
     
     await batch.commit();
@@ -1131,3 +1128,4 @@ export default function FinancesPage() {
     </>
   );
 }
+

@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useReducer, useEffect, useMemo, useState } from 'react';
+import React, { useReducer, useEffect, useMemo, useState, useCallback } from 'react';
 import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc, limit } from 'firebase/firestore';
 import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { AppContext, AppState, Habit, Task, Mood, ActiveSession } from './AppContext';
@@ -557,7 +557,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const paidRE = recurringExpenses?.filter(e => e.lastInstanceCreated === monthYear) ?? [];
         const pendingRI = recurringIncomes?.filter(i => i.lastInstanceCreated !== monthYear) ?? [];
         const receivedRI = recurringIncomes?.filter(i => i.lastInstanceCreated === monthYear) ?? [];
-        const pendingETotal = (pendingRE.reduce((s, e) => s + e.amount, 0)) + (shoppingLists?.reduce((s, l) => s + l.items.filter((i: any) => !i.isPurchased).reduce((iS: number, i: any) => iS + (i.amount || 0), 0), 0) ?? 0);
+        
+        const pendingRecurringTotal = pendingRE.reduce((s, e) => s + e.amount, 0);
+        const pendingShoppingTotal = shoppingLists?.reduce((total, list) => 
+            total + list.items.filter((item: any) => !item.isPurchased).reduce((subtotal: number, item: any) => subtotal + item.amount, 0), 0) ?? 0;
+        const pendingETotal = pendingRecurringTotal + pendingShoppingTotal;
+
         
         const expCats = [...new Set(["Arriendo", "Servicios", "Transporte", "Salud", ...(budgets?.map(b => b.categoryName) ?? []), ...(transactions?.filter(t => t.type === 'expense').map(t => t.category) ?? [])])].filter(Boolean);
         const incCats = [...new Set(["Salario", "Bonificación", "Otro", ...(transactions?.filter(t => t.type === 'income').map(t => t.category) ?? [])])].filter(Boolean);
@@ -719,5 +724,3 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 };
 
-
-      

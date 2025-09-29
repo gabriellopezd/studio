@@ -309,30 +309,45 @@ export default function ExpensesPage() {
     if (!selectedList || !user || !firestore) return;
     const item = selectedList.items.find((i: any) => i.itemId === itemId);
     if (!item || !item.isPurchased) return;
-
-    const updatedItems = selectedList.items.map((i: any) =>
-        i.itemId === itemId ? { ...i, isPurchased: false, price: null, transactionId: null } : i
-    );
-
+  
     const batch = writeBatch(firestore);
-    const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', selectedListId!);
+    
+    const updatedItems = selectedList.items.map((i: any) =>
+      i.itemId === itemId ? { ...i, isPurchased: false, price: null, transactionId: null } : i
+    );
+    const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', selectedList.id);
     batch.update(listRef, { items: updatedItems });
-
+  
     if (item.transactionId) {
-        const transactionRef = doc(firestore, 'users', user.uid, 'transactions', item.transactionId);
-        const transactionSnap = await getDoc(transactionRef);
-        if (transactionSnap.exists()) {
-            const transactionData = transactionSnap.data();
-            batch.delete(transactionRef);
-            const budget = budgets?.find(b => b.categoryName === transactionData.category);
-            if (budget) {
-                const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-                batch.update(budgetRef, { currentSpend: increment(-transactionData.amount) });
-            }
+      const transactionRef = doc(firestore, 'users', user.uid, 'transactions', item.transactionId);
+      const transactionSnap = await getDoc(transactionRef);
+      if (transactionSnap.exists()) {
+        const transactionData = transactionSnap.data();
+        batch.delete(transactionRef);
+        
+        const budget = budgets?.find(b => b.categoryName === transactionData.category);
+        if (budget) {
+          const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+          batch.update(budgetRef, { currentSpend: increment(-transactionData.amount) });
+        }
+      }
+    } else if (item.price) {
+        // If transactionId is missing but there's a price, it means transaction was likely deleted.
+        // We should still revert the budget spend.
+        const budget = budgets?.find(b => b.categoryName === selectedList.name);
+        if (budget) {
+            const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+            batch.update(budgetRef, { currentSpend: increment(-item.price) });
         }
     }
-    await batch.commit();
-    toast({ title: "Gasto revertido" });
+  
+    try {
+        await batch.commit();
+        toast({ title: "Gasto revertido" });
+    } catch (error) {
+        console.error("Error reverting purchase:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudo revertir el gasto." });
+    }
   };
 
   const handleConfirmPurchase = async () => {
@@ -796,3 +811,4 @@ export default function ExpensesPage() {
     </div>
   );
 }
+
