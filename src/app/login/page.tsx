@@ -38,7 +38,6 @@ export default function LoginPage() {
     if (!user) return;
     const userRef = doc(firestore, 'users', user.uid);
     
-    // Check if user document exists, if not create it (for users who signed up before this logic was added)
     const userDoc = await getDoc(userRef);
     if (!userDoc.exists()) {
         const userProfileData = {
@@ -77,19 +76,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative h-screen w-full lg:grid lg:grid-cols-2">
-      <div className="relative flex h-full items-center justify-center">
-         {loginImage && (
-            <Image
-                src={loginImage.imageUrl}
-                alt={loginImage.description}
-                data-ai-hint={loginImage.imageHint}
-                fill
-                className="absolute left-0 top-0 z-0 object-cover dark:brightness-[0.2]"
-            />
-        )}
-        <div className="relative z-10 mx-auto w-full max-w-sm">
-           <Card className="bg-background/80 backdrop-blur-sm">
+    <div className="h-screen w-full lg:grid lg:grid-cols-2">
+      <div className="flex h-full items-center justify-center bg-background p-6">
+        <div className="mx-auto w-full max-w-sm">
+           <Card>
             <CardHeader className="text-center">
               <div className="mb-4 flex justify-center">
                 <Logo className="h-12 w-12 text-primary" />
@@ -144,7 +134,7 @@ export default function LoginPage() {
           </Card>
         </div>
       </div>
-      <div className="hidden lg:block relative">
+      <div className="hidden bg-muted lg:block relative">
          {loginImage && (
             <Image
                 src={loginImage.imageUrl}
