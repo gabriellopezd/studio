@@ -1,0 +1,1262 @@
+
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the Momentum application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User's display name."
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "URL of the user's profile photo. (Optional)",
+          "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user account was created.",
+          "format": "date-time"
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "description": "Timestamp indicating the last time the user logged in.",
+          "format": "date-time"
+        },
+        "settings": {
+          "type": "string",
+          "description": "Settings associated with the user.  Example: theme, notifications"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "displayName",
+        "createdAt",
+        "lastLoginAt"
+      ]
+    },
+    "Habit": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Habit",
+      "type": "object",
+      "description": "Represents a habit being tracked by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the habit."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Habit)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the habit."
+        },
+        "icon": {
+          "type": "string",
+          "description": "Icon representing the habit (emoji)."
+        },
+        "frequency": {
+          "type": "string",
+          "description": "Frequency of the habit (e.g., 'daily', 'weekly')."
+        },
+        "lastCompletedAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Timestamp of the last time the habit was completed.",
+          "format": "date-time"
+        },
+        "currentStreak": {
+          "type": "number",
+          "description": "Current streak of consecutive days the habit has been completed."
+        },
+        "longestStreak": {
+          "type": "number",
+          "description": "Longest streak of consecutive days the habit has been completed."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the habit was created.",
+          "format": "date-time"
+        },
+        "previousStreak": {
+          "type": "number",
+          "description": "The streak count before the last completion, used for undo functionality."
+        },
+        "previousLastCompletedAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "The completion timestamp before the last one, used for undo functionality."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the habit.",
+          "enum": [
+            "Productividad",
+            "Conocimiento",
+            "Social",
+            "Físico",
+            "Espiritual",
+            "Hogar",
+            "Profesional",
+            "Relaciones Personales"
+          ]
+        },
+        "presetHabitId": {
+          "type": ["string", "null"],
+          "description": "The ID of the preset habit this user habit was created from, if any."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "icon",
+        "frequency",
+        "createdAt",
+        "category"
+      ]
+    },
+    "PresetHabit": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PresetHabit",
+      "type": "object",
+      "description": "Represents a pre-defined habit that users can choose to adopt.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the preset habit."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the habit."
+        },
+        "icon": {
+          "type": "string",
+          "description": "Icon representing the habit (emoji)."
+        },
+        "frequency": {
+          "type": "string",
+          "description": "Frequency of the habit (e.g., 'Diario', 'Semanal')."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the habit.",
+          "enum": [
+            "Productividad",
+            "Conocimiento",
+            "Social",
+            "Físico",
+            "Espiritual",
+            "Hogar",
+            "Profesional",
+            "Relaciones Personales"
+          ]
+        },
+         "description": {
+          "type": "string",
+          "description": "A short description of why this habit is useful."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the preset habit was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "icon",
+        "frequency",
+        "createdAt",
+        "category"
+      ]
+    },
+    "Routine": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Routine",
+      "type": "object",
+      "description": "Represents a routine consisting of a series of habits.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the routine."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Routine)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the routine."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the routine."
+        },
+        "habitIds": {
+          "type": "array",
+          "description": "References to Habits. (Relationship: Routine 1:N Habit)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the routine was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "habitIds",
+        "createdAt"
+      ]
+    },
+    "Task": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Task",
+      "type": "object",
+      "description": "Represents a task to be completed.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the task."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Task)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the task."
+        },
+        "dueDate": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Timestamp indicating when the task is due.",
+          "format": "date-time"
+        },
+        "isCompleted": {
+          "type": "boolean",
+          "description": "Indicates whether the task has been completed."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the task was created.",
+          "format": "date-time"
+        },
+        "priority": {
+          "type": "string",
+          "description": "Priority of the task (low/medium/high)."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category or project the task belongs to."
+        },
+        "totalTimeSpent": {
+            "type": "number",
+            "description": "The total time spent on the task in seconds."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "isCompleted",
+        "createdAt",
+        "priority",
+        "category"
+      ]
+    },
+    "Goal": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Goal",
+      "type": "object",
+      "description": "Represents a long-term goal. Can be generic, for savings, or for debt amortization.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the goal."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Goal)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the goal."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the goal."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the goal.",
+          "enum": ["generic", "savings", "debt"]
+        },
+        "targetValue": {
+          "type": "number",
+          "description": "Target value for the goal."
+        },
+        "currentValue": {
+          "type": "number",
+          "description": "Current value towards the goal."
+        },
+        "monthlyContribution": {
+          "type": ["number", "null"],
+          "description": "The planned monthly contribution for savings or debt goals."
+        },
+        "unit": {
+          "type": "string",
+          "description": "Unit of measurement for the goal (e.g., 'kms', 'books', 'COP')."
+        },
+        "dueDate": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Timestamp indicating when the goal is due (primarily for generic goals).",
+          "format": "date-time"
+        },
+        "isCompleted": {
+          "type": "boolean",
+          "description": "Indicates whether the goal has been completed."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the goal was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "type",
+        "targetValue",
+        "currentValue",
+        "isCompleted",
+        "createdAt"
+      ]
+    },
+    "Mood": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Mood",
+      "type": "object",
+      "description": "Represents a mood entry.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the mood entry."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Mood)"
+        },
+        "date": {
+          "type": "string",
+          "description": "Timestamp indicating the date of the mood entry.",
+          "format": "date-time"
+        },
+        "moodLevel": {
+          "type": "number",
+          "description": "Mood level (e.g., 1-7)."
+        },
+        "moodLabel": {
+          "type": "string",
+          "description": "Text label for the mood level (e.g., 'Muy bien')."
+        },
+        "emoji": {
+          "type": "string",
+          "description": "Emoji representing the mood."
+        },
+        "feelings": {
+          "type": "array",
+          "description": "List of specific feelings associated with the mood entry.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "influences": {
+          "type": "array",
+          "description": "List of factors influencing the mood.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "date",
+        "moodLevel",
+        "moodLabel",
+        "emoji"
+      ]
+    },
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "Represents a financial transaction.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the transaction."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Transaction)"
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of transaction ('income'/'expense')."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount of the transaction."
+        },
+        "category": {
+          "type": "string",
+          "description": "Category of the transaction."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the transaction."
+        },
+        "date": {
+          "type": "string",
+          "description": "Timestamp indicating the date of the transaction.",
+          "format": "date-time"
+        },
+        "budgetFocus": {
+            "type": "string",
+            "description": "The budget focus of the transaction.",
+            "enum": ["Necesidades", "Deseos", "Ahorros y Deudas"]
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "type",
+        "amount",
+        "category",
+        "date"
+      ]
+    },
+    "Budget": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Budget",
+      "type": "object",
+      "description": "Represents a budget for a specific category.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the budget."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Budget)"
+        },
+        "categoryName": {
+          "type": "string",
+          "description": "Name of the budget category."
+        },
+        "monthlyLimit": {
+          "type": "number",
+          "description": "Monthly limit for the budget."
+        },
+        "currentSpend": {
+          "type": "number",
+          "description": "Current amount spent in the budget category."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "categoryName",
+        "monthlyLimit",
+        "currentSpend"
+      ]
+    },
+    "ShoppingList": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ShoppingList",
+      "type": "object",
+      "description": "Represents a shopping list which is a category of expenses.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the shopping list."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N ShoppingList)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the shopping list, which corresponds to an expense category."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the shopping list was created.",
+          "format": "date-time"
+        },
+        "budgetFocus": {
+            "type": "string",
+            "description": "The budget focus of the shopping list.",
+            "enum": ["Necesidades", "Deseos", "Ahorros y Deudas"]
+        },
+        "items": {
+          "type": "array",
+          "description": "List of items in the shopping list.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "itemId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "isPurchased": {
+                "type": "boolean"
+              },
+              "price": {
+                "type": ["number", "null"]
+              },
+              "transactionId": {
+                "type": ["string", "null"]
+              }
+            }
+          }
+        },
+        "order": {
+          "type": "number",
+          "description": "The order of the shopping list in the user's list."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "createdAt",
+        "order",
+        "budgetFocus"
+      ]
+    },
+    "RecurringExpense": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RecurringExpense",
+      "type": "object",
+      "description": "Represents a recurring monthly expense.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the recurring expense."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N RecurringExpense)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the expense (e.g., 'Netflix Subscription')."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount of the expense."
+        },
+        "category": {
+          "type": "string",
+          "description": "Category of the expense."
+        },
+        "dayOfMonth": {
+          "type": "number",
+          "description": "The day of the month the expense is due (1-31)."
+        },
+        "lastInstanceCreated": {
+          "type": [ "string", "null" ],
+          "description": "Identifier for the last period an instance was created (e.g., '2024-7')."
+        },
+        "lastTransactionId": {
+          "type": [ "string", "null" ],
+          "description": "The ID of the last transaction created for this recurring expense."
+        },
+        "budgetFocus": {
+            "type": "string",
+            "description": "The budget focus of the expense.",
+            "enum": ["Necesidades", "Deseos", "Ahorros y Deudas"]
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "amount",
+        "category",
+        "dayOfMonth"
+      ]
+    },
+    "RecurringIncome": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RecurringIncome",
+      "type": "object",
+      "description": "Represents a recurring monthly income.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the recurring income."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N RecurringIncome)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the income (e.g., 'Salary')."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount of the income."
+        },
+        "category": {
+          "type": "string",
+          "description": "Category of the income."
+        },
+        "dayOfMonth": {
+          "type": "number",
+          "description": "The day of the month the income is received (1-31)."
+        },
+        "lastInstanceCreated": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Identifier for the last period an instance was created (e.g., '2024-8')."
+        },
+        "lastTransactionId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The ID of the last transaction created for this recurring income."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "amount",
+        "category",
+        "dayOfMonth"
+      ]
+    },
+    "PurchaseHistory": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PurchaseHistory",
+      "type": "object",
+      "description": "Represents the purchase history of a user for a given month.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the purchase history record."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N PurchaseHistory)"
+        },
+        "month": {
+          "type": "number",
+          "description": "The month for which the purchase history is recorded (1-12)."
+        },
+        "year": {
+          "type": "number",
+          "description": "The year for which the purchase history is recorded."
+        },
+        "totalSpent": {
+          "type": "number",
+          "description": "The total amount spent during the month."
+        },
+        "purchaseDetails": {
+          "type": "string",
+          "description": "JSON string containing details of each individual purchase during the month."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "month",
+        "year",
+        "totalSpent",
+        "purchaseDetails"
+      ]
+    },
+    "File": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "File",
+      "type": "object",
+      "description": "Represents a file stored on the server.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the file."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N File)"
+        },
+        "fileName": {
+          "type": "string",
+          "description": "Name of the file."
+        },
+        "fileType": {
+          "type": "string",
+          "description": "Type of the file (e.g., 'image/jpeg', 'application/pdf')."
+        },
+        "fileSize": {
+          "type": "number",
+          "description": "Size of the file in bytes."
+        },
+        "uploadDate": {
+          "type": "string",
+          "description": "Timestamp indicating when the file was uploaded.",
+          "format": "date-time"
+        },
+        "storageLocation": {
+          "type": "string",
+          "description": "Location of the file in the storage system (e.g., URL)."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "fileName",
+        "fileType",
+        "fileSize",
+        "uploadDate",
+        "storageLocation"
+      ]
+    },
+    "TimeLog": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "TimeLog",
+        "type": "object",
+        "description": "Represents a log of time spent on a habit or task.",
+        "properties": {
+            "id": {
+                "type": "string",
+                "description": "Unique identifier for the time log."
+            },
+            "userId": {
+                "type": "string",
+                "description": "Reference to User. (Relationship: User 1:N TimeLog)"
+            },
+            "referenceId": {
+                "type": "string",
+                "description": "The ID of the habit or task this log refers to."
+            },
+            "referenceType": {
+                "type": "string",
+                "description": "The type of the reference ('habit' or 'task').",
+                "enum": ["habit", "task"]
+            },
+            "startTime": {
+                "type": "string",
+                "description": "Timestamp indicating when the session started.",
+                "format": "date-time"
+            },
+            "endTime": {
+                "type": "string",
+                "description": "Timestamp indicating when the session ended.",
+                "format": "date-time"
+            },
+            "durationSeconds": {
+                "type": "number",
+                "description": "The duration of the session in seconds."
+            },
+            "createdAt": {
+                "type": "string",
+                "description": "Timestamp indicating when the log was created.",
+                "format": "date-time"
+            }
+        },
+        "required": [
+            "id",
+            "userId",
+            "referenceId",
+            "referenceType",
+            "startTime",
+            "endTime",
+            "durationSeconds",
+            "createdAt"
+        ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information. All user-owned data is stored under this document to simplify security rules and ensure data isolation.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user, corresponding to the Firebase Auth UID."
+            }
+          ],
+          "rules": {
+            "allow": {
+              "create": "if request.auth != null && request.auth.uid == userId;",
+              "read": "if request.auth != null && request.auth.uid == userId;",
+              "update": "if request.auth != null && request.auth.uid == userId;",
+              "delete": "if request.auth != null && request.auth.uid == userId;"
+            }
+          }
+        }
+      },
+      {
+        "path": "/users/{userId}/habits/{habitId}",
+        "definition": {
+          "entityName": "Habit",
+          "schema": {
+            "$ref": "#/backend/entities/Habit"
+          },
+          "description": "Stores habits belonging to a specific user. Uses path-based ownership for simplified security rules.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "habitId",
+              "description": "The unique identifier for the habit."
+            }
+          ],
+          "rules": {
+            "allow": {
+              "create": "if request.auth != null && request.auth.uid == userId;",
+              "read": "if request.auth != null && request.auth.uid == userId;",
+              "update": "if request.auth != null && request.auth.uid == userId;",
+              "delete": "if request.auth != null && request.auth.uid == userId;",
+              "list": "if request.auth != null && request.auth.uid == userId;"
+            }
+          }
+        }
+      },
+      {
+        "path": "/presetHabits/{presetHabitId}",
+        "definition": {
+          "entityName": "PresetHabit",
+          "schema": {
+            "$ref": "#/backend/entities/PresetHabit"
+          },
+          "description": "Stores pre-defined habits that are available to all users.",
+          "params": [
+            {
+              "name": "presetHabitId",
+              "description": "The unique identifier for the preset habit."
+            }
+          ],
+          "rules": {
+            "allow": {
+                "read": "if true;",
+                "list": "if request.auth != null;",
+                "create": "if false;",
+                "update": "if false;",
+                "delete": "if false;"
+            }
+          }
+        }
+      },
+      {
+        "path": "/users/{userId}/routines/{routineId}",
+        "definition": {
+          "entityName": "Routine",
+          "schema": {
+            "$ref": "#/backend/entities/Routine"
+          },
+          "description": "Stores routines belonging to a specific user. Uses path-based ownership for simplified security rules.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "routineId",
+              "description": "The unique identifier for the routine."
+            }
+          ],
+          "rules": {
+            "allow": {
+              "create": "if request.auth != null && request.auth.uid == userId;",
+              "read": "if request.auth != null && request.auth.uid == userId;",
+              "update": "if request.auth != null && request.auth.uid == userId;",
+              "delete": "if request.auth != null && request.auth.uid == userId;",
+              "list": "if request.auth != null && request.auth.uid == userId;"
+            }
+          }
+        }
+      },
+      {
+        "path": "/users/{userId}/tasks/{taskId}",
+        "definition": {
+          "entityName": "Task",
+          "schema": {
+            "$ref": "#/backend/entities/Task"
+          },
+          "description": "Stores tasks belonging to a specific user. Uses path-based ownership for simplified security rules.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "taskId",
+              "description": "The unique identifier for the task."
+            }
+          ],
+          "rules": {
+            "allow": {
+              "create": "if request.auth != null && request.auth.uid == userId;",
+              "read": "if request.auth != null && request.auth.uid == userId;",
+              "update": "if request.auth != null && request.auth.uid == userId;",
+              "delete": "if request.auth != null && request.auth.uid == userId;",
+              "list": "if request.auth != null && request.auth.uid == userId;"
+            }
+          }
+        }
+      },
+      {
+        "path": "/users/{userId}/goals/{goalId}",
+        "definition": {
+          "entityName": "Goal",
+          "schema": {
+            "$ref": "#/backend/entities/Goal"
+          },
+          "description": "Stores goals belonging to a specific user. Uses path-based ownership for simplified security rules.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "goalId",
+              "description": "The unique identifier for the goal."
+            }
+          ],
+          "rules": {
+            "allow": {
+              "create": "if request.auth != null && request.auth.uid == userId;",
+              "read": "if request.auth != null && request.auth.uid == userId;",
+              "update": "if request.auth != null && request.auth.uid == userId;",
+              "delete": "if request.auth != null && request.auth.uid == userId;",
+              "list": "if request.auth != null && request.auth.uid == userId;"
+            }
+          }
+        }
+      },
+      {
+        "path": "/users/{userId}/moods/{moodId}",
+        "definition": {
+          "entityName": "Mood",
+          "schema": {
+            "$ref": "#/backend/entities/Mood"
+          },
+          "description": "Stores mood entries belonging to a specific user. Uses path-based ownership for simplified security rules.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "moodId",
+              "description": "The unique identifier for the mood entry."
+            }
+          ],
+          "rules": {
+            "allow": {
+              "create": "if request.auth != null && request.auth.uid == userId;",
+              "read": "if request.auth != null && request.auth.uid == userId;",
+              "update": "if request.auth != null && request.auth.uid == userId;",
+              "delete": "if request.auth != null && request.auth.uid == userId;",
+              "list": "if request.auth != null && request.auth.uid == userId;"
+            }
+          }
+        }
+      },
+      {
+        "path": "/users/{userId}/transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": {
+            "$ref": "#/backend/entities/Transaction"
+          },
+          "description": "Stores transaction entries belonging to a specific user. Uses path-based ownership for simplified security rules.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "transactionId",
+              "description": "The unique identifier for the transaction."
+            }
+          ],
+          "rules": {
+            "allow": {
+              "create": "if request.auth != null && request.auth.uid == userId;",
+              "read": "if request.auth != null && request.auth.uid == userId;",
+              "update": "if request.auth != null && request.auth.uid == userId;",
+              "delete": "if request.auth != null && request.auth.uid == userId;",
+              "list": "if request.auth != null && request.auth.uid == userId;"
+            }
+          }
+        }
+      },
+      {
+        "path": "/users/{userId}/budgets/{budgetId}",
+        "definition": {
+          "entityName": "Budget",
+          "schema": {
+            "$ref": "#/backend/entities/Budget"
+          },
+          "description": "Stores budgets belonging to a specific user. Uses path-based ownership for simplified security rules.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "budgetId",
+              "description": "The unique identifier for the budget."
+            }
+          ],
+          "rules": {
+            "allow": {
+              "create": "if request.auth != null && request.auth.uid == userId;",
+              "read": "if request.auth != null && request.auth.uid == userId;",
+              "update": "if request.auth != null && request.auth.uid == userId;",
+              "delete": "if request.auth != null && request.auth.uid == userId;",
+              "list": "if request.auth != null && request.auth.uid == userId;"
+            }
+          }
+        }
+      },
+      {
+        "path": "/users/{userId}/shoppingLists/{shoppingListId}",
+        "definition": {
+          "entityName": "ShoppingList",
+          "schema": {
+            "$ref": "#/backend/entities/ShoppingList"
+          },
+          "description": "Stores shopping lists belonging to a specific user. Uses path-based ownership for simplified security rules.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "shoppingListId",
+              "description": "The unique identifier for the shopping list."
+            }
+          ],
+          "rules": {
+            "allow": {
+              "create": "if request.auth != null && request.auth.uid == userId;",
+              "read": "if request.auth != null && request.auth.uid == userId;",
+              "update": "if request.auth != null && request.auth.uid == userId;",
+              "delete": "if request.auth != null && request.auth.uid == userId;",
+              "list": "if request.auth != null && request.auth.uid == userId;"
+            }
+          }
+        }
+      },
+      {
+        "path": "/users/{userId}/recurringExpenses/{recurringExpenseId}",
+        "definition": {
+          "entityName": "RecurringExpense",
+          "schema": {
+            "$ref": "#/backend/entities/RecurringExpense"
+          },
+          "description": "Stores recurring expenses for a specific user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "recurringExpenseId",
+              "description": "The unique identifier for the recurring expense."
+            }
+          ],
+          "rules": {
+            "allow": {
+              "create": "if request.auth != null && request.auth.uid == userId;",
+              "read": "if request.auth != null && request.auth.uid == userId;",
+              "update": "if request.auth != null && request.auth.uid == userId;",
+              "delete": "if request.auth != null && request.auth.uid == userId;",
+              "list": "if request.auth != null && request.auth.uid == userId;"
+            }
+          }
+        }
+      },
+       {
+        "path": "/users/{userId}/recurringIncomes/{recurringIncomeId}",
+        "definition": {
+          "entityName": "RecurringIncome",
+          "schema": {
+            "$ref": "#/backend/entities/RecurringIncome"
+          },
+          "description": "Stores recurring incomes for a specific user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "recurringIncomeId",
+              "description": "The unique identifier for the recurring income."
+            }
+          ],
+          "rules": {
+            "allow": {
+              "create": "if request.auth != null && request.auth.uid == userId;",
+              "read": "if request.auth != null && request.auth.uid == userId;",
+              "update": "if request.auth != null && request.auth.uid == userId;",
+              "delete": "if request.auth != null && request.auth.uid == userId;",
+              "list": "if request.auth != null && request.auth.uid == userId;"
+            }
+          }
+        }
+      },
+      {
+        "path": "/users/{userId}/purchaseHistory/{purchaseHistoryId}",
+        "definition": {
+          "entityName": "PurchaseHistory",
+          "schema": {
+            "$ref": "#/backend/entities/PurchaseHistory"
+          },
+          "description": "Stores purchase history entries belonging to a specific user. Uses path-based ownership for simplified security rules.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "purchaseHistoryId",
+              "description": "The unique identifier for the purchase history entry."
+            }
+          ],
+          "rules": {
+            "allow": {
+              "create": "if request.auth != null && request.auth.uid == userId;",
+              "read": "if request.auth != null && request.auth.uid == userId;",
+              "update": "if request.auth != null && request.auth.uid == userId;",
+              "delete": "if request.auth != null && request.auth.uid == userId;",
+              "list": "if request.auth != null && request.auth.uid == userId;"
+            }
+          }
+        }
+      },
+      {
+        "path": "/users/{userId}/files/{fileId}",
+        "definition": {
+          "entityName": "File",
+          "schema": {
+            "$ref": "#/backend/entities/File"
+          },
+          "description": "Stores files belonging to a specific user. Uses path-based ownership for simplified security rules.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "fileId",
+              "description": "The unique identifier for the file."
+            }
+          ],
+          "rules": {
+            "allow": {
+              "create": "if request.auth != null && request.auth.uid == userId;",
+              "read": "if request.auth != null && request.auth.uid == userId;",
+              "update": "if request.auth != null && request.auth.uid == userId;",
+              "delete": "if request.auth != null && request.auth.uid == userId;",
+              "list": "if request.auth != null && request.auth.uid == userId;"
+            }
+          }
+        }
+      },
+      {
+        "path": "/users/{userId}/timeLogs/{timeLogId}",
+        "definition": {
+            "entityName": "TimeLog",
+            "schema": {
+                "$ref": "#/backend/entities/TimeLog"
+            },
+            "description": "Stores time log entries for habits and tasks.",
+            "params": [
+                {
+                    "name": "userId",
+                    "description": "The unique identifier for the user."
+                },
+                {
+                    "name": "timeLogId",
+                    "description": "The unique identifier for the time log entry."
+                }
+            ],
+            "rules": {
+                "allow": {
+                    "create": "if request.auth != null && request.auth.uid == userId;",
+                    "read": "if request.auth != null && request.auth.uid == userId;",
+                    "update": "if request.auth != null && request.auth.uid == userId;",
+                    "delete": "if request.auth != null && request.auth.uid == userId;",
+                    "list": "if request.auth != null && request.auth.uid == userId;"
+                }
+            }
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure data isolation and efficient querying, leveraging subcollections for user-specific data and denormalization for authorization independence. The core principle is that all data related to a user is stored under their respective user document, fostering clear ownership and simplifies security rules. This approach avoids complex queries across collections and maintains data integrity. The design adheres to structural segregation by keeping data with similar access needs in the same collection.\n\nAuthorization Independence is achieved by storing all data belonging to a user under the `/users/{userId}` path. This allows security rules to be written based on `request.auth.uid` and the path, without needing to `get()` data from other documents.\n\nThe data structure supports required QAPs (Rules are not Filters) by employing path-based ownership and structural segregation, allowing secure `list` operations, so a user can only list documents under its user id, not other user's documents."
+  }
+}
+
+    
