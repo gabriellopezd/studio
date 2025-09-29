@@ -69,7 +69,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const userAvatar = PlaceHolderImages.find(
-    (img) => img.id === 'user-avatar-1'
+    (img) => img.id === 'default-user-avatar'
   );
 
   useEffect(() => {

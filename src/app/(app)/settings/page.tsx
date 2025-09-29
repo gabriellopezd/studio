@@ -44,7 +44,7 @@ export default function SettingsPage() {
   const { firestore, auth } = useFirebase();
   const { user } = useUser();
   const { theme, setTheme } = useTheme();
-  const userAvatar = PlaceHolderImages.find((img) => img.id === 'user-avatar-1');
+  const userAvatar = PlaceHolderImages.find((img) => img.id === 'default-user-avatar');
   const { toast } = useToast();
 
   const [displayName, setDisplayName] = useState('');
