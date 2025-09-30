@@ -12,6 +12,7 @@ import { Timer, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { PresetHabits } from '@/lib/preset-habits';
+import { PRESET_EXPENSE_CATEGORIES } from '@/lib/transaction-categories';
 
 
 function TimerDisplay({ activeSession, elapsedTime, stopSession }: { activeSession: ActiveSession | null, elapsedTime: number, stopSession: () => void }) {
@@ -623,7 +624,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
     // Finance/Expenses Selectors
     const { currentMonthName, currentMonthYear, monthlyIncome, monthlyExpenses, balance, budget503020, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, expenseCategories, incomeCategories, categoriesWithoutBudget, sortedLists, spendingByCategory, budgetAccuracy, spendingByFocus } = useMemo(() => {
-        const now = new Date();
+        const now = state.currentMonth;
         const monthName = now.toLocaleDateString('es-ES', { month: 'long' });
         const monthYear = `${now.getFullYear()}-${now.getMonth()}`;
 
@@ -639,10 +640,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const wantsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((s, t) => s + t.amount, 0) ?? 0;
         const savingsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((s, t) => s + t.amount, 0) ?? 0;
         
-        const b503020 = {
+        const b503020 = income > 0 ? {
             needs: { budget: needsBudget, spend: needsSpend, progress: (needsSpend / (needsBudget || 1)) * 100 },
             wants: { budget: wantsBudget, spend: wantsSpend, progress: (wantsSpend / (wantsBudget || 1)) * 100 },
             savings: { budget: savingsBudget, spend: savingsSpend, progress: (savingsSpend / (savingsBudget || 1)) * 100 },
+        } : {
+            needs: { budget: 0, spend: needsSpend, progress: 0 },
+            wants: { budget: 0, spend: wantsSpend, progress: 0 },
+            savings: { budget: 0, spend: savingsSpend, progress: 0 },
         };
         
         const pendingRE = recurringExpenses?.filter(e => e.lastInstanceCreated !== monthYear) ?? [];
@@ -657,13 +662,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         
         const expCats = [...new Set([
-            "Arriendo", "Servicios", "Transporte", "Salud", "Hogar", "Impuestos", 
-            "Deudas", "Comida", "Deseos", "Suscripciones",
+            ...PRESET_EXPENSE_CATEGORIES,
             ...(budgets?.map(b => b.categoryName) ?? []), 
             ...(transactions?.filter(t => t.type === 'expense').map(t => t.category) ?? [])
         ])].filter(Boolean);
 
-        const incomeCategories = [...new Set(["Salario", "Bonificación", "Otro", ...(transactions?.filter(t => t.type === 'income').map(t => t.category) ?? [])])].filter(Boolean);
+        const incCats = [...new Set(["Salario", "Bonificación", "Otro", ...(transactions?.filter(t => t.type === 'income').map(t => t.category) ?? [])])].filter(Boolean);
         const catsNoBudget = expCats.filter(cat => !budgets?.some(b => b.categoryName === cat));
 
         const sorted = shoppingLists ? [...shoppingLists].sort((a, b) => a.order - b.order) : [];
@@ -676,8 +680,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return acc;
         }, {'Necesidades':0, 'Deseos':0, 'Ahorros y Deudas':0}) ?? {}) as [string, number][]).map(([name, value]) => ({name, value})).filter(d => d.value > 0);
 
-        return { currentMonthName: monthName.charAt(0).toUpperCase() + monthName.slice(1), currentMonthYear: monthYear, monthlyIncome: income, monthlyExpenses: expenses, balance: bal, budget503020: b503020, pendingRecurringExpenses: pendingRE, paidRecurringExpenses: paidRE, pendingRecurringIncomes: pendingRI, receivedRecurringIncomes: receivedRI, pendingExpensesTotal: pendingETotal, expenseCategories: expCats, incomeCategories, categoriesWithoutBudget: catsNoBudget, sortedLists: sorted, spendingByCategory: spendingByCat, budgetAccuracy: budgetAcc, spendingByFocus: spendingByF };
-    }, [transactions, recurringExpenses, recurringIncomes, shoppingLists, budgets]);
+        return { currentMonthName: monthName.charAt(0).toUpperCase() + monthName.slice(1), currentMonthYear: monthYear, monthlyIncome: income, monthlyExpenses: expenses, balance: bal, budget503020: b503020, pendingRecurringExpenses: pendingRE, paidRecurringExpenses: paidRE, pendingRecurringIncomes: pendingRI, receivedRecurringIncomes: receivedRI, pendingExpensesTotal: pendingETotal, expenseCategories: expCats, incomeCategories: incCats, categoriesWithoutBudget: catsNoBudget, sortedLists: sorted, spendingByCategory: spendingByCat, budgetAccuracy: budgetAcc, spendingByFocus: spendingByF };
+    }, [transactions, recurringExpenses, recurringIncomes, shoppingLists, budgets, state.currentMonth]);
 
     useEffect(() => {
         dispatch({ type: 'SET_DATA', payload: { key: 'allHabits', data: allHabits, loading: habitsLoading } });
@@ -826,4 +830,3 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 };
 
-    
