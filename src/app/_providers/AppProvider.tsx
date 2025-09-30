@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Timer, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { PresetHabits } from '@/lib/preset-habits';
 
 
 function TimerDisplay({ activeSession, elapsedTime, stopSession }: { activeSession: ActiveSession | null, elapsedTime: number, stopSession: () => void }) {
@@ -210,16 +211,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { data: moods, isLoading: moodsLoading } = useCollection(moodsQuery);
 
     const todayMoodQuery = useMemo(() => {
-      if (!user || !firestore) return null;
-      const today = new Date();
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-      return query(
-        collection(firestore, 'users', user.uid, 'moods'),
-        where('date', '>=', startOfDay.toISOString()),
-        where('date', '<', endOfDay.toISOString()),
-        limit(1)
-      );
+        if (!user || !firestore) return null;
+        const today = new Date();
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+        return query(
+            collection(firestore, 'users', user.uid, 'moods'),
+            where('date', '>=', startOfDay.toISOString()),
+            where('date', '<=', endOfDay.toISOString()),
+            limit(1)
+        );
     }, [user, firestore]);
     const { data: todayMoodData } = useCollection(todayMoodQuery);
     
@@ -714,8 +715,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         recurringIncomesLoading,
         timeLogs,
         timeLogsLoading,
-        presetHabits: [],
-        presetHabitsLoading: true,
+        presetHabits: PresetHabits,
+        presetHabitsLoading: false,
         analyticsLoading,
         groupedHabits,
         dailyHabits,
@@ -786,3 +787,4 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 };
 
+    

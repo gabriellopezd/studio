@@ -9,6 +9,8 @@ import { Switch } from '@/components/ui/switch';
 import { useAppContext } from '@/app/_providers/AppContext';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
 
@@ -109,7 +111,14 @@ export default function HabitSettingsPage() {
       <PageHeader
         title="Configurar Hábitos Preestablecidos"
         description="Activa o desactiva los hábitos sugeridos para personalizar tu experiencia."
-      />
+      >
+        <Button variant="outline" asChild>
+          <Link href="/habits">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Volver a Hábitos
+          </Link>
+        </Button>
+      </PageHeader>
       
       {(presetHabitsLoading || !allHabits) && <p>Cargando biblioteca de hábitos...</p>}
 
@@ -152,3 +161,5 @@ export default function HabitSettingsPage() {
     </div>
   );
 }
+
+    
