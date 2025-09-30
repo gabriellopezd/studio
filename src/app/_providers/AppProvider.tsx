@@ -45,7 +45,7 @@ type Action =
     | { type: 'SET_ACTIVE_SESSION'; payload: ActiveSession | null }
     | { type: 'SET_ELAPSED_TIME'; payload: number };
 
-const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'longestCurrentStreak' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'totalStats' | 'categoryStats' | 'weeklyTaskStats' | 'pendingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' > = {
+const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'longestCurrentStreak' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'totalStats' | 'categoryStats' | 'weeklyTaskStats' | 'pendingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits'> = {
     allHabits: null,
     routines: null,
     tasks: null,
@@ -57,7 +57,6 @@ const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggle
     recurringExpenses: null,
     recurringIncomes: null,
     timeLogs: null,
-    presetHabits: [],
     habitsLoading: true,
     routinesLoading: true,
     tasksLoading: true,
@@ -207,7 +206,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             where('date', '<=', end.toISOString())
         );
     }, [user, firestore, state.currentMonth]);
-    const { data: moods, isLoading: moodsLoading } = useCollection(moodsQuery);
+    const { data: moods, isLoading: moodsLoading, forceReload: forceMoodsReload } = useCollection(moodsQuery);
     
     // --- Streak Checking ---
     useEffect(() => {
@@ -369,6 +368,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         } else {
             await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'moods'), { ...fullMoodData, createdAt: serverTimestamp() });
         }
+        forceMoodsReload();
     };
 
     const setCurrentMonth = (date: Date | ((prev: Date) => Date)) => {
@@ -679,7 +679,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         recurringIncomesLoading,
         timeLogs,
         timeLogsLoading,
-        presetHabitsLoading: false,
+        presetHabits: [],
+        presetHabitsLoading: true,
         analyticsLoading,
         groupedHabits,
         dailyHabits,
@@ -761,5 +762,3 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
-
-    
