@@ -45,7 +45,8 @@ export interface AppState {
     routines: any[] | null;
     tasks: any[] | null;
     goals: any[] | null;
-    moods: any[] | null;
+    moods: any[] | null; // For calendar view
+    currentMonthMoods: any[] | null; // For today's view
     transactions: any[] | null;
     budgets: any[] | null;
     shoppingLists: any[] | null;
@@ -60,6 +61,7 @@ export interface AppState {
     tasksLoading: boolean;
     goalsLoading: boolean;
     moodsLoading: boolean;
+    currentMonthMoodsLoading: boolean;
     transactionsLoading: boolean;
     budgetsLoading: boolean;
     shoppingListsLoading: boolean;
