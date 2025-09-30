@@ -186,16 +186,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const transactionsQuery = useMemo(() => {
         if (!user || !firestore) return null;
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        const startOfMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth(), 1);
+        const endOfMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() + 1, 0);
+        endOfMonth.setHours(23, 59, 59, 999);
         return query(
             collection(firestore, 'users', user.uid, 'transactions'),
             where('date', '>=', startOfMonth.toISOString()),
             where('date', '<=', endOfMonth.toISOString()),
             orderBy('date', 'desc')
         );
-    }, [user, firestore]);
+    }, [user, firestore, state.currentMonth]);
     const { data: transactions, isLoading: transactionsLoading } = useCollection(transactionsQuery);
 
     const moodsQuery = useMemo(() => {
@@ -784,7 +784,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         receivedRecurringIncomes,
         pendingExpensesTotal,
         expenseCategories,
-        incomeCategories,
+        incCats,
         categoriesWithoutBudget,
         sortedLists,
         spendingByCategory,
@@ -817,9 +817,3 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
-
-    
-
-    
-
-    
