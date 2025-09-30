@@ -5,7 +5,7 @@ import React, { useReducer, useEffect, useMemo, useState, useCallback } from 're
 import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc, limit } from 'firebase/firestore';
 import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking, type FirebaseServicesAndUser } from '@/firebase';
 import { AppContext, AppState, Habit, Task, Mood, ActiveSession } from './AppContext';
-import { isHabitCompletedToday, calculateStreak } from '@/lib/habits';
+import { isHabitCompletedToday, calculateStreak, checkHabitStreak } from '@/lib/habits';
 import { Button } from '@/components/ui/button';
 import { Timer, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -211,6 +211,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [user, firestore, state.currentMonth]);
     const { data: moods, isLoading: moodsLoading } = useCollection(moodsQuery);
     
+    // --- Streak Checking ---
+    useEffect(() => {
+        if (user && firestore && allHabits && !habitsLoading && !streaksChecked) {
+            const batch = writeBatch(firestore);
+            let updatesMade = false;
+
+            allHabits.forEach(habit => {
+                const streakUpdate = checkHabitStreak(habit);
+                if (streakUpdate) {
+                    const habitRef = doc(firestore, 'users', user.uid, 'habits', habit.id);
+                    batch.update(habitRef, streakUpdate);
+                    updatesMade = true;
+                }
+            });
+
+            if (updatesMade) {
+                batch.commit().catch(console.error);
+            }
+            setStreaksChecked(true);
+        }
+    }, [user, firestore, allHabits, habitsLoading, streaksChecked]);
+
+
     // --- Actions ---
 
     const handleToggleHabit = (habitId: string) => {
