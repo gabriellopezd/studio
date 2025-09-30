@@ -244,6 +244,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
              updateDocumentNonBlocking(habitRef, { 
                 lastCompletedAt: habit.previousLastCompletedAt ?? null,
                 currentStreak: habit.previousStreak ?? 0,
+                longestStreak: habit.previousLongestStreak ?? habit.longestStreak ?? 0,
             });
         } else {
             const streakData = calculateStreak(habit);
@@ -251,6 +252,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 lastCompletedAt: Timestamp.now(),
                 ...streakData,
                 previousStreak: habit.currentStreak || 0,
+                previousLongestStreak: habit.longestStreak || 0,
                 previousLastCompletedAt: habit.lastCompletedAt ?? null,
             });
         }
@@ -759,3 +761,5 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
+
+    
