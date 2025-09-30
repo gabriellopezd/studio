@@ -206,7 +206,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             where('date', '<=', end.toISOString())
         );
     }, [user, firestore, state.currentMonth]);
-    const { data: moods, isLoading: moodsLoading, forceReload: forceMoodsReload } = useCollection(moodsQuery);
+    const { data: moods, isLoading: moodsLoading } = useCollection(moodsQuery);
     
     // --- Streak Checking ---
     useEffect(() => {
@@ -368,7 +368,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         } else {
             await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'moods'), { ...fullMoodData, createdAt: serverTimestamp() });
         }
-        forceMoodsReload();
+        // Force a re-fetch by temporarily changing the dependency of the useCollection hook
+        const originalMonth = state.currentMonth;
+        setCurrentMonth(new Date());
+        setTimeout(() => setCurrentMonth(originalMonth), 0);
     };
 
     const setCurrentMonth = (date: Date | ((prev: Date) => Date)) => {
