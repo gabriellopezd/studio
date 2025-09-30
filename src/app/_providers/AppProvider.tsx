@@ -632,9 +632,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const bal = income - expenses;
         
         const b503020 = income > 0 ? {
-            needs: { budget: income * 0.5, spend: transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Necesidades').reduce((s, t) => s + t.amount, 0) ?? 0, progress: ((transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Necesidades').reduce((s, t) => s + t.amount, 0) ?? 0) / (income * 0.5)) * 100 },
-            wants: { budget: income * 0.3, spend: transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((s, t) => s + t.amount, 0) ?? 0, progress: ((transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((s, t) => s + t.amount, 0) ?? 0) / (income * 0.3)) * 100 },
-            savings: { budget: income * 0.2, spend: transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((s, t) => s + t.amount, 0) ?? 0, progress: ((transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((s, t) => s + t.amount, 0) ?? 0) / (income * 0.2)) * 100 },
+            needs: { budget: income * 0.5, spend: transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Necesidades').reduce((s, t) => s + t.amount, 0) ?? 0, progress: ((transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Necesidades').reduce((s, t) => s + t.amount, 0) ?? 0) / (income * 0.5 || 1)) * 100 },
+            wants: { budget: income * 0.3, spend: transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((s, t) => s + t.amount, 0) ?? 0, progress: ((transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((s, t) => s + t.amount, 0) ?? 0) / (income * 0.3 || 1)) * 100 },
+            savings: { budget: income * 0.2, spend: transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((s, t) => s + t.amount, 0) ?? 0, progress: ((transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((s, t) => s + t.amount, 0) ?? 0) / (income * 0.2 || 1)) * 100 },
         } : null;
 
         const pendingRE = recurringExpenses?.filter(e => e.lastInstanceCreated !== monthYear) ?? [];
@@ -811,6 +811,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
+
+    
 
     
 
