@@ -412,14 +412,18 @@ export default function FinancesPage() {
     const amount = parseFloat(newRecurringAmount);
     const dayOfMonth = parseInt(newRecurringDay, 10);
 
-    const data = {
+    const data: any = {
       name: newRecurringName,
       amount,
       category: newRecurringCategory,
       dayOfMonth,
-      budgetFocus: recurringType === 'expense' ? newRecurringBudgetFocus : undefined,
       userId: user.uid,
     };
+    
+    if (recurringType === 'expense') {
+        data.budgetFocus = newRecurringBudgetFocus;
+    }
+
     const collectionName = recurringType === 'income' ? 'recurringIncomes' : 'recurringExpenses';
 
     if (recurringToEdit) {
