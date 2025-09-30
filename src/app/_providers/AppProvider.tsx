@@ -208,7 +208,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             where('date', '>=', start.toISOString()),
             where('date', '<=', end.toISOString())
         );
-    }, [user, firestore, state.currentMonth, moodsReloadKey]);
+    }, [user, firestore, state.currentMonth]);
     const { data: moods, isLoading: moodsLoading } = useCollection(moodsQuery);
     
     const currentMonthMoodsQuery = useMemo(() => {
@@ -221,7 +221,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             where('date', '>=', start.toISOString()),
             where('date', '<=', end.toISOString())
         );
-    }, [user, firestore, moodsReloadKey]);
+    }, [user, firestore]);
     const { data: currentMonthMoods, isLoading: currentMonthMoodsLoading } = useCollection(currentMonthMoodsQuery);
 
     // --- Streak Checking ---
@@ -384,7 +384,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         } else {
             await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'moods'), { ...fullMoodData, createdAt: serverTimestamp() });
         }
-        setMoodsReloadKey(prev => prev + 1);
     };
 
     const setCurrentMonth = (date: Date | ((prev: Date) => Date)) => {
@@ -787,5 +786,3 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
-
-    
