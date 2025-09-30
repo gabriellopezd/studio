@@ -46,7 +46,6 @@ export interface AppState {
     tasks: any[] | null;
     goals: any[] | null;
     moods: any[] | null;
-    currentMonthMoods: any[] | null;
     transactions: any[] | null;
     budgets: any[] | null;
     shoppingLists: any[] | null;
@@ -61,7 +60,6 @@ export interface AppState {
     tasksLoading: boolean;
     goalsLoading: boolean;
     moodsLoading: boolean;
-    currentMonthMoodsLoading: boolean;
     transactionsLoading: boolean;
     budgetsLoading: boolean;
     shoppingListsLoading: boolean;
@@ -152,5 +150,3 @@ export const useAppContext = () => {
     }
     return context;
 };
-
-    
