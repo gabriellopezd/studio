@@ -1,9 +1,10 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Bell,
   CircleDollarSign,
@@ -31,6 +32,11 @@ import {
   SidebarFooter,
   SidebarTrigger,
   SidebarInset,
+  useSidebar,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarSeparator,
+  SidebarMenuSeparator,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import {
@@ -38,35 +44,41 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
+  DropdownMenuSeparator as DropdownSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Logo } from '@/components/icons';
 import { useUser, useAuth } from '@/firebase';
-import { useRouter } from 'next/navigation';
 import { AppProvider } from '@/app/_providers/AppProvider';
-import { useAppContext } from '@/app/_providers/AppContext';
-import { cn } from '@/lib/utils';
 
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/today', label: 'Mi Día', icon: Sun },
-  { href: '/habits', label: 'Hábitos', icon: Repeat },
-  { href: '/routines', label: 'Rutinas', icon: ClipboardList },
-  { href: '/tasks', label: 'Tareas', icon: SquareCheckBig },
-  { href: '/goals', label: 'Metas', icon: Target },
-  { href: '/mood-tracker', label: 'Ánimo', icon: Smile },
-  { href: '/finances', label: 'Mis Finanzas', icon: CircleDollarSign },
-  { href: '/expenses', label: 'Listas de Compra', icon: ShoppingCart },
-];
+const navItems = {
+  planning: [
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/today', label: 'Mi Día', icon: Sun },
+  ],
+  tracking: [
+    { href: '/habits', label: 'Hábitos', icon: Repeat },
+    { href: '/routines', label: 'Rutinas', icon: ClipboardList },
+    { href: '/tasks', label: 'Tareas', icon: SquareCheckBig },
+  ],
+  growth: [
+    { href: '/goals', label: 'Metas', icon: Target },
+    { href: '/mood-tracker', label: 'Ánimo', icon: Smile },
+  ],
+  finance: [
+    { href: '/finances', label: 'Mis Finanzas', icon: CircleDollarSign },
+    { href: '/expenses', label: 'Listas de Compra', icon: ShoppingCart },
+  ],
+};
 
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   const userAvatar = PlaceHolderImages.find(
     (img) => img.id === 'default-user-avatar'
@@ -105,22 +117,64 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
           </div>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarMenu>
-            {navItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <Link href={item.href} className="w-full">
-                  <SidebarMenuButton tooltip={item.label}>
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
+            <SidebarMenu>
+                <SidebarGroup>
+                    <SidebarMenuSeparator>Planificación</SidebarMenuSeparator>
+                    {navItems.planning.map((item) => (
+                      <SidebarMenuItem key={item.href}>
+                        <Link href={item.href} className="w-full">
+                          <SidebarMenuButton tooltip={item.label} isActive={pathname === item.href}>
+                            <item.icon />
+                            <span>{item.label}</span>
+                          </SidebarMenuButton>
+                        </Link>
+                      </SidebarMenuItem>
+                    ))}
+                </SidebarGroup>
+                 <SidebarGroup>
+                    <SidebarMenuSeparator>Seguimiento</SidebarMenuSeparator>
+                    {navItems.tracking.map((item) => (
+                      <SidebarMenuItem key={item.href}>
+                        <Link href={item.href} className="w-full">
+                          <SidebarMenuButton tooltip={item.label} isActive={pathname.startsWith(item.href)}>
+                            <item.icon />
+                            <span>{item.label}</span>
+                          </SidebarMenuButton>
+                        </Link>
+                      </SidebarMenuItem>
+                    ))}
+                </SidebarGroup>
+                <SidebarGroup>
+                    <SidebarMenuSeparator>Crecimiento</SidebarMenuSeparator>
+                    {navItems.growth.map((item) => (
+                      <SidebarMenuItem key={item.href}>
+                        <Link href={item.href} className="w-full">
+                           <SidebarMenuButton tooltip={item.label} isActive={pathname.startsWith(item.href)}>
+                            <item.icon />
+                            <span>{item.label}</span>
+                          </SidebarMenuButton>
+                        </Link>
+                      </SidebarMenuItem>
+                    ))}
+                </SidebarGroup>
+                 <SidebarGroup>
+                    <SidebarMenuSeparator>Finanzas</SidebarMenuSeparator>
+                    {navItems.finance.map((item) => (
+                      <SidebarMenuItem key={item.href}>
+                        <Link href={item.href} className="w-full">
+                           <SidebarMenuButton tooltip={item.label} isActive={pathname.startsWith(item.href)}>
+                            <item.icon />
+                            <span>{item.label}</span>
+                          </SidebarMenuButton>
+                        </Link>
+                      </SidebarMenuItem>
+                    ))}
+                </SidebarGroup>
+            </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
           <Link href="/settings">
-            <SidebarMenuButton tooltip="Configuración">
+            <SidebarMenuButton tooltip="Configuración" isActive={pathname.startsWith('/settings')}>
               <Settings />
               <span>Configuración</span>
             </SidebarMenuButton>
@@ -163,12 +217,12 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>{user.displayName || user.email}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
+                <DropdownSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/settings">Configuración</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>Soporte</DropdownMenuItem>
-                <DropdownMenuSeparator />
+                <DropdownSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Cerrar sesión
@@ -192,5 +246,3 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </AppProvider>
     )
 }
-
-    
