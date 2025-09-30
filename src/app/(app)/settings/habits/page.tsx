@@ -19,25 +19,22 @@ export default function HabitSettingsPage() {
 
   const combinedHabitTemplates = useMemo(() => {
     if (presetHabitsLoading || habitsLoading) return [];
-    
-    // Start with a clone of preset habits
-    const allTemplates = [...presetHabits];
-    
-    // Create templates from user-created habits (those without a presetHabitId)
+
+    const allTemplates = [...presetHabits].map(p => ({ ...p, isUserCreated: false }));
+
     const userCreatedHabitsAsTemplates = (allHabits || [])
         .filter(h => !h.presetHabitId) 
         .map(h => ({
-            id: `user-${h.id}`, // A unique ID for the template view
+            id: `user-${h.id}`,
             name: h.name,
             icon: h.icon,
             frequency: h.frequency,
             category: h.category,
             description: "Hábito creado por ti.",
             isUserCreated: true,
-            originalId: h.id // Keep track of the original DB id
+            originalId: h.id 
         }));
 
-    // Add user-created templates if they don't already exist in the presets by name/category
     userCreatedHabitsAsTemplates.forEach(userHabit => {
         if (!allTemplates.some(t => t.name === userHabit.name && t.category === userHabit.category)) {
             allTemplates.push(userHabit);
@@ -49,7 +46,6 @@ export default function HabitSettingsPage() {
 
 
   const groupedHabits = useMemo(() => {
-    if (!combinedHabitTemplates) return {};
     return combinedHabitTemplates.reduce((acc, habit) => {
       const category = habit.category || 'Sin Categoría';
       if (!acc[category]) acc[category] = [];
@@ -62,7 +58,6 @@ export default function HabitSettingsPage() {
     if (!user || !firestore || !allHabits) return;
 
     if (isActive) {
-        // DEACTIVATE: Find the user's habit and delete it.
         const habitToDelete = allHabits.find(h => 
             habitTemplate.isUserCreated 
                 ? h.id === habitTemplate.originalId 
@@ -74,7 +69,6 @@ export default function HabitSettingsPage() {
             await deleteDocumentNonBlocking(habitRef);
         }
     } else {
-        // ACTIVATE: Create a new habit for the user from the template.
         const newHabit = {
             name: habitTemplate.name,
             icon: habitTemplate.icon,
@@ -85,7 +79,6 @@ export default function HabitSettingsPage() {
             createdAt: serverTimestamp(),
             lastCompletedAt: null,
             userId: user.uid,
-            // Link to the preset ID if it's not a user-created habit
             presetHabitId: habitTemplate.isUserCreated ? null : habitTemplate.id, 
         };
         const habitsColRef = collection(firestore, 'users', user.uid, 'habits');
@@ -97,8 +90,8 @@ export default function HabitSettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Configurar Hábitos Preestablecidos"
-        description="Activa o desactiva los hábitos sugeridos para personalizar tu experiencia."
+        title="Configurar Biblioteca de Hábitos"
+        description="Activa o desactiva los hábitos sugeridos y los que has creado para personalizar tu experiencia."
       >
         <Button variant="outline" asChild>
           <Link href="/habits">
@@ -119,8 +112,6 @@ export default function HabitSettingsPage() {
               </h2>
               <div className="grid gap-4 md:grid-cols-2">
                 {groupedHabits[category].map((habit: any) => {
-                    // An habit is active if it exists in the user's `allHabits` collection.
-                    // We check either by its original ID (if user-created) or by the preset ID it's linked to.
                     const isActive = allHabits?.some(h => 
                         habit.isUserCreated 
                             ? h.id === habit.originalId 
