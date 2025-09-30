@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -178,16 +177,24 @@ export default function RoutinesPage() {
   return (
     <>
       <div className="flex flex-col gap-6">
-        <PageHeader
-          title="RUTINAS"
-          description="Crea y sigue tus rutinas diarias para construir consistencia."
-          motivation={motivation}
-        >
-          <Button onClick={() => handleOpenDialog()}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Crear Rutina
-          </Button>
-        </PageHeader>
+        <Card>
+            <CardHeader>
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div className="flex-1 space-y-2">
+                        <h1 className="text-2xl font-bold tracking-tight uppercase sm:text-3xl">
+                        RUTINAS
+                        </h1>
+                        <p className="text-muted-foreground">Crea y sigue tus rutinas diarias para construir consistencia.</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                         <Button onClick={() => handleOpenDialog()}>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Crear Rutina
+                        </Button>
+                    </div>
+                </div>
+            </CardHeader>
+        </Card>
 
         <Tabs defaultValue="routines">
           <TabsList className="grid w-full grid-cols-2">
@@ -382,3 +389,5 @@ export default function RoutinesPage() {
     </>
   );
 }
+
+    
