@@ -59,7 +59,7 @@ export function checkHabitStreak(habit: any) {
     const lastCompletedDate = habit.lastCompletedAt ? (habit.lastCompletedAt as Timestamp).toDate() : null;
 
     // If the habit was already completed today, no need to check/update streak.
-    if (lastCompletedDate && isSameDay(lastCompletedDate, today)) {
+    if (lastCompletedDate && isHabitCompletedToday(habit)) {
         return null;
     }
 

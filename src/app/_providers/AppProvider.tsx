@@ -9,7 +9,6 @@ import { isHabitCompletedToday, calculateStreak, checkHabitStreak } from '@/lib/
 import { Button } from '@/components/ui/button';
 import { Timer, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import presetHabitsData from '@/lib/preset-habits.json';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -46,7 +45,7 @@ type Action =
     | { type: 'SET_ACTIVE_SESSION'; payload: ActiveSession | null }
     | { type: 'SET_ELAPSED_TIME'; payload: number };
 
-const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'longestCurrentStreak' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'totalStats' | 'categoryStats' | 'weeklyTaskStats' | 'pendingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' > = {
+const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'longestCurrentStreak' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'totalStats' | 'categoryStats' | 'weeklyTaskStats' | 'pendingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' > = {
     allHabits: null,
     routines: null,
     tasks: null,
@@ -58,7 +57,7 @@ const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggle
     recurringExpenses: null,
     recurringIncomes: null,
     timeLogs: null,
-    presetHabits: presetHabitsData.presetHabits,
+    presetHabits: [],
     habitsLoading: true,
     routinesLoading: true,
     tasksLoading: true,
@@ -70,7 +69,6 @@ const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggle
     recurringExpensesLoading: true,
     recurringIncomesLoading: true,
     timeLogsLoading: true,
-    presetHabitsLoading: false,
     currentMonth: new Date(),
     activeSession: null,
     elapsedTime: 0,
@@ -243,7 +241,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const habitRef = doc(firestore, 'users', user.uid, 'habits', habitId);
 
         if (isHabitCompletedToday(habit)) {
-            const updatedStreak = { ...habit.previousStreak };
              updateDocumentNonBlocking(habitRef, { 
                 lastCompletedAt: habit.previousLastCompletedAt ?? null,
                 currentStreak: habit.previousStreak ?? 0,
@@ -254,7 +251,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 lastCompletedAt: Timestamp.now(),
                 ...streakData,
                 previousStreak: habit.currentStreak || 0,
-                previousLastCompletedAt: habit.lastCompletedAt,
+                previousLastCompletedAt: habit.lastCompletedAt ?? null,
             });
         }
     };
@@ -680,6 +677,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         recurringIncomesLoading,
         timeLogs,
         timeLogsLoading,
+        presetHabitsLoading: false,
         analyticsLoading,
         groupedHabits,
         dailyHabits,
