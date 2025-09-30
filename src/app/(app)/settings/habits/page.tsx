@@ -4,7 +4,7 @@
 import { useState, useMemo } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { useAppContext } from '@/app/_providers/AppContext';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
@@ -15,26 +15,29 @@ import { ArrowLeft } from 'lucide-react';
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
 
 export default function HabitSettingsPage() {
-  const { firestore, user, presetHabits, presetHabitsLoading, allHabits } = useAppContext();
+  const { firestore, user, presetHabits, allHabits, habitsLoading, presetHabitsLoading } = useAppContext();
 
   const combinedHabitTemplates = useMemo(() => {
-    if (!presetHabits || !allHabits) return [];
+    if (presetHabitsLoading || habitsLoading) return [];
     
+    // Start with a clone of preset habits
     const allTemplates = [...presetHabits];
-    const userCreatedHabitsAsTemplates = allHabits
-        .filter(h => !h.presetHabitId) // Only habits created from scratch
+    
+    // Create templates from user-created habits (those without a presetHabitId)
+    const userCreatedHabitsAsTemplates = (allHabits || [])
+        .filter(h => !h.presetHabitId) 
         .map(h => ({
-            id: `user-${h.id}`, // Create a unique ID for the template view
+            id: `user-${h.id}`, // A unique ID for the template view
             name: h.name,
             icon: h.icon,
             frequency: h.frequency,
             category: h.category,
             description: "Hábito creado por ti.",
             isUserCreated: true,
-            originalId: h.id
+            originalId: h.id // Keep track of the original DB id
         }));
 
-    // Add user-created habits, avoiding duplicates by name within the same category
+    // Add user-created templates if they don't already exist in the presets by name/category
     userCreatedHabitsAsTemplates.forEach(userHabit => {
         if (!allTemplates.some(t => t.name === userHabit.name && t.category === userHabit.category)) {
             allTemplates.push(userHabit);
@@ -42,7 +45,7 @@ export default function HabitSettingsPage() {
     });
 
     return allTemplates;
-  }, [presetHabits, allHabits]);
+  }, [presetHabits, allHabits, presetHabitsLoading, habitsLoading]);
 
 
   const groupedHabits = useMemo(() => {
@@ -55,53 +58,38 @@ export default function HabitSettingsPage() {
     }, {} as { [key: string]: any[] });
   }, [combinedHabitTemplates]);
   
-  const handleTogglePresetHabit = async (habitTemplate: any, isActive: boolean) => {
-    if (!user || !firestore) return;
+  const handleToggleHabit = async (habitTemplate: any, isActive: boolean) => {
+    if (!user || !firestore || !allHabits) return;
 
     if (isActive) {
-        // Deactivate: Find user's habit and delete it
-        const habitIdToDelete = habitTemplate.isUserCreated 
-            ? habitTemplate.originalId 
-            : allHabits?.find(h => h.presetHabitId === habitTemplate.id)?.id;
+        // DEACTIVATE: Find the user's habit and delete it.
+        const habitToDelete = allHabits.find(h => 
+            habitTemplate.isUserCreated 
+                ? h.id === habitTemplate.originalId 
+                : h.presetHabitId === habitTemplate.id
+        );
         
-        if (habitIdToDelete) {
-            const habitRef = doc(firestore, 'users', user.uid, 'habits', habitIdToDelete);
+        if (habitToDelete) {
+            const habitRef = doc(firestore, 'users', user.uid, 'habits', habitToDelete.id);
             await deleteDocumentNonBlocking(habitRef);
         }
     } else {
-        // Activate: Create a new habit for the user from the template
-        if(habitTemplate.isUserCreated){
-             // If it's a user habit that was deleted, we "re-create" it
-             const reCreatedHabit = {
-                name: habitTemplate.name,
-                icon: habitTemplate.icon,
-                frequency: habitTemplate.frequency,
-                category: habitTemplate.category,
-                currentStreak: 0,
-                longestStreak: 0,
-                createdAt: serverTimestamp(),
-                lastCompletedAt: null,
-                userId: user.uid,
-                presetHabitId: null, // It's a user habit, not from a global preset
-            };
-            const habitsColRef = collection(firestore, 'users', user.uid, 'habits');
-            await addDocumentNonBlocking(habitsColRef, reCreatedHabit);
-        } else {
-            const newHabit = {
-                name: habitTemplate.name,
-                icon: habitTemplate.icon,
-                frequency: habitTemplate.frequency,
-                category: habitTemplate.category,
-                currentStreak: 0,
-                longestStreak: 0,
-                createdAt: serverTimestamp(),
-                lastCompletedAt: null,
-                userId: user.uid,
-                presetHabitId: habitTemplate.id, // Link to the preset
-            };
-            const habitsColRef = collection(firestore, 'users', user.uid, 'habits');
-            await addDocumentNonBlocking(habitsColRef, newHabit);
-        }
+        // ACTIVATE: Create a new habit for the user from the template.
+        const newHabit = {
+            name: habitTemplate.name,
+            icon: habitTemplate.icon,
+            frequency: habitTemplate.frequency,
+            category: habitTemplate.category,
+            currentStreak: 0,
+            longestStreak: 0,
+            createdAt: serverTimestamp(),
+            lastCompletedAt: null,
+            userId: user.uid,
+            // Link to the preset ID if it's not a user-created habit
+            presetHabitId: habitTemplate.isUserCreated ? null : habitTemplate.id, 
+        };
+        const habitsColRef = collection(firestore, 'users', user.uid, 'habits');
+        await addDocumentNonBlocking(habitsColRef, newHabit);
     }
   };
 
@@ -120,7 +108,7 @@ export default function HabitSettingsPage() {
         </Button>
       </PageHeader>
       
-      {(presetHabitsLoading || !allHabits) && <p>Cargando biblioteca de hábitos...</p>}
+      {(presetHabitsLoading || habitsLoading) && <p>Cargando biblioteca de hábitos...</p>}
 
       <div className="space-y-8">
         {habitCategories.map(category => (
@@ -131,9 +119,13 @@ export default function HabitSettingsPage() {
               </h2>
               <div className="grid gap-4 md:grid-cols-2">
                 {groupedHabits[category].map((habit: any) => {
-                    const isActive = habit.isUserCreated
-                        ? allHabits?.some(h => h.id === habit.originalId)
-                        : allHabits?.some(h => h.presetHabitId === habit.id);
+                    // An habit is active if it exists in the user's `allHabits` collection.
+                    // We check either by its original ID (if user-created) or by the preset ID it's linked to.
+                    const isActive = allHabits?.some(h => 
+                        habit.isUserCreated 
+                            ? h.id === habit.originalId 
+                            : h.presetHabitId === habit.id
+                    );
                     return (
                         <Card key={habit.id}>
                             <CardHeader className="flex flex-row items-center justify-between pb-4">
@@ -146,7 +138,7 @@ export default function HabitSettingsPage() {
                                 </div>
                                 <Switch
                                     checked={!!isActive}
-                                    onCheckedChange={() => handleTogglePresetHabit(habit, !!isActive)}
+                                    onCheckedChange={() => handleToggleHabit(habit, !!isActive)}
                                     aria-label={`Activar hábito ${habit.name}`}
                                 />
                             </CardHeader>
@@ -161,5 +153,3 @@ export default function HabitSettingsPage() {
     </div>
   );
 }
-
-    
