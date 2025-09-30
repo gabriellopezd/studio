@@ -45,12 +45,13 @@ type Action =
     | { type: 'SET_ACTIVE_SESSION'; payload: ActiveSession | null }
     | { type: 'SET_ELAPSED_TIME'; payload: number };
 
-const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'longestCurrentStreak' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'totalStats' | 'categoryStats' | 'weeklyTaskStats' | 'pendingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'currentMonthMoods' | 'currentMonthMoodsLoading'> = {
+const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'longestCurrentStreak' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'totalStats' | 'categoryStats' | 'weeklyTaskStats' | 'pendingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits'> = {
     allHabits: null,
     routines: null,
     tasks: null,
     goals: null,
     moods: null,
+    currentMonthMoods: null,
     transactions: null,
     budgets: null,
     shoppingLists: null,
@@ -62,6 +63,7 @@ const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggle
     tasksLoading: true,
     goalsLoading: true,
     moodsLoading: true,
+    currentMonthMoodsLoading: true,
     transactionsLoading: true,
     budgetsLoading: true,
     shoppingListsLoading: true,
@@ -574,8 +576,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Mood Selectors
     const { feelingStats, influenceStats, todayMood } = useMemo(() => {
-        const moodSource = moods ?? []; // For calendar view stats
-        const todayMoodSource = currentMonthMoods ?? []; // For today's mood
+        const moodSource = state.moods ?? [];
+        const todayMoodSource = state.currentMonthMoods ?? [];
 
         const feelings = moodSource.flatMap(m => m.feelings).reduce((acc, f) => { acc[f] = (acc[f] || 0) + 1; return acc; }, {} as Record<string, number>);
         const influences = moodSource.flatMap(m => m.influences).reduce((acc, i) => { acc[i] = (acc[i] || 0) + 1; return acc; }, {} as Record<string, number>);
@@ -587,7 +589,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             influenceStats: (Object.entries(influences) as [string, number][]).sort((a, b) => b[1] - a[1]).slice(0, 5),
             todayMood: today,
         };
-    }, [moods, currentMonthMoods]);
+    }, [state.moods, state.currentMonthMoods]);
     
     // Finance/Expenses Selectors
     const { currentMonthName, currentMonthYear, monthlyIncome, monthlyExpenses, balance, budget503020, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, expenseCategories, incomeCategories, categoriesWithoutBudget, sortedLists, spendingByCategory, budgetAccuracy, spendingByFocus } = useMemo(() => {
@@ -670,6 +672,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         dispatch({ type: 'SET_DATA', payload: { key: 'recurringIncomes', data: recurringIncomes, loading: recurringIncomesLoading } });
     }, [recurringIncomes, recurringIncomesLoading]);
 
+    useEffect(() => {
+        dispatch({ type: 'SET_DATA', payload: { key: 'transactions', data: transactions, loading: transactionsLoading } });
+    }, [transactions, transactionsLoading]);
+
+    useEffect(() => {
+        dispatch({ type: 'SET_DATA', payload: { key: 'moods', data: moods, loading: moodsLoading } });
+    }, [moods, moodsLoading]);
+
+    useEffect(() => {
+        dispatch({ type: 'SET_DATA', payload: { key: 'currentMonthMoods', data: currentMonthMoods, loading: currentMonthMoodsLoading } });
+    }, [currentMonthMoods, currentMonthMoodsLoading]);
+    
+    useEffect(() => {
+        dispatch({ type: 'SET_DATA', payload: { key: 'urgentTasks', data: urgentTasks, loading: urgentTasksLoading } });
+    }, [urgentTasks, urgentTasksLoading]);
 
     const value: AppState = {
         ...state,
@@ -685,8 +702,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         goalsLoading,
         moods: moods ?? [],
         moodsLoading,
-        currentMonthMoods,
-        currentMonthMoodsLoading,
+        currentMonthMoods: state.currentMonthMoods,
+        currentMonthMoodsLoading: state.currentMonthMoodsLoading,
         transactions: transactions ?? [],
         transactionsLoading,
         budgets,
@@ -759,22 +776,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         stopSession,
     };
 
-    useEffect(() => {
-        dispatch({ type: 'SET_DATA', payload: { key: 'transactions', data: transactions, loading: transactionsLoading } });
-    }, [transactions, transactionsLoading]);
-
-    useEffect(() => {
-        dispatch({ type: 'SET_DATA', payload: { key: 'moods', data: moods, loading: moodsLoading } });
-    }, [moods, moodsLoading]);
-
-    useEffect(() => {
-        dispatch({ type: 'SET_DATA', payload: { key: 'currentMonthMoods', data: currentMonthMoods, loading: currentMonthMoodsLoading } });
-    }, [currentMonthMoods, currentMonthMoodsLoading]);
-
-    useEffect(() => {
-        dispatch({ type: 'SET_DATA', payload: { key: 'urgentTasks', data: urgentTasks, loading: urgentTasksLoading } });
-    }, [urgentTasks, urgentTasksLoading]);
-
     return (
         <AppContext.Provider value={value}>
             {children}
@@ -786,3 +787,5 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
+
+    

@@ -45,8 +45,8 @@ export interface AppState {
     routines: any[] | null;
     tasks: any[] | null;
     goals: any[] | null;
-    moods: any[] | null; // For calendar view
-    currentMonthMoods: any[] | null; // For today's view
+    moods: any[] | null;
+    currentMonthMoods: any[] | null;
     transactions: any[] | null;
     budgets: any[] | null;
     shoppingLists: any[] | null;
@@ -152,3 +152,5 @@ export const useAppContext = () => {
     }
     return context;
 };
+
+    
