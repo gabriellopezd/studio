@@ -655,6 +655,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ...(budgets?.map(b => b.categoryName) ?? []), 
             ...(transactions?.filter(t => t.type === 'expense').map(t => t.category) ?? [])
         ])].filter(Boolean);
+
         const incCats = [...new Set(["Salario", "Bonificación", "Otro", ...(transactions?.filter(t => t.type === 'income').map(t => t.category) ?? [])])].filter(Boolean);
         const catsNoBudget = expCats.filter(cat => !budgets?.some(b => b.categoryName === cat));
 
@@ -784,7 +785,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         receivedRecurringIncomes,
         pendingExpensesTotal,
         expenseCategories,
-        incCats,
+        incomeCategories,
         categoriesWithoutBudget,
         sortedLists,
         spendingByCategory,
