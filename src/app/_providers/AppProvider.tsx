@@ -215,7 +215,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const handleToggleHabit = (habitId: string) => {
         if (!user || !allHabits || !firestore) return;
-        const habit = allHabit.find((h) => h.id === habitId);
+        const habit = allHabits.find((h) => h.id === habitId);
         if (!habit) return;
         const habitRef = doc(firestore, 'users', user.uid, 'habits', habitId);
 
@@ -738,5 +738,3 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
-
-    
