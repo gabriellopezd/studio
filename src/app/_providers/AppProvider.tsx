@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useReducer, useEffect, useMemo, useState, useCallback } from 'react';
@@ -648,7 +649,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const pendingETotal = pendingRecurringTotal + pendingShoppingTotal;
 
         
-        const expCats = [...new Set(["Arriendo", "Servicios", "Transporte", "Salud", ...(budgets?.map(b => b.categoryName) ?? []), ...(transactions?.filter(t => t.type === 'expense').map(t => t.category) ?? [])])].filter(Boolean);
+        const expCats = [...new Set([
+            "Arriendo", "Servicios", "Transporte", "Salud", "Hogar", "Impuestos", 
+            "Deudas", "Comida", "Deseos", "Suscripciones",
+            ...(budgets?.map(b => b.categoryName) ?? []), 
+            ...(transactions?.filter(t => t.type === 'expense').map(t => t.category) ?? [])
+        ])].filter(Boolean);
         const incCats = [...new Set(["Salario", "Bonificación", "Otro", ...(transactions?.filter(t => t.type === 'income').map(t => t.category) ?? [])])].filter(Boolean);
         const catsNoBudget = expCats.filter(cat => !budgets?.some(b => b.categoryName === cat));
 
