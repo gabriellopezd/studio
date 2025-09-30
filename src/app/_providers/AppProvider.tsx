@@ -206,7 +206,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             where('date', '>=', start.toISOString()),
             where('date', '<=', end.toISOString())
         );
-    }, [user, firestore, state.currentMonth, state.moods]); // Add state.moods dependency
+    }, [user, firestore, state.currentMonth]);
     const { data: moods, isLoading: moodsLoading } = useCollection(moodsQuery);
 
     const todayMoodQuery = useMemo(() => {
@@ -786,4 +786,3 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 };
 
-    
