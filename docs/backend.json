@@ -99,6 +99,10 @@
           "type": "number",
           "description": "The streak count before the last completion, used for undo functionality."
         },
+        "previousLongestStreak": {
+            "type": "number",
+            "description": "The longest streak count before the last completion, used for undo functionality."
+        },
         "previousLastCompletedAt": {
           "type": [
             "string",
@@ -106,6 +110,10 @@
           ],
           "format": "date-time",
           "description": "The completion timestamp before the last one, used for undo functionality."
+        },
+        "lastTimeLogId": {
+            "type": ["string", "null"],
+            "description": "The ID of the last TimeLog entry associated with the last completion."
         },
         "category": {
           "type": "string",
@@ -1178,4 +1186,6 @@
     "reasoning": "The Firestore structure is designed to ensure data isolation and efficient querying, leveraging subcollections for user-specific data and denormalization for authorization independence. The core principle is that all data related to a user is stored under their respective user document, fostering clear ownership and simplifies security rules. This approach avoids complex queries across collections and maintains data integrity. The design adheres to structural segregation by keeping data with similar access needs in the same collection.\n\nAuthorization Independence is achieved by storing all data belonging to a user under the `/users/{userId}` path. This allows security rules to be written based on `request.auth.uid` and the path, without needing to `get()` data from other documents.\n\nThe data structure supports required QAPs (Rules are not Filters) by employing path-based ownership and structural segregation, allowing secure `list` operations, so a user can only list documents under its user id, not other user's documents."
   }
 }
+    
+
     

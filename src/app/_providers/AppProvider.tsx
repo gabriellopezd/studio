@@ -256,11 +256,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const habitRef = doc(firestore, 'users', user.uid, 'habits', habitId);
 
         if (isHabitCompletedToday(habit)) {
-             updateDocumentNonBlocking(habitRef, { 
+             const batch = writeBatch(firestore);
+             batch.update(habitRef, { 
                 lastCompletedAt: habit.previousLastCompletedAt ?? null,
                 currentStreak: habit.previousStreak ?? 0,
                 longestStreak: habit.previousLongestStreak ?? habit.longestStreak ?? 0,
+                lastTimeLogId: null,
             });
+
+            // If there was a timelog associated with this completion, delete it.
+            if (habit.lastTimeLogId) {
+                const timeLogRef = doc(firestore, 'users', user.uid, 'timeLogs', habit.lastTimeLogId);
+                batch.delete(timeLogRef);
+            }
+            batch.commit();
         } else {
             const streakData = calculateStreak(habit);
             updateDocumentNonBlocking(habitRef, { 
@@ -420,13 +429,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         dispatch({ type: 'SET_ELAPSED_TIME', payload: 0 });
     };
 
-    const stopSession = () => {
+    const stopSession = async () => {
         if (!state.activeSession || !user || !firestore) return;
 
         const durationSeconds = Math.floor((Date.now() - state.activeSession.startTime) / 1000);
 
         const timeLogsColRef = collection(firestore, 'users', user.uid, 'timeLogs');
-        addDocumentNonBlocking(timeLogsColRef, {
+        const timeLogRef = await addDocumentNonBlocking(timeLogsColRef, {
             referenceId: state.activeSession.id,
             referenceType: state.activeSession.type,
             startTime: Timestamp.fromMillis(state.activeSession.startTime),
@@ -437,9 +446,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
 
         if (state.activeSession.type === 'habit') {
-            handleToggleHabit(state.activeSession.id);
-        } else {
-             handleToggleTask(state.activeSession.id, false);
+            const habitRef = doc(firestore, 'users', user.uid, 'habits', state.activeSession.id);
+            const habit = allHabits?.find(h => h.id === state.activeSession!.id);
+            if (habit) {
+                 const streakData = calculateStreak(habit);
+                 updateDocumentNonBlocking(habitRef, { 
+                    lastCompletedAt: Timestamp.now(),
+                    ...streakData,
+                    previousStreak: habit.currentStreak || 0,
+                    previousLongestStreak: habit.longestStreak || 0,
+                    previousLastCompletedAt: habit.lastCompletedAt ?? null,
+                    lastTimeLogId: timeLogRef?.id ?? null,
+                });
+            }
+        } else { // It's a task
+             const taskRef = doc(firestore, 'users', user.uid, 'tasks', state.activeSession.id);
+             updateDocumentNonBlocking(taskRef, { 
+                isCompleted: true,
+                totalTimeSpent: increment(durationSeconds)
+             });
         }
 
         dispatch({ type: 'SET_ACTIVE_SESSION', payload: null });
@@ -786,5 +811,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
+
+    
 
     

@@ -10,6 +10,7 @@ export interface Habit {
     icon: string;
     frequency: string;
     category: string;
+    lastTimeLogId?: string | null;
 }
 
 export interface Task {
@@ -150,3 +151,5 @@ export const useAppContext = () => {
     }
     return context;
 };
+
+    
