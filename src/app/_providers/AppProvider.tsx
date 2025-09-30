@@ -117,6 +117,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { firestore, user } = useFirebase();
     const [state, dispatch] = useReducer(appReducer, initialState);
     const [streaksChecked, setStreaksChecked] = useState(false);
+    const [presetsInitialized, setPresetsInitialized] = useState(false);
     const { toast } = useToast();
     
     // --- Data Fetching using useCollection ---
@@ -247,6 +248,69 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             setStreaksChecked(true);
         }
     }, [user, firestore, allHabits, habitsLoading, streaksChecked]);
+
+    // --- Preset Categories Initialization ---
+    useEffect(() => {
+        const initializePresets = async () => {
+            if (!user || !firestore || shoppingListsLoading || budgetsLoading || presetsInitialized) {
+                return;
+            }
+
+            // Mark as initialized to prevent re-running
+            setPresetsInitialized(true);
+
+            const existingListNames = shoppingLists?.map(l => l.name) || [];
+            const existingBudgetNames = budgets?.map(b => b.categoryName) || [];
+
+            const batch = writeBatch(firestore);
+            let writesMade = false;
+
+            PRESET_EXPENSE_CATEGORIES.forEach((categoryName, index) => {
+                // Check and create shopping list if needed
+                if (!existingListNames.includes(categoryName)) {
+                    const listsColRef = collection(firestore, 'users', user.uid, 'shoppingLists');
+                    const listDocRef = doc(listsColRef);
+                    const budgetFocus = ['Arriendo', 'Servicios', 'Transporte', 'Salud', 'Hogar', 'Impuestos', 'Comida'].includes(categoryName)
+                        ? 'Necesidades'
+                        : ['Deudas', 'Ahorros'].includes(categoryName) ? 'Ahorros y Deudas' : 'Deseos';
+                    
+                    batch.set(listDocRef, {
+                        name: categoryName,
+                        budgetFocus: budgetFocus,
+                        createdAt: serverTimestamp(),
+                        items: [],
+                        userId: user.uid,
+                        order: (shoppingLists?.length || 0) + index,
+                    });
+                    writesMade = true;
+                }
+
+                // Check and create budget if needed
+                if (!existingBudgetNames.includes(categoryName)) {
+                    const budgetsColRef = collection(firestore, 'users', user.uid, 'budgets');
+                    const budgetDocRef = doc(budgetsColRef);
+                    batch.set(budgetDocRef, {
+                        categoryName: categoryName,
+                        monthlyLimit: 100000, // Default limit
+                        currentSpend: 0,
+                        userId: user.uid,
+                    });
+                    writesMade = true;
+                }
+            });
+
+            if (writesMade) {
+                try {
+                    await batch.commit();
+                } catch (error) {
+                    console.error("Error initializing preset categories:", error);
+                }
+            }
+        };
+
+        initializePresets();
+
+    }, [user, firestore, shoppingLists, budgets, shoppingListsLoading, budgetsLoading, presetsInitialized]);
 
 
     // --- Actions ---
@@ -640,14 +704,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const wantsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((s, t) => s + t.amount, 0) ?? 0;
         const savingsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((s, t) => s + t.amount, 0) ?? 0;
         
-        const b503020 = income > 0 ? {
+        const b503020 = {
             needs: { budget: needsBudget, spend: needsSpend, progress: (needsSpend / (needsBudget || 1)) * 100 },
             wants: { budget: wantsBudget, spend: wantsSpend, progress: (wantsSpend / (wantsBudget || 1)) * 100 },
             savings: { budget: savingsBudget, spend: savingsSpend, progress: (savingsSpend / (savingsBudget || 1)) * 100 },
-        } : {
-            needs: { budget: 0, spend: needsSpend, progress: 0 },
-            wants: { budget: 0, spend: wantsSpend, progress: 0 },
-            savings: { budget: 0, spend: savingsSpend, progress: 0 },
         };
         
         const pendingRE = recurringExpenses?.filter(e => e.lastInstanceCreated !== monthYear) ?? [];
@@ -664,6 +724,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const expCats = [...new Set([
             ...PRESET_EXPENSE_CATEGORIES,
             ...(budgets?.map(b => b.categoryName) ?? []), 
+            ...(shoppingLists?.map(l => l.name) ?? []),
             ...(transactions?.filter(t => t.type === 'expense').map(t => t.category) ?? [])
         ])].filter(Boolean);
 
@@ -830,3 +891,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 };
 
+
+
+    
