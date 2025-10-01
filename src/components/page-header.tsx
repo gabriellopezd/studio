@@ -26,7 +26,7 @@ export default function PageHeader({
       {image?.imageUrl && (
         <Image
           src={image.imageUrl}
-          alt={description || `Fondo para ${title}`}
+          alt={image.description || `Fondo para ${title}`}
           data-ai-hint={image.imageHint}
           fill
           className="object-cover"

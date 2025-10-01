@@ -7,12 +7,12 @@ import {
   CheckCircle2,
   ListTodo,
   Smile,
-  Flame,
   Trophy,
   Timer,
   Check,
   Play,
   Square,
+  Flame,
 } from 'lucide-react';
 import PageHeader from '@/components/page-header';
 import {

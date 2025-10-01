@@ -6,12 +6,12 @@ import {
   CalendarDays,
   Heart,
   Wind,
-  Flame,
   Trophy,
   Activity,
   ListTodo,
   CheckCircle2,
   SquareCheck,
+  Flame,
 } from 'lucide-react';
 import {
   Card,

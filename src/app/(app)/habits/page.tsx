@@ -48,7 +48,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Check, Flame, MoreHorizontal, Pencil, PlusCircle, Trash2, Trophy, RotateCcw, Play, Square, CalendarDays, Settings } from 'lucide-react';
+import { Check, MoreHorizontal, Pencil, PlusCircle, Trash2, Trophy, RotateCcw, Play, Square, CalendarDays, Settings, Flame } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { isHabitCompletedToday } from '@/lib/habits';
 import { useAppContext } from '@/app/_providers/AppContext';
