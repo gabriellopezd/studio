@@ -252,20 +252,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // --- Preset Categories Initialization ---
     useEffect(() => {
         const initializePresets = async () => {
-            // Wait for user, firestore, and for data to be loaded.
-            if (!user || !firestore || shoppingListsLoading || budgetsLoading) {
-                return;
-            }
-
-            // Exit if we've already run this initialization.
             if (presetsInitialized) {
                 return;
             }
+            if (!user || !firestore || shoppingListsLoading || budgetsLoading) {
+                return;
+            }
             
-            // Mark as initialized immediately to prevent re-runs.
             setPresetsInitialized(true);
 
-            // Now that we know data is loaded, we can safely access it.
             const existingListNames = shoppingLists?.map(l => l.name) || [];
             const existingBudgetNames = budgets?.map(b => b.categoryName) || [];
 
@@ -273,7 +268,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             let writesMade = false;
 
             PRESET_EXPENSE_CATEGORIES.forEach((categoryName, index) => {
-                // Check and create shopping list if needed
                 if (!existingListNames.includes(categoryName)) {
                     const listsColRef = collection(firestore, 'users', user.uid, 'shoppingLists');
                     const listDocRef = doc(listsColRef);
@@ -292,13 +286,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     writesMade = true;
                 }
 
-                // Check and create budget if needed
                 if (!existingBudgetNames.includes(categoryName)) {
                     const budgetsColRef = collection(firestore, 'users', user.uid, 'budgets');
                     const budgetDocRef = doc(budgetsColRef);
                     batch.set(budgetDocRef, {
                         categoryName: categoryName,
-                        monthlyLimit: 100000, // Default limit
+                        monthlyLimit: 100000, 
                         currentSpend: 0,
                         userId: user.uid,
                     });
@@ -311,7 +304,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     await batch.commit();
                 } catch (error) {
                     console.error("Error initializing preset categories:", error);
-                    // If it fails, reset the flag to allow a retry on next render.
                     setPresetsInitialized(false);
                 }
             }
@@ -711,15 +703,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const savingsBudget = income * 0.2;
         
         let b503020 = null;
-        if(income > 0) {
+        if (income > 0) {
             const needsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Necesidades').reduce((s, t) => s + t.amount, 0) ?? 0;
             const wantsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((s, t) => s + t.amount, 0) ?? 0;
             const savingsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((s, t) => s + t.amount, 0) ?? 0;
             
             b503020 = {
-                needs: { budget: needsBudget, spend: needsSpend, progress: (needsSpend / needsBudget) * 100 },
-                wants: { budget: wantsBudget, spend: wantsSpend, progress: (wantsSpend / wantsBudget) * 100 },
-                savings: { budget: savingsBudget, spend: savingsSpend, progress: (savingsSpend / savingsBudget) * 100 },
+                needs: { budget: needsBudget, spend: needsSpend, progress: (needsSpend / (needsBudget || 1)) * 100 },
+                wants: { budget: wantsBudget, spend: wantsSpend, progress: (wantsSpend / (wantsBudget || 1)) * 100 },
+                savings: { budget: savingsBudget, spend: savingsSpend, progress: (savingsSpend / (savingsBudget || 1)) * 100 },
             };
         } else {
             const needsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Necesidades').reduce((s, t) => s + t.amount, 0) ?? 0;
@@ -763,7 +755,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return acc;
         }, {'Necesidades':0, 'Deseos':0, 'Ahorros y Deudas':0}) ?? {}) as [string, number][]).map(([name, value]) => ({name, value})).filter(d => d.value > 0);
 
-        return { currentMonthName: monthName.charAt(0).toUpperCase() + monthName.slice(1), currentMonthYear: monthYear, monthlyIncome: income, monthlyExpenses: expenses, balance: bal, budget503020: b503020, pendingRecurringExpenses: pendingRE, paidRecurringExpenses: paidRE, pendingRecurringIncomes: pendingRI, receivedRecurringIncomes: receivedRI, pendingExpensesTotal: pendingETotal, expenseCategories: expCats, incomeCategories: incomeCategories, categoriesWithoutBudget: catsNoBudget, sortedLists: sorted, spendingByCategory: spendingByCat, budgetAccuracy: budgetAcc, spendingByFocus: spendingByF };
+        return { currentMonthName: monthName.charAt(0).toUpperCase() + monthName.slice(1), currentMonthYear: monthYear, monthlyIncome: income, monthlyExpenses: expenses, balance: bal, budget503020: b503020, pendingRecurringExpenses: pendingRE, paidRecurringExpenses: paidRE, pendingRecurringIncomes: pendingRI, receivedRecurringIncomes: receivedRI, pendingExpensesTotal: pendingETotal, expenseCategories: expCats, incomeCategories, categoriesWithoutBudget: catsNoBudget, sortedLists: sorted, spendingByCategory: spendingByCat, budgetAccuracy: budgetAcc, spendingByFocus: spendingByF };
     }, [transactions, recurringExpenses, recurringIncomes, shoppingLists, budgets, state.currentMonth]);
 
     useEffect(() => {
@@ -912,8 +904,3 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
-
-
-
-
-
