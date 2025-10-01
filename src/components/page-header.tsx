@@ -34,7 +34,7 @@ export default function PageHeader({
         />
       )}
       <div className={cn('absolute inset-0', image?.imageUrl && 'bg-black/50')} />
-      <div className={cn('relative w-full page-header-container', image?.imageUrl && 'text-primary-foreground')}>
+      <div className={cn('relative w-full page-header-container')} data-has-image={!!image}>
         <CardHeader>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="flex-1 space-y-1.5">
