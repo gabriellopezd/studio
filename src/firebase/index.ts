@@ -6,6 +6,10 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore'
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
+// This file is the central bridge between your Firebase project configuration and your application code.
+// It ensures that Firebase is initialized only once and provides the necessary SDKs (auth, firestore)
+// to the rest of the application through the provider system. This separation allows you to change
+// Firebase projects or configurations without altering your application's feature logic.
 export function initializeFirebase() {
   if (!getApps().length) {
     // Important! initializeApp() is called without any arguments because Firebase App Hosting
