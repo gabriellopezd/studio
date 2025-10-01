@@ -14,9 +14,9 @@
     },
     {
       "id": "dashboard-header",
-      "description": "A modern and clean desk setup representing productivity and well-being.",
-      "imageUrl": "https://images.unsplash.com/photo-1497032628192-86f99d791b7e?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wzNzE3ODF8MHwxfGFsbHx8fHx8fHx8fDE3MTI4NzcyOTR8&usqp=CAU",
-      "imageHint": "clean desk"
+      "description": "A serene and modern workspace with a laptop and a plant, evoking a sense of calm productivity.",
+      "imageUrl": "https://images.unsplash.com/photo-1516321497487-e288fb19713f?q=80&w=1200&auto=format&fit=crop",
+      "imageHint": "serene workspace"
     },
     {
       "id": "today-header",
@@ -38,9 +38,9 @@
     },
     {
       "id": "tasks-header",
-      "description": "A person writing on a checklist, symbolizing task management.",
-      "imageUrl": "https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wzNzE3ODF8MHwxfGFsbHx8fHx8fHx8fDE3MTI4NzcwMDF8&usqp=CAU",
-      "imageHint": "writing checklist"
+      "description": "A focused shot of a checklist on a clipboard, emphasizing task completion.",
+      "imageUrl": "https://images.unsplash.com/photo-1576495199011-bde171259248?q=80&w=1200&auto=format&fit=crop",
+      "imageHint": "checklist clipboard"
     },
     {
       "id": "goals-header",
@@ -56,9 +56,9 @@
     },
     {
       "id": "finances-header",
-      "description": "An image of coins and a plant, representing financial growth.",
-      "imageUrl": "https://images.unsplash.com/photo-1593672715438-d88a706299a5?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wzNzE3ODF8MHwxfGFsbHx8fHx8fHx8fDE3MTI4NzcxMjF8&usqp=CAU",
-      "imageHint": "financial growth"
+      "description": "A clean setup with a calculator, a notebook, and a coffee, symbolizing financial planning.",
+      "imageUrl": "https://images.unsplash.com/photo-1554224155-1696413565d3?q=80&w=1200&auto=format&fit=crop",
+      "imageHint": "financial planning"
     },
     {
       "id": "expenses-header",

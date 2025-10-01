@@ -42,6 +42,7 @@ import {
 import { useAppContext } from '@/app/_providers/AppContext';
 import Link from 'next/link';
 import { doc } from 'firebase/firestore';
+import { settingsHeaderImage } from '@/app/(app)/_lib/page-images';
 
 export default function SettingsPage() {
   const { user } = useUser();
@@ -49,7 +50,6 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { handleResetAllStreaks, handleResetTimeLogs, handleResetMoods, handleResetCategories } = useAppContext();
   const userAvatar = PlaceHolderImages.find((img) => img.id === 'default-user-avatar');
-  const headerImage = PlaceHolderImages.find((img) => img.id === 'settings-header');
   const { toast } = useToast();
 
   const [displayName, setDisplayName] = useState('');
@@ -115,8 +115,7 @@ export default function SettingsPage() {
       <PageHeader
         title="CONFIGURACIÓN"
         description="Gestiona tu perfil, cuenta y preferencias de la aplicación."
-        imageUrl={headerImage?.imageUrl}
-        imageHint={headerImage?.imageHint}
+        image={settingsHeaderImage}
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

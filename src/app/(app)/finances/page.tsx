@@ -96,7 +96,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/app/_providers/AppContext';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { financesHeaderImage } from '@/app/(app)/_lib/page-images';
 
 const motivationalQuotes = [
     "Tus finanzas son el reflejo de tus hábitos. ¡Constrúyelos sabiamente!",
@@ -165,7 +165,6 @@ export default function FinancesPage() {
   const [motivation, setMotivation] = useState('');
 
   const { toast } = useToast();
-  const headerImage = PlaceHolderImages.find((img) => img.id === 'finances-header');
   
   useEffect(() => {
     setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
@@ -547,8 +546,7 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
           title="MIS FINANZAS"
           description="Controla tus ingresos, gastos y presupuestos."
           motivation={motivation}
-          imageUrl={headerImage?.imageUrl}
-          imageHint={headerImage?.imageHint}
+          image={financesHeaderImage}
         >
           <Dialog open={isTransactionDialogOpen} onOpenChange={setTransactionDialogOpen}>
             <DialogTrigger asChild>

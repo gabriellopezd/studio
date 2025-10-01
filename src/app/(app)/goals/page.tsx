@@ -69,7 +69,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAppContext } from '@/app/_providers/AppContext';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { goalsHeaderImage } from '@/app/(app)/_lib/page-images';
 
 const motivationalQuotes = [
     "Una meta sin un plan es solo un deseo.",
@@ -99,8 +99,6 @@ export default function GoalsPage() {
   const [type, setType] = useState('generic');
   const [monthlyContribution, setMonthlyContribution] = useState('');
   const [motivation, setMotivation] = useState('');
-
-  const headerImage = PlaceHolderImages.find((img) => img.id === 'goals-header');
 
   useEffect(() => {
     setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
@@ -318,8 +316,7 @@ export default function GoalsPage() {
           title="METAS"
           description="Define y sigue el progreso de tus metas a largo plazo."
           motivation={motivation}
-          imageUrl={headerImage?.imageUrl}
-          imageHint={headerImage?.imageHint}
+          image={goalsHeaderImage}
         >
           <Button onClick={() => handleOpenDialog()}>
             <PlusCircle className="mr-2 h-4 w-4" />

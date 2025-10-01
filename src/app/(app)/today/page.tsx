@@ -30,7 +30,7 @@ import { isHabitCompletedToday } from '@/lib/habits';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/app/_providers/AppContext';
 import { TodaysMoodCard } from './_components/TodaysMoodCard';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { todayHeaderImage } from '@/app/(app)/_lib/page-images';
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
 
@@ -55,8 +55,6 @@ export default function TodayPage() {
   const [isClient, setIsClient] = useState(false);
   const [motivation, setMotivation] = useState('');
   const { allHabits, habitsLoading, urgentTasks, tasksLoading, activeSession, startSession, stopSession } = useAppContext();
-
-  const headerImage = PlaceHolderImages.find((img) => img.id === 'today-header');
 
   useEffect(() => {
     setIsClient(true);
@@ -104,8 +102,7 @@ export default function TodayPage() {
         title="Mi Día"
         description={isClient ? `Resumen de tu actividad para hoy, ${todayString}.` : 'Resumen de tu actividad para hoy.'}
         motivation={motivation}
-        imageUrl={headerImage?.imageUrl}
-        imageHint={headerImage?.imageHint}
+        image={todayHeaderImage}
       />
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         <div className="lg:col-span-2 flex flex-col gap-6">

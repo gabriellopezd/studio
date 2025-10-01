@@ -57,7 +57,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAppContext } from '@/app/_providers/AppContext';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { tasksHeaderImage } from '@/app/(app)/_lib/page-images';
 
 
 const taskCategories = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro"];
@@ -93,8 +93,6 @@ export default function TasksPage() {
   const [taskToEdit, setTaskToEdit] = useState<any | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<any | null>(null);
   
-  const headerImage = PlaceHolderImages.find((img) => img.id === 'tasks-header');
-
   useEffect(() => {
     setIsClient(true);
     setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
@@ -301,8 +299,7 @@ export default function TasksPage() {
             title="TAREAS"
             description="Organiza tus tareas y mantente enfocado."
             motivation={motivation}
-            imageUrl={headerImage?.imageUrl}
-            imageHint={headerImage?.imageHint}
+            image={tasksHeaderImage}
         >
             <Button onClick={() => handleOpenDialog()}>
                 <PlusCircle className="mr-2 h-4 w-4" />

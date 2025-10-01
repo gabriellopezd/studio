@@ -3,13 +3,13 @@ import type { ReactNode } from 'react';
 import { Card, CardHeader } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import type { ImagePlaceholder } from '@/lib/placeholder-images';
 
 type PageHeaderProps = {
   title: string;
   description?: string;
   motivation?: string;
-  imageUrl?: string;
-  imageHint?: string;
+  image?: ImagePlaceholder;
   children?: ReactNode;
 };
 
@@ -17,10 +17,12 @@ export default function PageHeader({
   title,
   description,
   motivation,
-  imageUrl,
-  imageHint,
+  image,
   children,
 }: PageHeaderProps) {
+  const imageUrl = image?.imageUrl;
+  const imageHint = image?.imageHint;
+
   return (
     <Card className={cn('relative overflow-hidden', !imageUrl && 'border-0')}>
       {imageUrl && (
