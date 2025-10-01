@@ -1,4 +1,3 @@
-
 import type { ReactNode } from 'react';
 import { Card, CardHeader } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -21,37 +20,31 @@ export default function PageHeader({
   children,
 }: PageHeaderProps) {
   const image: ImagePlaceholder | undefined = imageId ? PlaceHolderImages.find(img => img.id === imageId) : undefined;
-  const imageUrl = image?.imageUrl;
-  const imageHint = image?.imageHint;
 
   return (
-    <Card className={cn('relative overflow-hidden', !imageUrl && 'border-0 shadow-none')}>
-      {imageUrl && (
+    <Card className={cn('relative overflow-hidden border-0 shadow-none', image && 'min-h-[200px] flex items-center justify-center')}>
+      {image?.imageUrl && (
         <Image
-          src={imageUrl}
+          src={image.imageUrl}
           alt={description || `Fondo para ${title}`}
-          data-ai-hint={imageHint}
+          data-ai-hint={image.imageHint}
           fill
           className="object-cover"
           priority
         />
       )}
-      <div
-        className={cn(
-          'relative',
-          imageUrl && 'bg-gradient-to-t from-black/60 to-black/20 text-primary-foreground'
-        )}
-      >
+       <div className={cn('absolute inset-0', image?.imageUrl && 'bg-black/50')} />
+      <div className={cn('relative w-full', image?.imageUrl && 'text-primary-foreground')}>
         <CardHeader>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="flex-1 space-y-2">
+            <div className="flex-1 space-y-1.5">
               <h1 className="text-2xl font-bold tracking-tight uppercase sm:text-3xl">
                 {title}
               </h1>
               {description && (
                 <p
                   className={cn(
-                    imageUrl ? 'text-white/80' : 'text-muted-foreground'
+                    image?.imageUrl ? 'text-white/80' : 'text-muted-foreground'
                   )}
                 >
                   {description}
@@ -61,7 +54,7 @@ export default function PageHeader({
                 <p
                   className={cn(
                     'text-sm',
-                    imageUrl ? 'text-white/70 italic' : 'text-muted-foreground'
+                    image?.imageUrl ? 'text-white/70 italic' : 'text-muted-foreground'
                   )}
                 >
                   {motivation}
