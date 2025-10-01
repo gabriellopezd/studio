@@ -202,30 +202,25 @@ export default function HabitsPage() {
   return (
     <>
       <div className="flex flex-col gap-6">
-        <Card>
-            <CardHeader>
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <div className="flex-1 space-y-2">
-                        <h1 className="text-2xl font-bold tracking-tight uppercase sm:text-3xl">
-                        Hábitos
-                        </h1>
-                        <p className="text-muted-foreground">Gestiona tus hábitos y sigue tu progreso.</p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                        <Button variant="outline" asChild>
-                            <Link href="/settings/habits">
-                            <Settings className="mr-2 h-4 w-4" />
-                            Configurar Hábitos
-                            </Link>
-                        </Button>
-                        <Button onClick={() => handleOpenDialog()}>
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Crear Hábito
-                        </Button>
-                    </div>
-                </div>
-            </CardHeader>
-        </Card>
+        <PageHeader
+            title="Hábitos"
+            description="Gestiona tus hábitos y sigue tu progreso."
+            motivation={motivation}
+            imageUrl="https://picsum.photos/seed/habits/1200/300"
+        >
+            <div className="flex shrink-0 items-center gap-2">
+                <Button variant="outline" asChild>
+                    <Link href="/settings/habits">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Configurar Hábitos
+                    </Link>
+                </Button>
+                <Button onClick={() => handleOpenDialog()}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Crear Hábito
+                </Button>
+            </div>
+        </PageHeader>
 
         <Tabs defaultValue="habits">
           <TabsList className="grid w-full grid-cols-2">
@@ -561,5 +556,3 @@ export default function HabitsPage() {
     </>
   );
 }
-
-    

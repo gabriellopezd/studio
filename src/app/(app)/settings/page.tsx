@@ -113,6 +113,7 @@ export default function SettingsPage() {
       <PageHeader
         title="CONFIGURACIÓN"
         description="Gestiona tu perfil, cuenta y preferencias de la aplicación."
+        imageUrl="https://picsum.photos/seed/settings/1200/300"
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

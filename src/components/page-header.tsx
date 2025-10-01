@@ -1,29 +1,60 @@
 
 import type { ReactNode } from 'react';
 import { Card, CardHeader } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 type PageHeaderProps = {
   title: string;
-  description: string;
+  description?: string;
+  motivation?: string;
+  imageUrl?: string;
   children?: ReactNode;
 };
 
-export default function PageHeader({ title, description, children }: PageHeaderProps) {
+export default function PageHeader({
+  title,
+  description,
+  motivation,
+  imageUrl,
+  children,
+}: PageHeaderProps) {
   return (
-    <Card>
-        <CardHeader>
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                <div className="flex-1 space-y-2">
-                    <h1 className="text-2xl font-bold tracking-tight uppercase sm:text-3xl">
-                    {title}
-                    </h1>
-                    <p className="text-muted-foreground">{description}</p>
-                </div>
-                {children && <div className="flex shrink-0 items-center gap-2">{children}</div>}
-            </div>
-        </CardHeader>
+    <Card className={cn('relative overflow-hidden', imageUrl && 'text-white')}>
+      {imageUrl && (
+        <>
+          <Image
+            src={imageUrl}
+            alt={`Fondo para ${title}`}
+            fill
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-black/50" />
+        </>
+      )}
+      <CardHeader className="relative">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="flex-1 space-y-2">
+            <h1 className="text-2xl font-bold tracking-tight uppercase sm:text-3xl">
+              {title}
+            </h1>
+            {description && (
+                <p className={cn(imageUrl ? 'text-white/80' : 'text-muted-foreground')}>
+                    {description}
+                </p>
+            )}
+            {motivation && (
+                <p className={cn('text-sm', imageUrl ? 'text-white/70 italic' : 'text-muted-foreground')}>
+                    {motivation}
+                </p>
+            )}
+          </div>
+          {children && (
+            <div className="flex shrink-0 items-center gap-2">{children}</div>
+          )}
+        </div>
+      </CardHeader>
     </Card>
   );
 }
-
-    

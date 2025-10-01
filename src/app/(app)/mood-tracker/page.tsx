@@ -118,6 +118,7 @@ export default function MoodTrackerPage() {
         title="RASTREADOR DE ÁNIMO"
         description="Registra tu ánimo diario y observa tus tendencias emocionales."
         motivation={motivation}
+        imageUrl="https://picsum.photos/seed/mood/1200/300"
       >
         <Button onClick={handleStartMoodRegistration}>
           {todayEntry ? 'Actualizar mi día' : 'Registrar mi día'}
