@@ -599,12 +599,16 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
                 </div>
 
                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                    <div className="space-y-2 relative">
                         <Label>Fecha</Label>
                         <Input
                             type="date"
                             value={newTransactionDate ? format(newTransactionDate, 'yyyy-MM-dd') : ''}
-                            onChange={(e) => setNewTransactionDate(e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined)}
+                            onChange={(e) => {
+                                const date = e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined;
+                                setNewTransactionDate(date);
+                            }}
+                            className="block w-full"
                         />
                     </div>
                     {newTransactionType === 'expense' && (
@@ -1166,8 +1170,12 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
                         <Label>Fecha</Label>
                         <Input
                             type="date"
-                            value={transactionToEdit.date ? format(transactionToEdit.date, 'yyyy-MM-dd') : ''}
-                            onChange={(e) => setTransactionToEdit({ ...transactionToEdit, date: e.target.value ? new Date(e.target.value + 'T00:00:00') : new Date() })}
+                            value={transactionToEdit.date ? format(new Date(transactionToEdit.date), 'yyyy-MM-dd') : ''}
+                            onChange={(e) => {
+                                const date = e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined;
+                                setTransactionToEdit({ ...transactionToEdit, date: date });
+                            }}
+                            className="block w-full"
                         />
                     </div>
                     {transactionToEdit.type === 'expense' && (

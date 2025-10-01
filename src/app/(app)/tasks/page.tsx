@@ -426,13 +426,18 @@ export default function TasksPage() {
                   </div>
               </div>
               <div className="space-y-2">
-                  <Label htmlFor="task-due-date">Fecha de Vencimiento</Label>
-                  <Input
-                    id="task-due-date"
-                    type="date"
-                    value={taskToEdit.dueDate ? format(taskToEdit.dueDate, 'yyyy-MM-dd') : ''}
-                    onChange={(e) => setTaskToEdit({ ...taskToEdit, dueDate: e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined })}
-                  />
+                <Label htmlFor="task-due-date">Fecha de Vencimiento</Label>
+                <div className="relative">
+                    <Input
+                        type="date"
+                        value={taskToEdit.dueDate ? format(taskToEdit.dueDate, 'yyyy-MM-dd') : ''}
+                        onChange={(e) => {
+                            const date = e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined;
+                            setTaskToEdit({ ...taskToEdit, dueDate: date });
+                        }}
+                        className="block w-full"
+                    />
+                </div>
               </div>
             </div>
           )}
