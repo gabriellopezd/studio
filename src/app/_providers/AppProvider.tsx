@@ -117,7 +117,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { firestore, user } = useFirebase();
     const [state, dispatch] = useReducer(appReducer, initialState);
     const [streaksChecked, setStreaksChecked] = useState(false);
-    const [presetsInitialized, setPresetsInitialized] = useState(false);
     const { toast } = useToast();
     
     // --- Data Fetching using useCollection ---
@@ -399,7 +398,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 const budgetDocRef = doc(budgetsColRef);
                 batch.set(budgetDocRef, {
                     categoryName: categoryName,
-                    monthlyLimit: 100000, 
+                    monthlyLimit: 1000000, 
                     currentSpend: 0,
                     userId: user.uid,
                 });
@@ -685,23 +684,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         
         const bal = income - expenses;
         
-        const needsBudget = income * 0.5;
-        const wantsBudget = income * 0.3;
-        const savingsBudget = income * 0.2;
-        
+        let needsBudget = income * 0.5;
+        let wantsBudget = income * 0.3;
+        let savingsBudget = income * 0.2;
         let b503020 = null;
-
-        if (transactions) {
-            const needsSpend = transactions.filter(t => t.type === 'expense' && t.budgetFocus === 'Necesidades').reduce((s, t) => s + t.amount, 0);
-            const wantsSpend = transactions.filter(t => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((s, t) => s + t.amount, 0);
-            const savingsSpend = transactions.filter(t => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((s, t) => s + t.amount, 0);
-            
-             b503020 = {
-                needs: { budget: needsBudget, spend: needsSpend, progress: (needsSpend / (needsBudget || 1)) * 100 },
-                wants: { budget: wantsBudget, spend: wantsSpend, progress: (wantsSpend / (wantsBudget || 1)) * 100 },
-                savings: { budget: savingsBudget, spend: savingsSpend, progress: (savingsSpend / (savingsBudget || 1)) * 100 },
-            };
+        
+        const needsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Necesidades').reduce((s, t) => s + t.amount, 0) ?? 0;
+        const wantsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((s, t) => s + t.amount, 0) ?? 0;
+        const savingsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((s, t) => s + t.amount, 0) ?? 0;
+        
+        if (income === 0 && (needsSpend > 0 || wantsSpend > 0 || savingsSpend > 0)) {
+            needsBudget = 0;
+            wantsBudget = 0;
+            savingsBudget = 0;
         }
+
+        b503020 = {
+            needs: { budget: needsBudget, spend: needsSpend, progress: (needsSpend / (needsBudget || 1)) * 100 },
+            wants: { budget: wantsBudget, spend: wantsSpend, progress: (wantsSpend / (wantsBudget || 1)) * 100 },
+            savings: { budget: savingsBudget, spend: savingsSpend, progress: (savingsSpend / (savingsBudget || 1)) * 100 },
+        };
         
         const pendingRE = recurringExpenses?.filter(e => e.lastInstanceCreated !== monthYear) ?? [];
         const paidRE = recurringExpenses?.filter(e => e.lastInstanceCreated === monthYear) ?? [];
