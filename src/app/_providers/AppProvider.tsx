@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useReducer, useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useReducer, useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc, limit } from 'firebase/firestore';
 import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking, type FirebaseServicesAndUser } from '@/firebase';
 import { AppContext, AppState, Habit, Task, Mood, ActiveSession } from './AppContext';
@@ -118,6 +118,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [state, dispatch] = useReducer(appReducer, initialState);
     const [streaksChecked, setStreaksChecked] = useState(false);
     const { toast } = useToast();
+    const presetsInitialized = useRef(false);
     
     // --- Data Fetching using useCollection ---
     const allHabitsQuery = useMemo(() => {
@@ -226,6 +227,67 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [user, firestore]);
     const { data: todayMoodData } = useCollection(todayMoodQuery);
     
+    // --- Preset Expense Category Initialization ---
+    useEffect(() => {
+        if (!user || !firestore || shoppingListsLoading || budgetsLoading || presetsInitialized.current) {
+            return;
+        }
+
+        presetsInitialized.current = true; // Set flag immediately to prevent re-entry
+
+        const createPresets = async () => {
+            const batch = writeBatch(firestore);
+            let batchHasWrites = false;
+
+            const existingListNames = new Set(shoppingLists?.map(l => l.name) ?? []);
+            const existingBudgetCategoryNames = new Set(budgets?.map(b => b.categoryName) ?? []);
+
+            PRESET_EXPENSE_CATEGORIES.forEach((categoryName, index) => {
+                if (!existingListNames.has(categoryName)) {
+                    const listsColRef = collection(firestore, 'users', user.uid, 'shoppingLists');
+                    const listDocRef = doc(listsColRef);
+                    const budgetFocus = ['Arriendo', 'Servicios', 'Transporte', 'Salud', 'Hogar', 'Impuestos', 'Comida'].includes(categoryName)
+                        ? 'Necesidades'
+                        : ['Deudas', 'Ahorros'].includes(categoryName) ? 'Ahorros y Deudas' : 'Deseos';
+                    
+                    batch.set(listDocRef, {
+                        name: categoryName,
+                        budgetFocus: budgetFocus,
+                        createdAt: serverTimestamp(),
+                        items: [],
+                        userId: user.uid,
+                        order: index,
+                        isActive: true,
+                    });
+                    batchHasWrites = true;
+                }
+
+                if (!existingBudgetCategoryNames.has(categoryName)) {
+                    const budgetsColRef = collection(firestore, 'users', user.uid, 'budgets');
+                    const budgetDocRef = doc(budgetsColRef);
+                    batch.set(budgetDocRef, {
+                        categoryName: categoryName,
+                        monthlyLimit: 1000000, 
+                        currentSpend: 0,
+                        userId: user.uid,
+                    });
+                    batchHasWrites = true;
+                }
+            });
+
+            if (batchHasWrites) {
+                try {
+                    await batch.commit();
+                } catch (error) {
+                    console.error("Error creating preset categories:", error);
+                }
+            }
+        };
+
+        createPresets();
+    }, [user, firestore, shoppingLists, budgets, shoppingListsLoading, budgetsLoading]);
+
+
     // --- Streak Checking ---
     useEffect(() => {
         if (user && firestore && allHabits && !habitsLoading && !streaksChecked) {
@@ -693,17 +755,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const wantsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((s, t) => s + t.amount, 0) ?? 0;
         const savingsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((s, t) => s + t.amount, 0) ?? 0;
         
-        if (income === 0 && (needsSpend > 0 || wantsSpend > 0 || savingsSpend > 0)) {
-            needsBudget = 0;
-            wantsBudget = 0;
-            savingsBudget = 0;
+        if (income === 0) {
+            const totalSpend = needsSpend + wantsSpend + savingsSpend;
+            if (totalSpend > 0) {
+                 b503020 = {
+                    needs: { budget: 0, spend: needsSpend, progress: (needsSpend / totalSpend) * 100 },
+                    wants: { budget: 0, spend: wantsSpend, progress: (wantsSpend / totalSpend) * 100 },
+                    savings: { budget: 0, spend: savingsSpend, progress: (savingsSpend / totalSpend) * 100 },
+                };
+            }
         }
-
-        b503020 = {
-            needs: { budget: needsBudget, spend: needsSpend, progress: (needsSpend / (needsBudget || 1)) * 100 },
-            wants: { budget: wantsBudget, spend: wantsSpend, progress: (wantsSpend / (wantsBudget || 1)) * 100 },
-            savings: { budget: savingsBudget, spend: savingsSpend, progress: (savingsSpend / (savingsBudget || 1)) * 100 },
-        };
+        
+        if (!b503020) {
+            b503020 = {
+                needs: { budget: needsBudget, spend: needsSpend, progress: (needsSpend / (needsBudget || 1)) * 100 },
+                wants: { budget: wantsBudget, spend: wantsSpend, progress: (wantsSpend / (wantsBudget || 1)) * 100 },
+                savings: { budget: savingsBudget, spend: savingsSpend, progress: (savingsSpend / (savingsBudget || 1)) * 100 },
+            };
+        }
         
         const pendingRE = recurringExpenses?.filter(e => e.lastInstanceCreated !== monthYear) ?? [];
         const paidRE = recurringExpenses?.filter(e => e.lastInstanceCreated === monthYear) ?? [];
@@ -886,3 +955,4 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
+
