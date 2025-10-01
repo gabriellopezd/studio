@@ -11,6 +11,66 @@
       "description": "A calm and focused workspace with blue tones",
       "imageUrl": "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxibHVlJTIwbWluaW1hbGlzdCUyMHdvcmtzcGFjZXxlbnwwfHx8fDE3NTk0ODU3OTB8MA&ixlib=rb-4.1.0&q=80&w=1920",
       "imageHint": "blue minimalist workspace"
+    },
+    {
+      "id": "dashboard-header",
+      "description": "Abstract gradient background in blue and purple tones representing well-being",
+      "imageUrl": "https://images.unsplash.com/photo-1557683316-9a7a4a8c9f5b?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wzNzE3ODF8MHwxfGFsbHx8fHx8fHx8fDE3MTI4NzY3OTZ8&usqp=CAU",
+      "imageHint": "abstract gradient"
+    },
+    {
+      "id": "today-header",
+      "description": "A bright and sunny image representing a new day",
+      "imageUrl": "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wzNzE3ODF8MHwxfGFsbHx8fHx8fHx8fDE3MTI4NzY4NjZ8&usqp=CAU",
+      "imageHint": "sunny morning"
+    },
+    {
+      "id": "habits-header",
+      "description": "A path or steps, representing the journey of building habits",
+      "imageUrl": "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wzNzE3ODF8MHwxfGFsbHx8fHx8fHx8fDE3MTI4NzY5MDB8&usqp=CAU",
+      "imageHint": "path steps"
+    },
+    {
+      "id": "routines-header",
+      "description": "An organized desk or planner, representing routines",
+      "imageUrl": "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wzNzE3ODF8MHwxfGFsbHx8fHx8fHx8fDE3MTI4NzY5NTJ8&usqp=CAU",
+      "imageHint": "organized desk"
+    },
+    {
+      "id": "tasks-header",
+      "description": "A to-do list or checklist, representing tasks",
+      "imageUrl": "https://images.unsplash.com/photo-1518066000714-58c45f1a230d?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wzNzE3ODF8MHwxfGFsbHx8fHx8fHx8fDE3MTI4NzcwMDR8&usqp=CAU",
+      "imageHint": "checklist tasks"
+    },
+    {
+      "id": "goals-header",
+      "description": "A mountain peak or a distant horizon, representing long-term goals",
+      "imageUrl": "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wzNzE3ODF8MHwxfGFsbHx8fHx8fHx8fDE3MTI4NzcwNDV8&usqp=CAU",
+      "imageHint": "mountain peak"
+    },
+    {
+      "id": "mood-header",
+      "description": "A calm and serene landscape, representing emotional state",
+      "imageUrl": "https://images.unsplash.com/photo-1426604966848-d7adac402bff?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wzNzE3ODF8MHwxfGFsbHx8fHx8fHx8fDE3MTI4NzcwODR8&usqp=CAU",
+      "imageHint": "calm landscape"
+    },
+    {
+      "id": "finances-header",
+      "description": "Abstract representation of financial growth or charts",
+      "imageUrl": "https://images.unsplash.com/photo-1624953587687-e271b714285e?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wzNzE3ODF8MHwxfGFsbHx8fHx8fHx8fDE3MTI4NzcxMjJ8&usqp=CAU",
+      "imageHint": "financial chart"
+    },
+    {
+      "id": "expenses-header",
+      "description": "A shopping cart or market scene, representing expenses",
+      "imageUrl": "https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wzNzE3ODF8MHwxfGFsbHx8fHx8fHx8fDE3MTI4NzcxNzN8&usqp=CAU",
+      "imageHint": "shopping cart"
+    },
+    {
+      "id": "settings-header",
+      "description": "Gears or a clean, organized workspace, representing settings",
+      "imageUrl": "https://images.unsplash.com/photo-1487017159836-4e23ece2e4cf?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wzNzE3ODF8MHwxfGFsbHx8fHx8fHx8fDE3MTI4NzcyMTJ8&usqp=CAU",
+      "imageHint": "organized workspace"
     }
   ]
 }

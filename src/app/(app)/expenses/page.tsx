@@ -82,6 +82,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppContext } from '@/app/_providers/AppContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 function SortableListItem({
   list,
@@ -153,6 +154,7 @@ export default function ExpensesPage() {
   const [motivation, setMotivation] = useState('');
 
   const { toast } = useToast();
+  const headerImage = PlaceHolderImages.find((img) => img.id === 'expenses-header');
 
   const sensors = useSensors(useSensor(PointerSensor));
 
@@ -497,7 +499,8 @@ export default function ExpensesPage() {
         title="LISTAS DE COMPRA"
         description="Planifica tus compras y registra tus gastos diarios."
         motivation={motivation}
-        imageUrl="https://picsum.photos/seed/9/1200/300"
+        imageUrl={headerImage?.imageUrl}
+        imageHint={headerImage?.imageHint}
       >
         <Dialog>
           <DialogTrigger asChild>

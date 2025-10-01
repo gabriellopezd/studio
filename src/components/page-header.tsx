@@ -9,6 +9,7 @@ type PageHeaderProps = {
   description?: string;
   motivation?: string;
   imageUrl?: string;
+  imageHint?: string;
   children?: ReactNode;
 };
 
@@ -17,6 +18,7 @@ export default function PageHeader({
   description,
   motivation,
   imageUrl,
+  imageHint,
   children,
 }: PageHeaderProps) {
   return (
@@ -26,6 +28,7 @@ export default function PageHeader({
           <Image
             src={imageUrl}
             alt={`Fondo para ${title}`}
+            data-ai-hint={imageHint}
             fill
             className="object-cover"
             priority

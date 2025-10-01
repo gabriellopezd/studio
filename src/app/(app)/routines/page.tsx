@@ -63,6 +63,7 @@ import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppContext } from '@/app/_providers/AppContext';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const motivationalQuotes = [
     "La disciplina es el puente entre las metas y los logros.",
@@ -97,6 +98,7 @@ export default function RoutinesPage() {
   const [motivation, setMotivation] = useState('');
 
   const activeHabits = useMemo(() => allHabits?.filter(h => h.isActive) || [], [allHabits]);
+  const headerImage = PlaceHolderImages.find((img) => img.id === 'routines-header');
 
 
   useEffect(() => {
@@ -186,7 +188,8 @@ export default function RoutinesPage() {
             title="RUTINAS"
             description="Crea y sigue tus rutinas diarias para construir consistencia."
             motivation={motivation}
-            imageUrl="https://picsum.photos/seed/4/1200/300"
+            imageUrl={headerImage?.imageUrl}
+            imageHint={headerImage?.imageHint}
         >
             <Button onClick={() => handleOpenDialog()}>
                 <PlusCircle className="mr-2 h-4 w-4" />
@@ -387,4 +390,3 @@ export default function RoutinesPage() {
     </>
   );
 }
-

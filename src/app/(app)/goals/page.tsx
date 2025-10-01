@@ -69,6 +69,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAppContext } from '@/app/_providers/AppContext';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const motivationalQuotes = [
     "Una meta sin un plan es solo un deseo.",
@@ -98,6 +99,8 @@ export default function GoalsPage() {
   const [type, setType] = useState('generic');
   const [monthlyContribution, setMonthlyContribution] = useState('');
   const [motivation, setMotivation] = useState('');
+
+  const headerImage = PlaceHolderImages.find((img) => img.id === 'goals-header');
 
   useEffect(() => {
     setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
@@ -315,7 +318,8 @@ export default function GoalsPage() {
           title="METAS"
           description="Define y sigue el progreso de tus metas a largo plazo."
           motivation={motivation}
-          imageUrl="https://picsum.photos/seed/6/1200/300"
+          imageUrl={headerImage?.imageUrl}
+          imageHint={headerImage?.imageHint}
         >
           <Button onClick={() => handleOpenDialog()}>
             <PlusCircle className="mr-2 h-4 w-4" />

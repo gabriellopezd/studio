@@ -49,6 +49,7 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { handleResetAllStreaks, handleResetTimeLogs, handleResetMoods, handleResetCategories } = useAppContext();
   const userAvatar = PlaceHolderImages.find((img) => img.id === 'default-user-avatar');
+  const headerImage = PlaceHolderImages.find((img) => img.id === 'settings-header');
   const { toast } = useToast();
 
   const [displayName, setDisplayName] = useState('');
@@ -114,7 +115,8 @@ export default function SettingsPage() {
       <PageHeader
         title="CONFIGURACIÓN"
         description="Gestiona tu perfil, cuenta y preferencias de la aplicación."
-        imageUrl="https://picsum.photos/seed/10/1200/300"
+        imageUrl={headerImage?.imageUrl}
+        imageHint={headerImage?.imageHint}
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

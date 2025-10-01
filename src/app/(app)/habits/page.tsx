@@ -57,6 +57,7 @@ import { cn } from '@/lib/utils';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { TooltipProvider, Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import Link from 'next/link';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
@@ -149,6 +150,8 @@ export default function HabitsPage() {
   const [newHabitFrequency, setNewHabitFrequency] = useState('Diario');
   const [newHabitCategory, setNewHabitCategory] = useState('');
 
+  const headerImage = PlaceHolderImages.find((img) => img.id === 'habits-header');
+
   useEffect(() => {
     setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, []);
@@ -207,7 +210,8 @@ export default function HabitsPage() {
             title="Hábitos"
             description="Gestiona tus hábitos y sigue tu progreso."
             motivation={motivation}
-            imageUrl="https://picsum.photos/seed/3/1200/300"
+            imageUrl={headerImage?.imageUrl}
+            imageHint={headerImage?.imageHint}
         >
             <div className="flex shrink-0 items-center gap-2">
                 <Button variant="outline" asChild>
