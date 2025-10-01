@@ -22,42 +22,55 @@ export default function PageHeader({
   children,
 }: PageHeaderProps) {
   return (
-    <Card className={cn('relative overflow-hidden', imageUrl && 'text-white')}>
+    <Card className={cn('relative overflow-hidden', imageUrl && 'border-0')}>
       {imageUrl && (
-        <>
-          <Image
-            src={imageUrl}
-            alt={`Fondo para ${title}`}
-            data-ai-hint={imageHint}
-            fill
-            className="object-cover"
-            priority
-          />
-          <div className="absolute inset-0 bg-black/50" />
-        </>
+        <Image
+          src={imageUrl}
+          alt={`Fondo para ${title}`}
+          data-ai-hint={imageHint}
+          fill
+          className="object-cover"
+          priority
+        />
       )}
-      <CardHeader className="relative">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="flex-1 space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight uppercase sm:text-3xl">
-              {title}
-            </h1>
-            {description && (
-                <p className={cn(imageUrl ? 'text-white/80' : 'text-muted-foreground')}>
-                    {description}
+      <div
+        className={cn(
+          'relative',
+          imageUrl && 'bg-black/50 text-white'
+        )}
+      >
+        <CardHeader>
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="flex-1 space-y-2">
+              <h1 className="text-2xl font-bold tracking-tight uppercase sm:text-3xl">
+                {title}
+              </h1>
+              {description && (
+                <p
+                  className={cn(
+                    imageUrl ? 'text-white/80' : 'text-muted-foreground'
+                  )}
+                >
+                  {description}
                 </p>
-            )}
-            {motivation && (
-                <p className={cn('text-sm', imageUrl ? 'text-white/70 italic' : 'text-muted-foreground')}>
-                    {motivation}
+              )}
+              {motivation && (
+                <p
+                  className={cn(
+                    'text-sm',
+                    imageUrl ? 'text-white/70 italic' : 'text-muted-foreground'
+                  )}
+                >
+                  {motivation}
                 </p>
+              )}
+            </div>
+            {children && (
+              <div className="flex shrink-0 items-center gap-2">{children}</div>
             )}
           </div>
-          {children && (
-            <div className="flex shrink-0 items-center gap-2">{children}</div>
-          )}
-        </div>
-      </CardHeader>
+        </CardHeader>
+      </div>
     </Card>
   );
 }
