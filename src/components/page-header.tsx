@@ -22,11 +22,11 @@ export default function PageHeader({
   children,
 }: PageHeaderProps) {
   return (
-    <Card className={cn('relative overflow-hidden', imageUrl && 'border-0')}>
+    <Card className={cn('relative overflow-hidden', !imageUrl && 'border-0')}>
       {imageUrl && (
         <Image
           src={imageUrl}
-          alt={`Fondo para ${title}`}
+          alt={description || `Fondo para ${title}`}
           data-ai-hint={imageHint}
           fill
           className="object-cover"
@@ -36,7 +36,7 @@ export default function PageHeader({
       <div
         className={cn(
           'relative',
-          imageUrl && 'bg-black/50 text-white'
+          imageUrl && 'bg-gradient-to-t from-black/60 to-black/20 text-primary-foreground'
         )}
       >
         <CardHeader>

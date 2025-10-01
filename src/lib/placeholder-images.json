@@ -14,9 +14,9 @@
     },
     {
       "id": "dashboard-header",
-      "description": "Abstract gradient background in blue and purple tones representing well-being",
-      "imageUrl": "https://images.unsplash.com/photo-1557683316-9a7a4a8c9f5b?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wzNzE3ODF8MHwxfGFsbHx8fHx8fHx8fDE3MTI4NzY3OTZ8&usqp=CAU",
-      "imageHint": "abstract gradient"
+      "description": "A modern and clean desk setup representing productivity and well-being.",
+      "imageUrl": "https://images.unsplash.com/photo-1497032628192-86f99d791b7e?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wzNzE3ODF8MHwxfGFsbHx8fHx8fHx8fDE3MTI4NzcyOTR8&usqp=CAU",
+      "imageHint": "clean desk"
     },
     {
       "id": "today-header",
@@ -38,9 +38,9 @@
     },
     {
       "id": "tasks-header",
-      "description": "A to-do list or checklist, representing tasks",
-      "imageUrl": "https://images.unsplash.com/photo-1518066000714-58c45f1a230d?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wzNzE3ODF8MHwxfGFsbHx8fHx8fHx8fDE3MTI4NzcwMDR8&usqp=CAU",
-      "imageHint": "checklist tasks"
+      "description": "A person writing on a checklist, symbolizing task management.",
+      "imageUrl": "https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wzNzE3ODF8MHwxfGFsbHx8fHx8fHx8fDE3MTI4NzcwMDF8&usqp=CAU",
+      "imageHint": "writing checklist"
     },
     {
       "id": "goals-header",
@@ -56,9 +56,9 @@
     },
     {
       "id": "finances-header",
-      "description": "Abstract representation of financial growth or charts",
-      "imageUrl": "https://images.unsplash.com/photo-1624953587687-e271b714285e?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wzNzE3ODF8MHwxfGFsbHx8fHx8fHx8fDE3MTI4NzcxMjJ8&usqp=CAU",
-      "imageHint": "financial chart"
+      "description": "An image of coins and a plant, representing financial growth.",
+      "imageUrl": "https://images.unsplash.com/photo-1593672715438-d88a706299a5?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wzNzE3ODF8MHwxfGFsbHx8fHx8fHx8fDE3MTI4NzcxMjF8&usqp=CAU",
+      "imageHint": "financial growth"
     },
     {
       "id": "expenses-header",
