@@ -605,7 +605,7 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
                                     {newTransactionDate ? format(newTransactionDate, "PPP", { locale: es }) : <span>Elige una fecha</span>}
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" portal={false}><Calendar mode="single" selected={newTransactionDate} onSelect={setNewTransactionDate} initialFocus /></PopoverContent>
+                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={newTransactionDate} onSelect={setNewTransactionDate} initialFocus /></PopoverContent>
                         </Popover>
                     </div>
                     {newTransactionType === 'expense' && (
@@ -1172,7 +1172,7 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
                                     {transactionToEdit.date ? format(transactionToEdit.date, "PPP", { locale: es }) : <span>Elige una fecha</span>}
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" portal={false}><Calendar mode="single" selected={transactionToEdit.date} onSelect={(date) => setTransactionToEdit({...transactionToEdit, date: date || new Date()})} initialFocus /></PopoverContent>
+                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={transactionToEdit.date} onSelect={(date) => setTransactionToEdit({...transactionToEdit, date: date || new Date()})} initialFocus /></PopoverContent>
                         </Popover>
                     </div>
                     {transactionToEdit.type === 'expense' && (
