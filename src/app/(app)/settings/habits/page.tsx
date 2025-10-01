@@ -61,7 +61,6 @@ export default function HabitSettingsPage() {
     // Find if a habit matching the template already exists for the user
     const existingHabit = allHabits.find(h =>
       (h.presetHabitId && h.presetHabitId === habitTemplate.id) ||
-      (!h.presetHabitId && h.name === habitTemplate.name && h.category === habitTemplate.category) ||
       (habitTemplate.isUserCreated && h.id === habitTemplate.originalId)
     );
   
@@ -102,7 +101,7 @@ export default function HabitSettingsPage() {
       <PageHeader
         title="Configurar Biblioteca de Hábitos"
         description="Activa o desactiva los hábitos sugeridos y los que has creado para personalizar tu experiencia."
-        imageUrl="https://picsum.photos/seed/3/1200/300"
+        imageId="settings-header"
       >
         <Button variant="outline" asChild>
           <Link href="/habits">
@@ -125,8 +124,7 @@ export default function HabitSettingsPage() {
                 {groupedHabits[category].map((habit: any) => {
                     const existingHabit = allHabits?.find(h => 
                         (h.presetHabitId && h.presetHabitId === habit.id) ||
-                        (habit.isUserCreated && h.id === habit.originalId) ||
-                        (!h.presetHabitId && !habit.isUserCreated && h.name === habit.name && h.category === habit.category)
+                        (habit.isUserCreated && h.id === habit.originalId)
                     );
                     const isActive = existingHabit ? existingHabit.isActive : false;
                     return (

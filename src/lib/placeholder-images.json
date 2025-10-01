@@ -14,63 +14,63 @@
     },
     {
       "id": "dashboard-header",
-      "description": "A serene and modern workspace with a laptop and a plant, evoking a sense of calm productivity.",
-      "imageUrl": "https://images.unsplash.com/photo-1516321497487-e288fb19713f?q=80&w=1200&auto=format&fit=crop",
-      "imageHint": "serene workspace"
-    },
-    {
-      "id": "today-header",
-      "description": "A bright and sunny image representing a new day",
-      "imageUrl": "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?q=80&w=1200&auto=format&fit=crop",
-      "imageHint": "sunny morning"
-    },
-    {
-      "id": "habits-header",
-      "description": "A path or steps, representing the journey of building habits",
-      "imageUrl": "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=1200&auto=format&fit=crop",
-      "imageHint": "path steps"
-    },
-    {
-      "id": "routines-header",
-      "description": "An organized desk or planner, representing routines",
-      "imageUrl": "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?q=80&w=1200&auto=format&fit=crop",
+      "description": "Clean and modern desk setup with a monitor and keyboard, conveying a sense of organized productivity.",
+      "imageUrl": "https://images.unsplash.com/photo-1586281380349-632531db7ed4?q=80&w=1200&auto=format&fit=crop",
       "imageHint": "organized desk"
     },
     {
+      "id": "today-header",
+      "description": "A bright sunrise over a tranquil landscape, symbolizing a new day and fresh start.",
+      "imageUrl": "https://images.unsplash.com/photo-1475070929565-c985b496cb9f?q=80&w=1200&auto=format&fit=crop",
+      "imageHint": "bright sunrise"
+    },
+    {
+      "id": "habits-header",
+      "description": "A line of dominoes falling, representing the chain reaction of consistent habits.",
+      "imageUrl": "https://images.unsplash.com/photo-1588339329329-08d13a9c7389?q=80&w=1200&auto=format&fit=crop",
+      "imageHint": "domino effect"
+    },
+    {
+      "id": "routines-header",
+      "description": "A neatly organized planner and coffee, symbolizing structured routines.",
+      "imageUrl": "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=1200&auto=format&fit=crop",
+      "imageHint": "organized planner"
+    },
+    {
       "id": "tasks-header",
-      "description": "A person writing on a notebook in a focused environment.",
-      "imageUrl": "https://images.unsplash.com/photo-1517842645767-c6f90415adde?q=80&w=1200&auto=format&fit=crop",
-      "imageHint": "writing notebook"
+      "description": "A focused shot of a to-do list on a clipboard with a pen, representing task management.",
+      "imageUrl": "https://images.unsplash.com/photo-1507925921958-8a62f3d1a50d?q=80&w=1200&auto=format&fit=crop",
+      "imageHint": "taks list"
     },
     {
       "id": "goals-header",
-      "description": "A mountain peak or a distant horizon, representing long-term goals",
-      "imageUrl": "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?q=80&w=1200&auto=format&fit=crop",
-      "imageHint": "mountain peak"
+      "description": "An arrow hitting the center of a target, symbolizing the achievement of goals.",
+      "imageUrl": "https://images.unsplash.com/photo-1559922444-e26531201c1a?q=80&w=1200&auto=format&fit=crop",
+      "imageHint": "target arrow"
     },
     {
       "id": "mood-header",
-      "description": "A calm and serene landscape, representing emotional state",
-      "imageUrl": "https://images.unsplash.com/photo-1426604966848-d7adac402bff?q=80&w=1200&auto=format&fit=crop",
-      "imageHint": "calm landscape"
+      "description": "A serene lake reflecting the sky, representing calm and emotional clarity.",
+      "imageUrl": "https://images.unsplash.com/photo-1433838552652-f9a46b332c40?q=80&w=1200&auto=format&fit=crop",
+      "imageHint": "serene lake"
     },
     {
       "id": "finances-header",
-      "description": "A clean setup with a calculator, a notebook, and a coffee, symbolizing financial planning.",
-      "imageUrl": "https://images.unsplash.com/photo-1554224155-1696413565d3?q=80&w=1200&auto=format&fit=crop",
-      "imageHint": "financial planning"
+      "description": "A sleek calculator and pen on financial documents, indicating financial management.",
+      "imageUrl": "https://images.unsplash.com/photo-1633113087795-f9a888791530?q=80&w=1200&auto=format&fit=crop",
+      "imageHint": "financial documents"
     },
     {
       "id": "expenses-header",
-      "description": "A shopping cart or market scene, representing expenses",
-      "imageUrl": "https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?q=80&w=1200&auto=format&fit=crop",
+      "description": "A stylish shopping cart against a clean background, representing consumer spending.",
+      "imageUrl": "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=1200&auto=format&fit=crop",
       "imageHint": "shopping cart"
     },
     {
       "id": "settings-header",
-      "description": "Gears or a clean, organized workspace, representing settings",
-      "imageUrl": "https://images.unsplash.com/photo-1487017159836-4e23ece2e4cf?q=80&w=1200&auto=format&fit=crop",
-      "imageHint": "organized workspace"
+      "description": "Close-up of intricate metal gears, representing the inner workings of settings.",
+      "imageUrl": "https://images.unsplash.com/photo-1524824267900-2fa9cbf7a5e6?q=80&w=1200&auto=format&fit=crop",
+      "imageHint": "metal gears"
     }
   ]
 }
