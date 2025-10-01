@@ -291,7 +291,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (id) {
             await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'habits', id), data);
         } else {
-            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'habits'), { ...data, currentStreak: 0, longestStreak: 0, createdAt: serverTimestamp(), lastCompletedAt: null, userId: user.uid });
+            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'habits'), { ...data, currentStreak: 0, longestStreak: 0, createdAt: serverTimestamp(), lastCompletedAt: null, userId: user.uid, isActive: true });
         }
     };
 
@@ -532,24 +532,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { groupedHabits, dailyHabits, weeklyHabits, completedDaily, completedWeekly, longestStreak, longestCurrentStreak, habitCategoryData, dailyProductivityData, topHabitsByStreak, topHabitsByTime, monthlyCompletionData } = useMemo(() => {
         if (!allHabits) return { groupedHabits: {}, dailyHabits: [], weeklyHabits: [], completedDaily: 0, completedWeekly: 0, longestStreak: 0, longestCurrentStreak: 0, habitCategoryData: [], dailyProductivityData: [], topHabitsByStreak: [], topHabitsByTime: [], monthlyCompletionData: [] };
 
-        const grouped = allHabits.reduce((acc, habit) => {
+        const activeHabits = allHabits.filter(h => h.isActive);
+
+        const grouped = activeHabits.reduce((acc, habit) => {
             const category = habit.category || 'Sin Categoría';
             if (!acc[category]) acc[category] = [];
             acc[category].push(habit);
             return acc;
         }, {});
 
-        const daily = allHabits.filter(h => h.frequency === 'Diario');
-        const weekly = allHabits.filter(h => h.frequency === 'Semanal');
+        const daily = activeHabits.filter(h => h.frequency === 'Diario');
+        const weekly = activeHabits.filter(h => h.frequency === 'Semanal');
         const completedD = daily.filter(h => isHabitCompletedToday(h)).length;
         const completedW = weekly.filter(h => isHabitCompletedToday(h)).length;
-        const longestS = allHabits.reduce((max, h) => Math.max(max, h.longestStreak || 0), 0);
-        const longestCS = allHabits.reduce((max, h) => Math.max(max, h.currentStreak || 0), 0);
+        const longestS = activeHabits.reduce((max, h) => Math.max(max, h.longestStreak || 0), 0);
+        const longestCS = activeHabits.reduce((max, h) => Math.max(max, h.currentStreak || 0), 0);
 
         const habitLogs = (timeLogs || []).filter((log: any) => log.referenceType === 'habit');
         const categoryTotals: Record<string, number> = {};
         habitLogs.forEach((log: any) => {
-            const habit = allHabits.find((h: any) => h.id === log.referenceId);
+            const habit = activeHabits.find((h: any) => h.id === log.referenceId);
             if (habit) {
                 const category = habit.category || 'Sin Categoría';
                 categoryTotals[category] = (categoryTotals[category] || 0) + log.durationSeconds;
@@ -566,11 +568,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
         const dailyData = dailyTotals.map(day => ({...day, value: Math.round(day.value / 60)}));
 
-        const topStreak = [...allHabits].sort((a,b) => (b.longestStreak || 0) - (a.longestStreak || 0)).slice(0, 5).map(h => ({ name: h.name, racha: h.longestStreak || 0 }));
+        const topStreak = [...activeHabits].sort((a,b) => (b.longestStreak || 0) - (a.longestStreak || 0)).slice(0, 5).map(h => ({ name: h.name, racha: h.longestStreak || 0 }));
 
         const timeTotals: Record<string, number> = {};
         habitLogs.forEach((log: any) => {
-            const habit = allHabits.find((h: any) => h.id === log.referenceId);
+            const habit = activeHabits.find((h: any) => h.id === log.referenceId);
             if (habit) timeTotals[habit.name] = (timeTotals[habit.name] || 0) + log.durationSeconds;
         });
         const topTime = Object.entries(timeTotals).map(([name, time]) => ({ name, minutos: Math.round(time / 60) })).sort((a, b) => b.minutos - a.minutos).slice(0, 5);
@@ -579,10 +581,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const year = today.getFullYear();
         const month = today.getMonth();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const dailyHabitsForMonth = allHabits.filter(h => h.frequency === 'Diario');
+        const dailyHabitsForMonth = activeHabits.filter(h => h.frequency === 'Diario');
         const completionByDay: Record<number, {completed: number, total: number}> = {};
         if (dailyHabitsForMonth.length > 0) {
-            allHabits.forEach(habit => {
+            activeHabits.forEach(habit => {
                 if (habit.lastCompletedAt) {
                     const completedDate = habit.lastCompletedAt.toDate();
                     if (completedDate.getFullYear() === year && completedDate.getMonth() === month) {
@@ -605,6 +607,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Routines Selectors
     const routineTimeAnalytics = useMemo(() => {
         if (!routines || !allHabits || !timeLogs) return [];
+        const activeHabits = allHabits.filter(h => h.isActive);
         const habitTimeTotals: Record<string, number> = {};
         timeLogs.filter(log => log.referenceType === 'habit').forEach(log => {
             habitTimeTotals[log.referenceId] = (habitTimeTotals[log.referenceId] || 0) + log.durationSeconds;
@@ -612,7 +615,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const routineTotals: Record<string, number> = {};
         routines.forEach(routine => {
             routine.habitIds.forEach((habitId: string) => {
-                if (habitTimeTotals[habitId]) routineTotals[routine.name] = (routineTotals[routine.name] || 0) + habitTimeTotals[habitId];
+                 const habit = activeHabits.find(h => h.id === habitId);
+                if (habit && habitTimeTotals[habitId]) routineTotals[routine.name] = (routineTotals[routine.name] || 0) + habitTimeTotals[habitId];
             });
         });
         return Object.entries(routineTotals).map(([name, time]) => ({ name, minutos: Math.round(time / 60) })).sort((a, b) => b.minutos - a.minutos);

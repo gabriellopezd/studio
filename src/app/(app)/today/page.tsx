@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -58,13 +59,14 @@ export default function TodayPage() {
     setIsClient(true);
     setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, []);
+
+  const activeHabits = useMemo(() => allHabits?.filter(h => h.isActive) || [], [allHabits]);
     
   const habitsForToday = useMemo(() => {
-    if (!allHabits) return [];
-    return allHabits.filter(habit => {
+    return activeHabits.filter(habit => {
       return !isHabitCompletedToday(habit);
     });
-  }, [allHabits]);
+  }, [activeHabits]);
     
   const groupedHabits = useMemo(() => {
     if (!habitsForToday) return {};
@@ -79,9 +81,9 @@ export default function TodayPage() {
   }, [habitsForToday]);
 
 
-  const completedHabits = allHabits?.filter((h) => isHabitCompletedToday(h)).length ?? 0;
+  const completedHabits = activeHabits?.filter((h) => isHabitCompletedToday(h)).length ?? 0;
 
-  const totalHabits = allHabits?.length ?? 0;
+  const totalHabits = activeHabits?.length ?? 0;
   const habitsProgress =
     totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
 
@@ -204,7 +206,7 @@ export default function TodayPage() {
                       <p className="text-sm text-muted-foreground">
                         Vence:{' '}
                         {task.dueDate?.toDate
-                          ? task.dueDate.toDate().toLocaleDateString()
+                          ? task.dueDate.toDate().toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric'})
                           : 'Sin fecha'}
                       </p>
                     </div>

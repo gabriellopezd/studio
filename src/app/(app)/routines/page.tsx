@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -95,6 +96,9 @@ export default function RoutinesPage() {
   const [selectedHabitIds, setSelectedHabitIds] = useState<string[]>([]);
   const [motivation, setMotivation] = useState('');
 
+  const activeHabits = useMemo(() => allHabits?.filter(h => h.isActive) || [], [allHabits]);
+
+
   useEffect(() => {
     setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, []);
@@ -151,9 +155,9 @@ export default function RoutinesPage() {
 
   
   const handleCompleteRoutine = async (routine: any) => {
-    if (!user || !allHabits || !firestore) return;
+    if (!user || !activeHabits || !firestore) return;
 
-    const routineHabits = allHabits.filter(h => routine.habitIds.includes(h.id));
+    const routineHabits = activeHabits.filter(h => routine.habitIds.includes(h.id));
     const habitsToComplete = routineHabits.filter(h => !isHabitCompletedToday(h));
 
     if (habitsToComplete.length === 0) return;
@@ -200,7 +204,7 @@ export default function RoutinesPage() {
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {routines?.map((routine) => {
-                const routineHabits = allHabits?.filter(h => routine.habitIds.includes(h.id)) || [];
+                const routineHabits = activeHabits?.filter(h => routine.habitIds.includes(h.id)) || [];
                 const completedHabitsCount = routineHabits.filter(isHabitCompletedToday).length;
                 const progress = routineHabits.length > 0 ? (completedHabitsCount / routineHabits.length) * 100 : 0;
                 const allHabitsInRoutineCompleted = completedHabitsCount === routineHabits.length;
@@ -310,7 +314,7 @@ export default function RoutinesPage() {
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis type="number" unit=" min" />
                           <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
-                          <Tooltip formatter={(value) => `${"value"} min`} />
+                          <Tooltip formatter={(value) => `${value} min`} />
                           <Bar dataKey="minutos" name="Minutos de Enfoque" fill="hsl(var(--primary))" />
                         </BarChart>
                       </ResponsiveContainer>
@@ -339,7 +343,7 @@ export default function RoutinesPage() {
             <div className="space-y-2">
               <Label>Hábitos</Label>
               <div className="space-y-2 rounded-md border p-2 max-h-60 overflow-y-auto">
-                 {allHabits?.map(habit => (
+                 {activeHabits?.map(habit => (
                    <div key={habit.id} className="flex items-center gap-2">
                       <Checkbox 
                         id={`habit-${habit.id}`}
@@ -383,3 +387,4 @@ export default function RoutinesPage() {
     </>
   );
 }
+

@@ -132,6 +132,10 @@
         "presetHabitId": {
           "type": ["string", "null"],
           "description": "The ID of the preset habit this user habit was created from, if any."
+        },
+        "isActive": {
+            "type": "boolean",
+            "description": "Whether the habit is currently active and visible to the user."
         }
       },
       "required": [
@@ -141,7 +145,8 @@
         "icon",
         "frequency",
         "createdAt",
-        "category"
+        "category",
+        "isActive"
       ]
     },
     "Routine": {

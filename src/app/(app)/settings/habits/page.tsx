@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -7,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { useAppContext } from '@/app/_providers/AppContext';
-import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -56,33 +57,42 @@ export default function HabitSettingsPage() {
   
   const handleToggleHabit = async (habitTemplate: any, isActive: boolean) => {
     if (!user || !firestore || !allHabits) return;
-
+  
+    // Find if a habit matching the template already exists for the user
+    const existingHabit = allHabits.find(h =>
+      (h.presetHabitId && h.presetHabitId === habitTemplate.id) ||
+      (!h.presetHabitId && h.name === habitTemplate.name && h.category === habitTemplate.category) ||
+      (habitTemplate.isUserCreated && h.id === habitTemplate.originalId)
+    );
+  
     if (isActive) {
-        const habitToDelete = allHabits.find(h => 
-            habitTemplate.isUserCreated 
-                ? h.id === habitTemplate.originalId 
-                : h.presetHabitId === habitTemplate.id
-        );
-        
-        if (habitToDelete) {
-            const habitRef = doc(firestore, 'users', user.uid, 'habits', habitToDelete.id);
-            await deleteDocumentNonBlocking(habitRef);
-        }
+      // Deactivating: If the habit exists, set isActive to false
+      if (existingHabit) {
+        const habitRef = doc(firestore, 'users', user.uid, 'habits', existingHabit.id);
+        await updateDocumentNonBlocking(habitRef, { isActive: false });
+      }
     } else {
+      // Activating: If the habit exists, set isActive to true. Otherwise, create it.
+      if (existingHabit) {
+        const habitRef = doc(firestore, 'users', user.uid, 'habits', existingHabit.id);
+        await updateDocumentNonBlocking(habitRef, { isActive: true });
+      } else {
         const newHabit = {
-            name: habitTemplate.name,
-            icon: habitTemplate.icon,
-            frequency: habitTemplate.frequency,
-            category: habitTemplate.category,
-            currentStreak: 0,
-            longestStreak: 0,
-            createdAt: serverTimestamp(),
-            lastCompletedAt: null,
-            userId: user.uid,
-            presetHabitId: habitTemplate.isUserCreated ? null : habitTemplate.id, 
+          name: habitTemplate.name,
+          icon: habitTemplate.icon,
+          frequency: habitTemplate.frequency,
+          category: habitTemplate.category,
+          currentStreak: 0,
+          longestStreak: 0,
+          createdAt: serverTimestamp(),
+          lastCompletedAt: null,
+          userId: user.uid,
+          presetHabitId: habitTemplate.isUserCreated ? null : habitTemplate.id,
+          isActive: true, // Always active on creation
         };
         const habitsColRef = collection(firestore, 'users', user.uid, 'habits');
         await addDocumentNonBlocking(habitsColRef, newHabit);
+      }
     }
   };
 
@@ -113,11 +123,12 @@ export default function HabitSettingsPage() {
               </h2>
               <div className="grid gap-4 md:grid-cols-2">
                 {groupedHabits[category].map((habit: any) => {
-                    const isActive = allHabits?.some(h => 
-                        habit.isUserCreated 
-                            ? h.id === habit.originalId 
-                            : h.presetHabitId === habit.id
+                    const existingHabit = allHabits?.find(h => 
+                        (h.presetHabitId && h.presetHabitId === habit.id) ||
+                        (habit.isUserCreated && h.id === habit.originalId) ||
+                        (!h.presetHabitId && !habit.isUserCreated && h.name === habit.name && h.category === habit.category)
                     );
+                    const isActive = existingHabit ? existingHabit.isActive : false;
                     return (
                         <Card key={habit.id}>
                             <CardHeader className="flex flex-row items-center justify-between pb-4">
