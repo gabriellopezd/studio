@@ -559,7 +559,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
         const dailyTotals = Array(7).fill(0).map((_, i) => ({ name: daysOfWeek[i], value: 0}));
-        timeLogs.forEach((log: any) => {
+        (timeLogs || []).forEach((log: any) => {
             const date = log.startTime.toDate();
             const dayIndex = date.getDay();
             dailyTotals[dayIndex].value += log.durationSeconds;
