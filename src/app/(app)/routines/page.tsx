@@ -93,7 +93,7 @@ export default function RoutinesPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedHabitIds, setSelectedHabitIds] = useState<string[]>([]);
-  const [motivation, setMotivation] useState('');
+  const [motivation, setMotivation] = useState('');
 
   useEffect(() => {
     setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
@@ -310,7 +310,7 @@ export default function RoutinesPage() {
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis type="number" unit=" min" />
                           <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
-                          <Tooltip formatter={(value) => `${value} min`} />
+                          <Tooltip formatter={(value) => `${"value"} min`} />
                           <Bar dataKey="minutos" name="Minutos de Enfoque" fill="hsl(var(--primary))" />
                         </BarChart>
                       </ResponsiveContainer>
@@ -383,3 +383,5 @@ export default function RoutinesPage() {
     </>
   );
 }
+
+    
