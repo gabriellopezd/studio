@@ -22,7 +22,7 @@ export default function PageHeader({
   const image: ImagePlaceholder | undefined = imageId ? PlaceHolderImages.find(img => img.id === imageId) : undefined;
 
   return (
-    <Card className={cn('relative overflow-hidden border-0 shadow-none', image && 'min-h-[200px] flex items-center justify-center')}>
+    <Card className={cn('group relative overflow-hidden border-0 shadow-none', image && 'min-h-[200px] flex items-center justify-center')}>
       {image?.imageUrl && (
         <Image
           src={image.imageUrl}
@@ -62,7 +62,7 @@ export default function PageHeader({
               )}
             </div>
             {children && (
-              <div className="flex shrink-0 items-center gap-2">{children}</div>
+              <div className="flex shrink-0 items-center gap-2 [&_a]:text-primary-foreground [&_[data-variant=outline]]:border-primary-foreground/50 [&_[data-variant=outline]]:text-primary-foreground [&_[data-variant=outline]]:hover:bg-white/10 [&_[data-variant=outline]]:hover:text-primary-foreground">{children}</div>
             )}
           </div>
         </CardHeader>
