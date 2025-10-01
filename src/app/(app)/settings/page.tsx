@@ -43,8 +43,8 @@ import { useAppContext } from '@/app/_providers/AppContext';
 import Link from 'next/link';
 
 export default function SettingsPage() {
-  const { auth, user } = useUser();
-  const { firestore } = useFirebase();
+  const { user } = useUser();
+  const { auth, firestore } = useFirebase();
   const { theme, setTheme } = useTheme();
   const { handleResetAllStreaks, handleResetTimeLogs, handleResetMoods, handleResetCategories } = useAppContext();
   const userAvatar = PlaceHolderImages.find((img) => img.id === 'default-user-avatar');
@@ -62,9 +62,9 @@ export default function SettingsPage() {
   }, [user]);
 
   const handleProfileUpdate = async () => {
-    if (!user) return;
+    if (!user || !auth) return;
     try {
-      await updateProfile(user, { displayName });
+      await updateProfile(auth.currentUser!, { displayName });
       const userDocRef = doc(firestore, 'users', user.uid);
       await updateDocumentNonBlocking(userDocRef, { displayName });
       toast({ title: 'Perfil actualizado' });
@@ -74,7 +74,7 @@ export default function SettingsPage() {
   };
 
   const handleChangePassword = async () => {
-    if (!user || !user.email) return;
+    if (!user || !user.email || !auth) return;
     if (newPassword !== confirmPassword) {
       toast({ variant: 'destructive', title: 'Las contraseñas no coinciden' });
       return;
@@ -82,8 +82,8 @@ export default function SettingsPage() {
 
     try {
       const credential = EmailAuthProvider.credential(user.email, currentPassword);
-      await reauthenticateWithCredential(user, credential);
-      await updatePassword(user, newPassword);
+      await reauthenticateWithCredential(auth.currentUser!, credential);
+      await updatePassword(auth.currentUser!, newPassword);
       toast({ title: 'Contraseña cambiada exitosamente' });
       setCurrentPassword('');
       setNewPassword('');
