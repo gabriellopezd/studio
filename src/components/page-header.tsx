@@ -24,7 +24,7 @@ export default function PageHeader({
   const imageHint = image?.imageHint;
 
   return (
-    <Card className={cn('relative overflow-hidden', !imageUrl && 'border-0')}>
+    <Card className={cn('relative overflow-hidden', !imageUrl && 'border-0 shadow-none')}>
       {imageUrl && (
         <Image
           src={imageUrl}
