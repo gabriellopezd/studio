@@ -41,6 +41,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useAppContext } from '@/app/_providers/AppContext';
 import Link from 'next/link';
+import { doc } from 'firebase/firestore';
 
 export default function SettingsPage() {
   const { user } = useUser();
@@ -399,3 +400,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
