@@ -20,7 +20,7 @@ export default function HabitSettingsPage() {
   const combinedHabitTemplates = useMemo(() => {
     if (presetHabitsLoading || habitsLoading) return [];
 
-    const allTemplates = [...presetHabits].map(p => ({ ...p, isUserCreated: false }));
+    const allTemplates = [...(presetHabits || [])].map(p => ({ ...p, isUserCreated: false }));
 
     const userCreatedHabitsAsTemplates = (allHabits || [])
         .filter(h => !h.presetHabitId) 
@@ -92,6 +92,7 @@ export default function HabitSettingsPage() {
       <PageHeader
         title="Configurar Biblioteca de Hábitos"
         description="Activa o desactiva los hábitos sugeridos y los que has creado para personalizar tu experiencia."
+        imageUrl="https://picsum.photos/seed/habits/1200/300"
       >
         <Button variant="outline" asChild>
           <Link href="/habits">
