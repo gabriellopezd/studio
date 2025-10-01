@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -598,32 +597,36 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
                   </Select>
                 </div>
 
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2 relative">
-                        <Label>Fecha</Label>
-                        <Input
-                            type="date"
-                            value={newTransactionDate ? format(newTransactionDate, 'yyyy-MM-dd') : ''}
-                            onChange={(e) => {
-                                const date = e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined;
-                                setNewTransactionDate(date);
-                            }}
-                            className="block w-full"
-                        />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 relative">
+                    <Label>Fecha</Label>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !newTransactionDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {newTransactionDate ? format(newTransactionDate, 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}
+                      <Input
+                        type="date"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        value={newTransactionDate ? format(newTransactionDate, 'yyyy-MM-dd') : ''}
+                        onChange={(e) => {
+                          const date = e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined;
+                          setNewTransactionDate(date);
+                        }}
+                      />
+                    </Button>
+                  </div>
+                  {newTransactionType === 'expense' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="budget-focus">Enfoque Presupuesto</Label>
+                      <Select value={newTransactionBudgetFocus} onValueChange={setNewTransactionBudgetFocus}>
+                        <SelectTrigger id="budget-focus"><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Necesidades">Necesidades</SelectItem>
+                          <SelectItem value="Deseos">Deseos</SelectItem>
+                          <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    {newTransactionType === 'expense' && (
-                        <div className="space-y-2">
-                          <Label htmlFor="budget-focus">Enfoque Presupuesto</Label>
-                          <Select value={newTransactionBudgetFocus} onValueChange={setNewTransactionBudgetFocus}>
-                            <SelectTrigger id="budget-focus"><SelectValue placeholder="Selecciona" /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Necesidades">Necesidades</SelectItem>
-                              <SelectItem value="Deseos">Deseos</SelectItem>
-                              <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                    )}
+                  )}
                 </div>
               </div>
               <DialogFooter>
@@ -1166,30 +1169,35 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
                 </Select>
               </div>
                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 relative">
+                    <Label>Fecha</Label>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !transactionToEdit.date && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {transactionToEdit.date ? format(new Date(transactionToEdit.date), 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}
+                      <Input
+                        type="date"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        value={transactionToEdit.date ? format(new Date(transactionToEdit.date), 'yyyy-MM-dd') : ''}
+                        onChange={(e) => {
+                          const date = e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined;
+                          setTransactionToEdit({ ...transactionToEdit, date: date });
+                        }}
+                      />
+                    </Button>
+                  </div>
+                  {transactionToEdit.type === 'expense' && (
                     <div className="space-y-2">
-                        <Label>Fecha</Label>
-                        <Input
-                            type="date"
-                            value={transactionToEdit.date ? format(new Date(transactionToEdit.date), 'yyyy-MM-dd') : ''}
-                            onChange={(e) => {
-                                const date = e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined;
-                                setTransactionToEdit({ ...transactionToEdit, date: date });
-                            }}
-                            className="block w-full"
-                        />
+                      <Label htmlFor="edit-budget-focus">Enfoque Presupuesto</Label>
+                      <Select value={transactionToEdit.budgetFocus} onValueChange={(value) => setTransactionToEdit({...transactionToEdit, budgetFocus: value})}>
+                        <SelectTrigger id="edit-budget-focus"><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Necesidades">Necesidades</SelectItem>
+                          <SelectItem value="Deseos">Deseos</SelectItem>
+                          <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    {transactionToEdit.type === 'expense' && (
-                        <div className="space-y-2">
-                          <Label htmlFor="edit-budget-focus">Enfoque Presupuesto</Label>                          <Select value={transactionToEdit.budgetFocus} onValueChange={(value) => setTransactionToEdit({...transactionToEdit, budgetFocus: value})}>
-                            <SelectTrigger id="edit-budget-focus"><SelectValue placeholder="Selecciona" /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Necesidades">Necesidades</SelectItem>
-                              <SelectItem value="Deseos">Deseos</SelectItem>
-                              <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                    )}
+                  )}
                 </div>
             </div>
           )}
