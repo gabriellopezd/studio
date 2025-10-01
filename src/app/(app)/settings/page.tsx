@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { Upload, RotateCcw, TimerOff, Trash2, Library } from 'lucide-react';
+import { Upload, RotateCcw, TimerOff, Trash2, Library, Repeat, ShoppingCart, ChevronRight, User as UserIcon, Lock, Palette, Bell } from 'lucide-react';
 import { useFirebase, useUser, updateDocumentNonBlocking } from '@/firebase';
 import { useState, useEffect } from 'react';
 import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
@@ -40,6 +40,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useAppContext } from '@/app/_providers/AppContext';
+import Link from 'next/link';
 
 export default function SettingsPage() {
   const { auth, user } = useUser();
@@ -91,23 +92,39 @@ export default function SettingsPage() {
       toast({ variant: 'destructive', title: 'Error al cambiar contraseña', description: error.message });
     }
   };
+  
+  const settingsCards = [
+    { 
+        href: '/settings/habits', 
+        icon: Repeat, 
+        title: 'Biblioteca de Hábitos', 
+        description: 'Activa o desactiva hábitos para tu día a día.' 
+    },
+    { 
+        href: '/settings/expenses', 
+        icon: ShoppingCart, 
+        title: 'Categorías de Compras', 
+        description: 'Gestiona qué categorías aparecen como listas de compra.' 
+    },
+  ];
 
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
         title="CONFIGURACIÓN"
-        description="Gestiona tu perfil, cuenta y preferencias."
+        description="Gestiona tu perfil, cuenta y preferencias de la aplicación."
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Columna Izquierda */}
+        {/* Columna Izquierda - Perfil y Cuenta */}
         <div className="lg:col-span-1 flex flex-col gap-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Perfil de Usuario</CardTitle>
-              <CardDescription>
-                Actualiza tu información de perfil.
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center gap-4">
+                <UserIcon className="size-6 text-primary"/>
+                <div>
+                    <CardTitle>Perfil de Usuario</CardTitle>
+                    <CardDescription>Actualiza tu información personal.</CardDescription>
+                </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -148,14 +165,13 @@ export default function SettingsPage() {
               <Button onClick={handleProfileUpdate}>Guardar Cambios</Button>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Columna Derecha */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Configuración de Cuenta</CardTitle>
-              <CardDescription>Gestiona tu contraseña.</CardDescription>
+           <Card>
+            <CardHeader className="flex flex-row items-center gap-4">
+              <Lock className="size-6 text-primary"/>
+              <div>
+                <CardTitle>Seguridad</CardTitle>
+                <CardDescription>Gestiona tu contraseña.</CardDescription>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -175,18 +191,22 @@ export default function SettingsPage() {
               <Button onClick={handleChangePassword}>Cambiar Contraseña</Button>
             </CardContent>
           </Card>
+        </div>
 
+        {/* Columna Derecha - Paneles de Configuración */}
+        <div className="lg:col-span-2 flex flex-col gap-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Preferencias</CardTitle>
-              <CardDescription>
-                Personaliza tu experiencia en la aplicación.
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center gap-4">
+              <Palette className="size-6 text-primary"/>
+              <div>
+                <CardTitle>Preferencias</CardTitle>
+                <CardDescription>Personaliza la apariencia y notificaciones.</CardDescription>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-lg border p-4 gap-4">
                 <div>
-                  <Label htmlFor="theme-select">Tema</Label>
+                  <h4 className="font-medium">Tema de la Aplicación</h4>
                   <p className="text-sm text-muted-foreground">
                     Elige cómo quieres que se vea la aplicación.
                   </p>
@@ -203,8 +223,8 @@ export default function SettingsPage() {
                 </Select>
               </div>
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-lg border p-4 gap-4">
-                <div>
-                  <Label htmlFor="notifications">Notificaciones Push</Label>
+                 <div>
+                  <h4 className="font-medium">Notificaciones Push</h4>
                   <p className="text-sm text-muted-foreground">
                     Recibe recordatorios de tus hábitos y tareas.
                   </p>
@@ -214,19 +234,46 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
           
-           <Card>
-            <CardHeader>
-              <CardTitle>Gestión de Datos</CardTitle>
-              <CardDescription>
-                Acciones permanentes sobre los datos de tu cuenta.
-              </CardDescription>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {settingsCards.map((card) => (
+                <Link href={card.href} key={card.href} className="block hover:bg-muted/50 rounded-lg border">
+                    <Card className="h-full shadow-none border-none bg-transparent">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                             <div className="flex items-center gap-4">
+                                <card.icon className="size-6 text-primary"/>
+                                <div>
+                                    <CardTitle className="text-base">{card.title}</CardTitle>
+                                    <CardDescription className="text-xs">{card.description}</CardDescription>
+                                </div>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-muted-foreground"/>
+                        </CardHeader>
+                    </Card>
+                </Link>
+            ))}
+           </div>
+          
+           <Card className="border-destructive/50">
+            <CardHeader className="flex flex-row items-center gap-4 text-destructive">
+                <Trash2 className="size-6"/>
+                <div>
+                    <CardTitle>Zona Peligrosa</CardTitle>
+                    <CardDescription className="text-destructive/80">
+                        Acciones permanentes que reinician partes de tus datos.
+                    </CardDescription>
+                </div>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="w-full">
-                    <RotateCcw className="mr-2 h-4 w-4" />
-                    Rachas de Hábitos
+                  <Button variant="outline" className="w-full justify-start text-left h-auto py-2">
+                    <div className="flex items-center gap-3">
+                        <RotateCcw className="size-5 text-destructive"/>
+                        <div>
+                            <p className="font-semibold">Rachas de Hábitos</p>
+                            <p className="text-xs text-muted-foreground">Reinicia todas las rachas a cero.</p>
+                        </div>
+                    </div>
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -251,9 +298,14 @@ export default function SettingsPage() {
               
                <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="w-full">
-                    <TimerOff className="mr-2 h-4 w-4" />
-                    Tiempo de Enfoque
+                   <Button variant="outline" className="w-full justify-start text-left h-auto py-2">
+                    <div className="flex items-center gap-3">
+                        <TimerOff className="size-5 text-destructive"/>
+                        <div>
+                            <p className="font-semibold">Tiempo de Enfoque</p>
+                            <p className="text-xs text-muted-foreground">Elimina todos los registros de tiempo.</p>
+                        </div>
+                    </div>
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -261,7 +313,7 @@ export default function SettingsPage() {
                     <AlertDialogTitle>¿Restablecer tiempo de enfoque?</AlertDialogTitle>
                     <AlertDialogDescription>
                       Esta acción no se puede deshacer. Se eliminarán permanentemente
-                      todos los registros de tiempo de tus sesiones de enfoque para hábitos y tareas.
+                      todos los registros de tiempo de tus sesiones de enfoque.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -278,9 +330,14 @@ export default function SettingsPage() {
 
                <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="w-full">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Historial de Ánimo
+                  <Button variant="outline" className="w-full justify-start text-left h-auto py-2">
+                    <div className="flex items-center gap-3">
+                        <Trash2 className="size-5 text-destructive"/>
+                        <div>
+                            <p className="font-semibold">Historial de Ánimo</p>
+                            <p className="text-xs text-muted-foreground">Borra todos los registros de ánimo.</p>
+                        </div>
+                    </div>
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -305,9 +362,14 @@ export default function SettingsPage() {
 
                <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="w-full">
-                    <Library className="mr-2 h-4 w-4" />
-                    Restaurar Categorías
+                  <Button variant="outline" className="w-full justify-start text-left h-auto py-2">
+                    <div className="flex items-center gap-3">
+                        <Library className="size-5 text-destructive"/>
+                        <div>
+                            <p className="font-semibold">Restaurar Categorías</p>
+                            <p className="text-xs text-muted-foreground">Vuelve a las categorías financieras iniciales.</p>
+                        </div>
+                    </div>
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
