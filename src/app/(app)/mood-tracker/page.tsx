@@ -53,7 +53,13 @@ export default function MoodTrackerPage() {
   };
 
   const daysInMonth = getDaysInMonth(currentMonth.getFullYear(), currentMonth.getMonth());
+  const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
+
   const calendarDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const emptyDays = Array(firstDayOfMonth).fill(null);
+  const allCalendarDays = [...emptyDays, ...calendarDays];
+  const weekDays = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
 
   const resetForm = () => {
     setStep(1);
@@ -142,22 +148,26 @@ export default function MoodTrackerPage() {
                 </div>
                 
                 {moodsLoading && <p>Cargando historial de ánimo...</p>}
-                <div className="grid grid-cols-7 gap-2">
-                    {calendarDays.map((day) => {
-                    const moodEntry = getMoodForDay(day);
-                    return (
-                        <div
-                        key={day}
-                        className="flex aspect-square flex-col items-center justify-center rounded-lg border bg-card p-2 text-center"
-                        >
-                        <span className="text-sm text-muted-foreground">{day}</span>
-                        <span className="text-2xl mt-1">
-                            {moodEntry
-                            ? moodEntry.emoji
-                            : ''}
-                        </span>
-                        </div>
-                    );
+                 <div className="grid grid-cols-7 gap-1 md:gap-2">
+                    {weekDays.map(day => (
+                        <div key={day} className="text-center text-xs font-semibold text-muted-foreground pb-2">{day}</div>
+                    ))}
+                    {allCalendarDays.map((day, index) => {
+                        if (day === null) {
+                            return <div key={`empty-${index}`} />;
+                        }
+                        const moodEntry = getMoodForDay(day);
+                        return (
+                            <div
+                                key={day}
+                                className="flex aspect-square flex-col items-center justify-center rounded-lg border bg-card p-1 text-center"
+                            >
+                                <span className="text-xs md:text-sm text-muted-foreground">{day}</span>
+                                <span className="text-xl md:text-2xl mt-1">
+                                    {moodEntry?.emoji || ''}
+                                </span>
+                            </div>
+                        );
                     })}
                 </div>
                 </CardContent>
