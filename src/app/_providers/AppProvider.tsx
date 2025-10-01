@@ -118,7 +118,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [state, dispatch] = useReducer(appReducer, initialState);
     const [streaksChecked, setStreaksChecked] = useState(false);
     const { toast } = useToast();
-    const presetsInitialized = useRef(false);
     
     // --- Data Fetching using useCollection ---
     const allHabitsQuery = useMemo(() => {
@@ -227,67 +226,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [user, firestore]);
     const { data: todayMoodData } = useCollection(todayMoodQuery);
     
-    // --- Preset Expense Category Initialization ---
-    useEffect(() => {
-        if (!user || !firestore || shoppingListsLoading || budgetsLoading || presetsInitialized.current) {
-            return;
-        }
-
-        presetsInitialized.current = true; // Set flag immediately to prevent re-entry
-
-        const createPresets = async () => {
-            const batch = writeBatch(firestore);
-            let batchHasWrites = false;
-
-            const existingListNames = new Set(shoppingLists?.map(l => l.name) ?? []);
-            const existingBudgetCategoryNames = new Set(budgets?.map(b => b.categoryName) ?? []);
-
-            PRESET_EXPENSE_CATEGORIES.forEach((categoryName, index) => {
-                if (!existingListNames.has(categoryName)) {
-                    const listsColRef = collection(firestore, 'users', user.uid, 'shoppingLists');
-                    const listDocRef = doc(listsColRef);
-                    const budgetFocus = ['Arriendo', 'Servicios', 'Transporte', 'Salud', 'Hogar', 'Impuestos', 'Comida'].includes(categoryName)
-                        ? 'Necesidades'
-                        : ['Deudas', 'Ahorros'].includes(categoryName) ? 'Ahorros y Deudas' : 'Deseos';
-                    
-                    batch.set(listDocRef, {
-                        name: categoryName,
-                        budgetFocus: budgetFocus,
-                        createdAt: serverTimestamp(),
-                        items: [],
-                        userId: user.uid,
-                        order: index,
-                        isActive: true,
-                    });
-                    batchHasWrites = true;
-                }
-
-                if (!existingBudgetCategoryNames.has(categoryName)) {
-                    const budgetsColRef = collection(firestore, 'users', user.uid, 'budgets');
-                    const budgetDocRef = doc(budgetsColRef);
-                    batch.set(budgetDocRef, {
-                        categoryName: categoryName,
-                        monthlyLimit: 1000000, 
-                        currentSpend: 0,
-                        userId: user.uid,
-                    });
-                    batchHasWrites = true;
-                }
-            });
-
-            if (batchHasWrites) {
-                try {
-                    await batch.commit();
-                } catch (error) {
-                    console.error("Error creating preset categories:", error);
-                }
-            }
-        };
-
-        createPresets();
-    }, [user, firestore, shoppingLists, budgets, shoppingListsLoading, budgetsLoading]);
-
-
     // --- Streak Checking ---
     useEffect(() => {
         if (user && firestore && allHabits && !habitsLoading && !streaksChecked) {
@@ -956,3 +894,5 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 };
 
+
+    
