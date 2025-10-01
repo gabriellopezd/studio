@@ -530,7 +530,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
     // Habit Selectors
     const { groupedHabits, dailyHabits, weeklyHabits, completedDaily, completedWeekly, longestStreak, longestCurrentStreak, habitCategoryData, dailyProductivityData, topHabitsByStreak, topHabitsByTime, monthlyCompletionData } = useMemo(() => {
-        if (!allHabits || !timeLogs) return { groupedHabits: {}, dailyHabits: [], weeklyHabits: [], completedDaily: 0, completedWeekly: 0, longestStreak: 0, longestCurrentStreak: 0, habitCategoryData: [], dailyProductivityData: [], topHabitsByStreak: [], topHabitsByTime: [], monthlyCompletionData: [] };
+        if (!allHabits) return { groupedHabits: {}, dailyHabits: [], weeklyHabits: [], completedDaily: 0, completedWeekly: 0, longestStreak: 0, longestCurrentStreak: 0, habitCategoryData: [], dailyProductivityData: [], topHabitsByStreak: [], topHabitsByTime: [], monthlyCompletionData: [] };
 
         const grouped = allHabits.reduce((acc, habit) => {
             const category = habit.category || 'Sin Categoría';
@@ -546,7 +546,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const longestS = allHabits.reduce((max, h) => Math.max(max, h.longestStreak || 0), 0);
         const longestCS = allHabits.reduce((max, h) => Math.max(max, h.currentStreak || 0), 0);
 
-        const habitLogs = timeLogs.filter((log: any) => log.referenceType === 'habit');
+        const habitLogs = (timeLogs || []).filter((log: any) => log.referenceType === 'habit');
         const categoryTotals: Record<string, number> = {};
         habitLogs.forEach((log: any) => {
             const habit = allHabits.find((h: any) => h.id === log.referenceId);
@@ -718,26 +718,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const receivedRI = recurringIncomes?.filter(i => i.lastInstanceCreated === monthYear) ?? [];
         
         const pendingRecurringTotal = pendingRE.reduce((s, e) => s + e.amount, 0);
-        const pendingShoppingTotal = shoppingLists?.filter(l => l.isActive).reduce((total, list) => 
+        const pendingShoppingTotal = (shoppingLists || []).filter(l => l.isActive).reduce((total, list) => 
             total + list.items.filter((item: any) => !item.isPurchased).reduce((subtotal: number, item: any) => subtotal + item.amount, 0), 0) ?? 0;
         const pendingETotal = pendingRecurringTotal + pendingShoppingTotal;
 
         
         const allCategoryNames = [...new Set([
             ...PRESET_EXPENSE_CATEGORIES,
-            ...(budgets?.map(b => b.categoryName) ?? []), 
-            ...(shoppingLists?.map(l => l.name) ?? []),
+            ...(budgets || []).map(b => b.categoryName), 
+            ...(shoppingLists || []).map(l => l.name),
             ...(transactions?.filter(t => t.type === 'expense').map(t => t.category) ?? [])
         ])].filter(Boolean);
 
         const incomeCats = [...new Set(["Salario", "Bonificación", "Otro", ...(transactions?.filter(t => t.type === 'income').map(t => t.category) ?? [])])].filter(Boolean);
-        const catsNoBudget = allCategoryNames.filter(cat => !budgets?.some(b => b.categoryName === cat));
+        const catsNoBudget = allCategoryNames.filter(cat => !(budgets || []).some(b => b.categoryName === cat));
 
-        const sorted = shoppingLists?.filter(l => l.isActive).sort((a, b) => a.order - b.order) ?? [];
+        const sorted = (shoppingLists || []).filter(l => l.isActive).sort((a, b) => a.order - b.order) ?? [];
 
-        const spendingByCat = shoppingLists?.filter(l => l.isActive).map(l => ({ name: l.name, gasto: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.gasto > 0) ?? [];
-        const budgetAcc = shoppingLists?.filter(l => l.isActive).map(l => ({ name: l.name, estimado: l.items.filter((i:any) => i.isPurchased).reduce((s:number, i:any) => s + i.amount, 0), real: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.real > 0 || d.estimado > 0) ?? [];
-        const spendingByF = (Object.entries(shoppingLists?.filter(l => l.isActive).reduce((acc, l) => {
+        const spendingByCat = (shoppingLists || []).filter(l => l.isActive).map(l => ({ name: l.name, gasto: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.gasto > 0) ?? [];
+        const budgetAcc = (shoppingLists || []).filter(l => l.isActive).map(l => ({ name: l.name, estimado: l.items.filter((i:any) => i.isPurchased).reduce((s:number, i:any) => s + i.amount, 0), real: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.real > 0 || d.estimado > 0) ?? [];
+        const spendingByF = (Object.entries((shoppingLists || []).filter(l => l.isActive).reduce((acc, l) => {
             const total = l.items.filter((i: any) => i.isPurchased && i.price).reduce((s: number, i: any) => s + i.price, 0);
             if(l.budgetFocus && acc.hasOwnProperty(l.budgetFocus)) acc[l.budgetFocus] += total;
             return acc;
