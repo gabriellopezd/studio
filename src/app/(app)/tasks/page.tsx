@@ -425,6 +425,10 @@ export default function TasksPage() {
               <div className="space-y-2">
                 <Label htmlFor="task-due-date">Fecha de Vencimiento</Label>
                 <div className="relative">
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !taskToEdit.dueDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {taskToEdit.dueDate ? format(taskToEdit.dueDate, 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}
+                    </Button>
                     <Input
                         type="date"
                         value={taskToEdit.dueDate ? format(taskToEdit.dueDate, 'yyyy-MM-dd') : ''}
@@ -432,7 +436,7 @@ export default function TasksPage() {
                             const date = e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined;
                             setTaskToEdit({ ...taskToEdit, dueDate: date });
                         }}
-                        className="block w-full"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
                 </div>
               </div>
