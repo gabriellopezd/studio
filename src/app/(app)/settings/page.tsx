@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { Upload, RotateCcw, TimerOff, Trash2 } from 'lucide-react';
+import { Upload, RotateCcw, TimerOff, Trash2, Library } from 'lucide-react';
 import { useFirebase, useUser, updateDocumentNonBlocking } from '@/firebase';
 import { useState, useEffect } from 'react';
 import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
@@ -45,7 +45,7 @@ export default function SettingsPage() {
   const { auth, user } = useUser();
   const { firestore } = useFirebase();
   const { theme, setTheme } = useTheme();
-  const { handleResetAllStreaks, handleResetTimeLogs, handleResetMoods } = useAppContext();
+  const { handleResetAllStreaks, handleResetTimeLogs, handleResetMoods, handleResetCategories } = useAppContext();
   const userAvatar = PlaceHolderImages.find((img) => img.id === 'default-user-avatar');
   const { toast } = useToast();
 
@@ -221,7 +221,7 @@ export default function SettingsPage() {
                 Acciones permanentes sobre los datos de tu cuenta.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" className="w-full">
@@ -302,6 +302,33 @@ export default function SettingsPage() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+
+               <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full">
+                    <Library className="mr-2 h-4 w-4" />
+                    Restaurar Categorías
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Restaurar categorías financieras?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                       Esta acción no se puede deshacer. Se eliminarán **todas** tus listas de compra y presupuestos actuales, y se restaurarán las categorías predefinidas.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleResetCategories}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      Sí, restaurar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
             </CardContent>
           </Card>
         </div>

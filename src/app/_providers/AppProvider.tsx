@@ -48,7 +48,7 @@ type Action =
     | { type: 'SET_ACTIVE_SESSION'; payload: ActiveSession | null }
     | { type: 'SET_ELAPSED_TIME'; payload: number };
 
-const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'longestCurrentStreak' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'totalStats' | 'categoryStats' | 'weeklyTaskStats' | 'pendingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits'> = {
+const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'longestCurrentStreak' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'totalStats' | 'categoryStats' | 'weeklyTaskStats' | 'pendingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits'> = {
     allHabits: null,
     routines: null,
     tasks: null,
@@ -117,7 +117,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { firestore, user } = useFirebase();
     const [state, dispatch] = useReducer(appReducer, initialState);
     const [streaksChecked, setStreaksChecked] = useState(false);
-    const [presetsInitialized, setPresetsInitialized] = useState(false);
     const { toast } = useToast();
     
     // --- Data Fetching using useCollection ---
@@ -249,70 +248,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
     }, [user, firestore, allHabits, habitsLoading, streaksChecked]);
 
-    // --- Preset Categories Initialization ---
-    useEffect(() => {
-        const initializePresets = async () => {
-            if (presetsInitialized) {
-                return;
-            }
-            if (!user || !firestore || shoppingListsLoading || budgetsLoading) {
-                return;
-            }
-            
-            setPresetsInitialized(true);
-
-            const existingListNames = shoppingLists?.map(l => l.name) || [];
-            const existingBudgetNames = budgets?.map(b => b.categoryName) || [];
-
-            const batch = writeBatch(firestore);
-            let writesMade = false;
-
-            PRESET_EXPENSE_CATEGORIES.forEach((categoryName, index) => {
-                if (!existingListNames.includes(categoryName)) {
-                    const listsColRef = collection(firestore, 'users', user.uid, 'shoppingLists');
-                    const listDocRef = doc(listsColRef);
-                    const budgetFocus = ['Arriendo', 'Servicios', 'Transporte', 'Salud', 'Hogar', 'Impuestos', 'Comida'].includes(categoryName)
-                        ? 'Necesidades'
-                        : ['Deudas', 'Ahorros'].includes(categoryName) ? 'Ahorros y Deudas' : 'Deseos';
-                    
-                    batch.set(listDocRef, {
-                        name: categoryName,
-                        budgetFocus: budgetFocus,
-                        createdAt: serverTimestamp(),
-                        items: [],
-                        userId: user.uid,
-                        order: (shoppingLists?.length || 0) + index,
-                    });
-                    writesMade = true;
-                }
-
-                if (!existingBudgetNames.includes(categoryName)) {
-                    const budgetsColRef = collection(firestore, 'users', user.uid, 'budgets');
-                    const budgetDocRef = doc(budgetsColRef);
-                    batch.set(budgetDocRef, {
-                        categoryName: categoryName,
-                        monthlyLimit: 100000, 
-                        currentSpend: 0,
-                        userId: user.uid,
-                    });
-                    writesMade = true;
-                }
-            });
-
-            if (writesMade) {
-                try {
-                    await batch.commit();
-                } catch (error) {
-                    console.error("Error initializing preset categories:", error);
-                    setPresetsInitialized(false);
-                }
-            }
-        };
-
-        initializePresets();
-
-    }, [user, firestore, shoppingLists, budgets, shoppingListsLoading, budgetsLoading, presetsInitialized]);
-
 
     // --- Actions ---
 
@@ -423,6 +358,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         } catch (error) {
             console.error("Error resetting moods:", error);
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo reiniciar el historial de ánimo.' });
+        }
+    };
+    
+    const handleResetCategories = async () => {
+        if (!user || !firestore) return;
+        try {
+            const batch = writeBatch(firestore);
+
+            // Delete all existing shopping lists
+            const listsSnapshot = await getDocs(collection(firestore, 'users', user.uid, 'shoppingLists'));
+            listsSnapshot.forEach(doc => batch.delete(doc.ref));
+
+            // Delete all existing budgets
+            const budgetsSnapshot = await getDocs(collection(firestore, 'users', user.uid, 'budgets'));
+            budgetsSnapshot.forEach(doc => batch.delete(doc.ref));
+
+            // Re-create preset categories
+            PRESET_EXPENSE_CATEGORIES.forEach((categoryName, index) => {
+                // Create shopping list
+                const listsColRef = collection(firestore, 'users', user.uid, 'shoppingLists');
+                const listDocRef = doc(listsColRef);
+                const budgetFocus = ['Arriendo', 'Servicios', 'Transporte', 'Salud', 'Hogar', 'Impuestos', 'Comida'].includes(categoryName)
+                    ? 'Necesidades'
+                    : ['Deudas', 'Ahorros'].includes(categoryName) ? 'Ahorros y Deudas' : 'Deseos';
+                
+                batch.set(listDocRef, {
+                    name: categoryName,
+                    budgetFocus: budgetFocus,
+                    createdAt: serverTimestamp(),
+                    items: [],
+                    userId: user.uid,
+                    order: index,
+                });
+
+                // Create budget
+                const budgetsColRef = collection(firestore, 'users', user.uid, 'budgets');
+                const budgetDocRef = doc(budgetsColRef);
+                batch.set(budgetDocRef, {
+                    categoryName: categoryName,
+                    monthlyLimit: 100000, 
+                    currentSpend: 0,
+                    userId: user.uid,
+                });
+            });
+
+            await batch.commit();
+            toast({ title: 'Categorías Restauradas', description: 'Las listas de compras y presupuestos se han restaurado a los valores predefinidos.' });
+        } catch (error) {
+            console.error("Error resetting categories:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron restaurar las categorías.' });
         }
     };
 
@@ -703,26 +688,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const savingsBudget = income * 0.2;
         
         let b503020 = null;
-        if (income > 0) {
-            const needsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Necesidades').reduce((s, t) => s + t.amount, 0) ?? 0;
-            const wantsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((s, t) => s + t.amount, 0) ?? 0;
-            const savingsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((s, t) => s + t.amount, 0) ?? 0;
+
+        const needsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Necesidades').reduce((s, t) => s + t.amount, 0) ?? 0;
+        const wantsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((s, t) => s + t.amount, 0) ?? 0;
+        const savingsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((s, t) => s + t.amount, 0) ?? 0;
             
-            b503020 = {
-                needs: { budget: needsBudget, spend: needsSpend, progress: (needsSpend / (needsBudget || 1)) * 100 },
-                wants: { budget: wantsBudget, spend: wantsSpend, progress: (wantsSpend / (wantsBudget || 1)) * 100 },
-                savings: { budget: savingsBudget, spend: savingsSpend, progress: (savingsSpend / (savingsBudget || 1)) * 100 },
-            };
-        } else {
-            const needsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Necesidades').reduce((s, t) => s + t.amount, 0) ?? 0;
-            const wantsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((s, t) => s + t.amount, 0) ?? 0;
-            const savingsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((s, t) => s + t.amount, 0) ?? 0;
-            b503020 = {
-                needs: { budget: 0, spend: needsSpend, progress: 0 },
-                wants: { budget: 0, spend: wantsSpend, progress: 0 },
-                savings: { budget: 0, spend: savingsSpend, progress: 0 },
-            }
-        }
+        b503020 = {
+            needs: { budget: needsBudget, spend: needsSpend, progress: income > 0 ? (needsSpend / (needsBudget || 1)) * 100 : 0 },
+            wants: { budget: wantsBudget, spend: wantsSpend, progress: income > 0 ? (wantsSpend / (wantsBudget || 1)) * 100 : 0 },
+            savings: { budget: savingsBudget, spend: savingsSpend, progress: income > 0 ? (savingsSpend / (savingsBudget || 1)) * 100 : 0 },
+        };
         
         const pendingRE = recurringExpenses?.filter(e => e.lastInstanceCreated !== monthYear) ?? [];
         const paidRE = recurringExpenses?.filter(e => e.lastInstanceCreated === monthYear) ?? [];
@@ -742,7 +717,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ...(transactions?.filter(t => t.type === 'expense').map(t => t.category) ?? [])
         ])].filter(Boolean);
 
-        const incomeCategories = [...new Set(["Salario", "Bonificación", "Otro", ...(transactions?.filter(t => t.type === 'income').map(t => t.category) ?? [])])].filter(Boolean);
+        const incomeCats = [...new Set(["Salario", "Bonificación", "Otro", ...(transactions?.filter(t => t.type === 'income').map(t => t.category) ?? [])])].filter(Boolean);
         const catsNoBudget = expCats.filter(cat => !budgets?.some(b => b.categoryName === cat));
 
         const sorted = shoppingLists ? [...shoppingLists].sort((a, b) => a.order - b.order) : [];
@@ -755,7 +730,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return acc;
         }, {'Necesidades':0, 'Deseos':0, 'Ahorros y Deudas':0}) ?? {}) as [string, number][]).map(([name, value]) => ({name, value})).filter(d => d.value > 0);
 
-        return { currentMonthName: monthName.charAt(0).toUpperCase() + monthName.slice(1), currentMonthYear: monthYear, monthlyIncome: income, monthlyExpenses: expenses, balance: bal, budget503020: b503020, pendingRecurringExpenses: pendingRE, paidRecurringExpenses: paidRE, pendingRecurringIncomes: pendingRI, receivedRecurringIncomes: receivedRI, pendingExpensesTotal: pendingETotal, expenseCategories: expCats, incomeCategories, categoriesWithoutBudget: catsNoBudget, sortedLists: sorted, spendingByCategory: spendingByCat, budgetAccuracy: budgetAcc, spendingByFocus: spendingByF };
+        return { currentMonthName: monthName.charAt(0).toUpperCase() + monthName.slice(1), currentMonthYear: monthYear, monthlyIncome: income, monthlyExpenses: expenses, balance: bal, budget503020: b503020, pendingRecurringExpenses: pendingRE, paidRecurringExpenses: paidRE, pendingRecurringIncomes: pendingRI, receivedRecurringIncomes: receivedRI, pendingExpensesTotal: pendingETotal, expenseCategories: expCats, incomeCategories: incomeCats, categoriesWithoutBudget: catsNoBudget, sortedLists: sorted, spendingByCategory: spendingByCat, budgetAccuracy: budgetAcc, spendingByFocus: spendingByF };
     }, [transactions, recurringExpenses, recurringIncomes, shoppingLists, budgets, state.currentMonth]);
 
     useEffect(() => {
@@ -884,6 +859,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         handleResetAllStreaks,
         handleResetTimeLogs,
         handleResetMoods,
+        handleResetCategories,
         handleToggleTask,
         handleSaveTask,
         handleDeleteTask,

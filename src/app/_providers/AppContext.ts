@@ -131,6 +131,7 @@ export interface AppState {
     handleResetAllStreaks: () => Promise<void>;
     handleResetTimeLogs: () => Promise<void>;
     handleResetMoods: () => Promise<void>;
+    handleResetCategories: () => Promise<void>;
     handleToggleTask: (taskId: string, currentStatus: boolean) => void;
     handleSaveTask: (taskData: Task) => Promise<void>;
     handleDeleteTask: (taskId: string) => Promise<void>;
