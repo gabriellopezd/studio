@@ -225,6 +225,7 @@ export default function ExpensesPage() {
         items: [],
         userId: user.uid,
         order: shoppingLists?.length || 0,
+        isActive: true,
       };
       const listsColRef = collection(
         firestore,
@@ -730,10 +731,10 @@ export default function ExpensesPage() {
                         <CardHeader>
                         <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground" />
                         <CardTitle className="mt-4">
-                            No hay categorías de gastos
+                            No hay categorías de gastos activas
                         </CardTitle>
                         <CardDescription>
-                            Crea una categoría para empezar a registrar gastos.
+                            Crea una categoría o activa una desde la configuración para empezar a registrar gastos.
                         </CardDescription>
                         </CardHeader>
                     </Card>

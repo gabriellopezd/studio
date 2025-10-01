@@ -173,12 +173,32 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
             </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-          <Link href="/settings">
-            <SidebarMenuButton tooltip="Configuración" isActive={pathname.startsWith('/settings')}>
-              <Settings />
-              <span>Configuración</span>
-            </SidebarMenuButton>
-          </Link>
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <Link href="/settings" className="w-full">
+                        <SidebarMenuButton tooltip="Configuración General" isActive={pathname === '/settings'}>
+                            <Settings />
+                            <span>Ajustes Generales</span>
+                        </SidebarMenuButton>
+                    </Link>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                    <Link href="/settings/habits" className="w-full">
+                        <SidebarMenuButton tooltip="Configurar Hábitos" isActive={pathname === '/settings/habits'}>
+                            <Repeat />
+                            <span>Ajustes de Hábitos</span>
+                        </SidebarMenuButton>
+                    </Link>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                    <Link href="/settings/expenses" className="w-full">
+                        <SidebarMenuButton tooltip="Configurar Listas de Compra" isActive={pathname === '/settings/expenses'}>
+                            <ShoppingCart />
+                            <span>Ajustes de Compras</span>
+                        </SidebarMenuButton>
+                    </Link>
+                </SidebarMenuItem>
+            </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
