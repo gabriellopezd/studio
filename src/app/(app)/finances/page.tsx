@@ -223,6 +223,20 @@ export default function FinancesPage() {
   
     if (!category || !newBudgetLimit || isNaN(limit)) return;
   
+    if (!budgetToEdit) {
+      const categoryExists = shoppingLists?.some(l => l.name.toLowerCase() === category.toLowerCase()) || 
+                             budgets?.some(b => b.categoryName.toLowerCase() === category.toLowerCase());
+
+      if (categoryExists) {
+          toast({
+              variant: "destructive",
+              title: "Categoría Duplicada",
+              description: `La categoría "${category}" ya existe.`,
+          });
+          return;
+      }
+    }
+
     if (budgetToEdit) {
       const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budgetToEdit.id);
       updateDocumentNonBlocking(budgetRef, { monthlyLimit: limit });
@@ -1185,5 +1199,3 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
     </>
   );
 }
-
-    

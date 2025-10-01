@@ -204,6 +204,18 @@ export default function ExpensesPage() {
     if (newListName.trim() && user && firestore) {
       const categoryName = newListName.trim();
 
+      const categoryExists = shoppingLists?.some(l => l.name.toLowerCase() === categoryName.toLowerCase()) || 
+                             budgets?.some(b => b.categoryName.toLowerCase() === categoryName.toLowerCase());
+
+      if (categoryExists) {
+        toast({
+            variant: "destructive",
+            title: "Categoría Duplicada",
+            description: `La categoría "${categoryName}" ya existe.`,
+        });
+        return;
+      }
+
       const batch = writeBatch(firestore);
       
       const newList = {
