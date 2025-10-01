@@ -83,7 +83,7 @@ export default function DashboardPage() {
             : 'Tu resumen de hoy.'
         }
         motivation={motivation}
-        imageUrl="https://picsum.photos/seed/dashboard/1200/300"
+        imageUrl="https://picsum.photos/seed/1/1200/300"
       />
       
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">

@@ -206,7 +206,7 @@ export default function HabitsPage() {
             title="Hábitos"
             description="Gestiona tus hábitos y sigue tu progreso."
             motivation={motivation}
-            imageUrl="https://picsum.photos/seed/habits/1200/300"
+            imageUrl="https://picsum.photos/seed/3/1200/300"
         >
             <div className="flex shrink-0 items-center gap-2">
                 <Button variant="outline" asChild>

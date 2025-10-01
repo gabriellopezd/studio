@@ -92,7 +92,7 @@ export default function HabitSettingsPage() {
       <PageHeader
         title="Configurar Biblioteca de Hábitos"
         description="Activa o desactiva los hábitos sugeridos y los que has creado para personalizar tu experiencia."
-        imageUrl="https://picsum.photos/seed/habits/1200/300"
+        imageUrl="https://picsum.photos/seed/3/1200/300"
       >
         <Button variant="outline" asChild>
           <Link href="/habits">

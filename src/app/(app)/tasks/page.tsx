@@ -298,7 +298,7 @@ export default function TasksPage() {
             title="TAREAS"
             description="Organiza tus tareas y mantente enfocado."
             motivation={motivation}
-            imageUrl="https://picsum.photos/seed/tasks/1200/300"
+            imageUrl="https://picsum.photos/seed/5/1200/300"
         >
             <Button onClick={() => handleOpenDialog()}>
                 <PlusCircle className="mr-2 h-4 w-4" />

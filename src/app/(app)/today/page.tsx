@@ -99,7 +99,7 @@ export default function TodayPage() {
         title="Mi Día"
         description={isClient ? `Resumen de tu actividad para hoy, ${todayString}.` : 'Resumen de tu actividad para hoy.'}
         motivation={motivation}
-        imageUrl="https://picsum.photos/seed/today/1200/300"
+        imageUrl="https://picsum.photos/seed/2/1200/300"
       />
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         <div className="lg:col-span-2 flex flex-col gap-6">

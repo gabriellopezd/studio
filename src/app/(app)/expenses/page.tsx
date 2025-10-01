@@ -497,7 +497,7 @@ export default function ExpensesPage() {
         title="LISTAS DE COMPRA"
         description="Planifica tus compras y registra tus gastos diarios."
         motivation={motivation}
-        imageUrl="https://picsum.photos/seed/expenses/1200/300"
+        imageUrl="https://picsum.photos/seed/9/1200/300"
       >
         <Dialog>
           <DialogTrigger asChild>

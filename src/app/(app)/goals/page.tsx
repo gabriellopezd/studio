@@ -315,7 +315,7 @@ export default function GoalsPage() {
           title="METAS"
           description="Define y sigue el progreso de tus metas a largo plazo."
           motivation={motivation}
-          imageUrl="https://picsum.photos/seed/goals/1200/300"
+          imageUrl="https://picsum.photos/seed/6/1200/300"
         >
           <Button onClick={() => handleOpenDialog()}>
             <PlusCircle className="mr-2 h-4 w-4" />

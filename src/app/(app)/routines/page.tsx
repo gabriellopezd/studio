@@ -182,7 +182,7 @@ export default function RoutinesPage() {
             title="RUTINAS"
             description="Crea y sigue tus rutinas diarias para construir consistencia."
             motivation={motivation}
-            imageUrl="https://picsum.photos/seed/routines/1200/300"
+            imageUrl="https://picsum.photos/seed/4/1200/300"
         >
             <Button onClick={() => handleOpenDialog()}>
                 <PlusCircle className="mr-2 h-4 w-4" />

@@ -63,7 +63,7 @@ export default function SettingsPage() {
   }, [user]);
 
   const handleProfileUpdate = async () => {
-    if (!user || !auth) return;
+    if (!user || !auth || !auth.currentUser) return;
     try {
       await updateProfile(auth.currentUser!, { displayName });
       const userDocRef = doc(firestore, 'users', user.uid);
@@ -75,7 +75,7 @@ export default function SettingsPage() {
   };
 
   const handleChangePassword = async () => {
-    if (!user || !user.email || !auth) return;
+    if (!user || !user.email || !auth || !auth.currentUser) return;
     if (newPassword !== confirmPassword) {
       toast({ variant: 'destructive', title: 'Las contraseñas no coinciden' });
       return;
@@ -114,7 +114,7 @@ export default function SettingsPage() {
       <PageHeader
         title="CONFIGURACIÓN"
         description="Gestiona tu perfil, cuenta y preferencias de la aplicación."
-        imageUrl="https://picsum.photos/seed/settings/1200/300"
+        imageUrl="https://picsum.photos/seed/10/1200/300"
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -400,5 +400,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

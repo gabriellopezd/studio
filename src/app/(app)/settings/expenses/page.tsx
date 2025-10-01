@@ -32,6 +32,7 @@ export default function ExpenseSettingsPage() {
       <PageHeader
         title="Configurar Listas de Compra"
         description="Activa o desactiva las categorías que quieres usar como listas de compra."
+        imageUrl="https://picsum.photos/seed/9/1200/300"
       >
         <Button variant="outline" asChild>
           <Link href="/expenses">
