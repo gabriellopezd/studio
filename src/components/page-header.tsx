@@ -1,3 +1,4 @@
+
 import type { ReactNode } from 'react';
 import { Card, CardHeader } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -38,7 +39,10 @@ export default function PageHeader({
         <CardHeader>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="flex-1 space-y-1.5">
-              <h1 className="text-2xl font-bold tracking-tight uppercase sm:text-3xl">
+              <h1 className={cn(
+                "text-2xl font-bold tracking-tight uppercase sm:text-3xl",
+                image?.imageUrl && 'text-white'
+              )}>
                 {title}
               </h1>
               {description && (

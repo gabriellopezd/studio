@@ -71,7 +71,7 @@ export default function LoginPage() {
          <Card className="relative mx-auto w-full max-w-sm bg-background/80 backdrop-blur-sm lg:bg-background/100 lg:backdrop-blur-none">
             <CardHeader className="text-center">
               <div className="mb-4 flex justify-center">
-                <Logo className="h-12 w-12 text-primary" />
+                <Logo className="h-12 w-12 text-orange-500" />
               </div>
               <CardTitle className="text-3xl font-bold">Bienvenido a Inngenia</CardTitle>
               <CardDescription>
