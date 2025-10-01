@@ -114,7 +114,7 @@ export default function SettingsPage() {
       <PageHeader
         title="CONFIGURACIÓN"
         description="Gestiona tu perfil, cuenta y preferencias de la aplicación."
-        imageId="settings-header"
+        imageId="dashboard-header"
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

@@ -101,7 +101,7 @@ export default function HabitSettingsPage() {
       <PageHeader
         title="Biblioteca de Hábitos"
         description="Activa o desactiva los hábitos para personalizar tu experiencia."
-        imageId="settings-sub-header"
+        imageId="dashboard-header"
       >
         <Button variant="outline" asChild>
           <Link href="/settings">

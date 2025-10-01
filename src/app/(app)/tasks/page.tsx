@@ -297,7 +297,7 @@ export default function TasksPage() {
             title="TAREAS"
             description="Organiza tus tareas y mantente enfocado."
             motivation={motivation}
-            imageId="tasks-header"
+            imageId="dashboard-header"
         >
             <Button onClick={() => handleOpenDialog()}>
                 <PlusCircle className="mr-2 h-4 w-4" />

@@ -124,7 +124,7 @@ export default function MoodTrackerPage() {
         title="RASTREADOR DE ÁNIMO"
         description="Registra tu ánimo diario y observa tus tendencias emocionales."
         motivation={motivation}
-        imageId="mood-header"
+        imageId="dashboard-header"
       >
         <Button onClick={handleStartMoodRegistration}>
           {todayEntry ? 'Actualizar mi día' : 'Registrar mi día'}

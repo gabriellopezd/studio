@@ -545,7 +545,7 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
           title="MIS FINANZAS"
           description="Controla tus ingresos, gastos y presupuestos."
           motivation={motivation}
-          imageId="finances-header"
+          imageId="dashboard-header"
         >
           <Dialog open={isTransactionDialogOpen} onOpenChange={setTransactionDialogOpen}>
             <DialogTrigger asChild>

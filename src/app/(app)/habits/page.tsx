@@ -207,7 +207,7 @@ export default function HabitsPage() {
             title="Hábitos"
             description="Gestiona tus hábitos y sigue tu progreso."
             motivation={motivation}
-            imageId="habits-header"
+            imageId="dashboard-header"
         >
             <div className="flex shrink-0 items-center gap-2">
                 <Button variant="outline" asChild>

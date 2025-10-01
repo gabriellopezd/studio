@@ -315,7 +315,7 @@ export default function GoalsPage() {
           title="METAS"
           description="Define y sigue el progreso de tus metas a largo plazo."
           motivation={motivation}
-          imageId="goals-header"
+          imageId="dashboard-header"
         >
           <Button onClick={() => handleOpenDialog()}>
             <PlusCircle className="mr-2 h-4 w-4" />

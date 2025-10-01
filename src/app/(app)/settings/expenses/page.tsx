@@ -32,7 +32,7 @@ export default function ExpenseSettingsPage() {
       <PageHeader
         title="Categorías de Compra"
         description="Activa o desactiva las categorías para usarlas como listas de compra."
-        imageId="settings-sub-header"
+        imageId="dashboard-header"
       >
         <Button variant="outline" asChild>
           <Link href="/settings">

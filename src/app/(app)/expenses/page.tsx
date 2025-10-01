@@ -497,7 +497,7 @@ export default function ExpensesPage() {
         title="LISTAS DE COMPRA"
         description="Planifica tus compras y registra tus gastos diarios."
         motivation={motivation}
-        imageId="expenses-header"
+        imageId="dashboard-header"
       >
         <Dialog>
           <DialogTrigger asChild>
