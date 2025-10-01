@@ -57,8 +57,6 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAppContext } from '@/app/_providers/AppContext';
-import { tasksHeaderImage } from '@/app/(app)/_lib/page-images';
-
 
 const taskCategories = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro"];
 
@@ -299,7 +297,7 @@ export default function TasksPage() {
             title="TAREAS"
             description="Organiza tus tareas y mantente enfocado."
             motivation={motivation}
-            image={tasksHeaderImage}
+            imageId="tasks-header"
         >
             <Button onClick={() => handleOpenDialog()}>
                 <PlusCircle className="mr-2 h-4 w-4" />

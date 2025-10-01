@@ -27,7 +27,6 @@ import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useAppContext } from '@/app/_providers/AppContext';
-import { dashboardHeaderImage } from '@/app/(app)/_lib/page-images';
 
 const motivationalQuotes = [
     "El progreso de hoy es el éxito de mañana.",
@@ -83,7 +82,7 @@ export default function DashboardPage() {
             : 'Tu resumen de hoy.'
         }
         motivation={motivation}
-        image={dashboardHeaderImage}
+        imageId="dashboard-header"
       />
       
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">

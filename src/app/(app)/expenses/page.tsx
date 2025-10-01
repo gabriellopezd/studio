@@ -82,7 +82,6 @@ import { CSS } from '@dnd-kit/utilities';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppContext } from '@/app/_providers/AppContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { expensesHeaderImage } from '@/app/(app)/_lib/page-images';
 
 function SortableListItem({
   list,
@@ -498,7 +497,7 @@ export default function ExpensesPage() {
         title="LISTAS DE COMPRA"
         description="Planifica tus compras y registra tus gastos diarios."
         motivation={motivation}
-        image={expensesHeaderImage}
+        imageId="expenses-header"
       >
         <Dialog>
           <DialogTrigger asChild>

@@ -30,7 +30,6 @@ import { isHabitCompletedToday } from '@/lib/habits';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/app/_providers/AppContext';
 import { TodaysMoodCard } from './_components/TodaysMoodCard';
-import { todayHeaderImage } from '@/app/(app)/_lib/page-images';
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
 
@@ -102,7 +101,7 @@ export default function TodayPage() {
         title="Mi Día"
         description={isClient ? `Resumen de tu actividad para hoy, ${todayString}.` : 'Resumen de tu actividad para hoy.'}
         motivation={motivation}
-        image={todayHeaderImage}
+        imageId="today-header"
       />
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         <div className="lg:col-span-2 flex flex-col gap-6">

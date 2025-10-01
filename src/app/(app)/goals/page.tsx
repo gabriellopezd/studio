@@ -69,7 +69,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAppContext } from '@/app/_providers/AppContext';
-import { goalsHeaderImage } from '@/app/(app)/_lib/page-images';
 
 const motivationalQuotes = [
     "Una meta sin un plan es solo un deseo.",
@@ -316,7 +315,7 @@ export default function GoalsPage() {
           title="METAS"
           description="Define y sigue el progreso de tus metas a largo plazo."
           motivation={motivation}
-          image={goalsHeaderImage}
+          imageId="goals-header"
         >
           <Button onClick={() => handleOpenDialog()}>
             <PlusCircle className="mr-2 h-4 w-4" />

@@ -57,7 +57,6 @@ import { cn } from '@/lib/utils';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { TooltipProvider, Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import Link from 'next/link';
-import { habitsHeaderImage } from '@/app/(app)/_lib/page-images';
 
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
@@ -208,7 +207,7 @@ export default function HabitsPage() {
             title="Hábitos"
             description="Gestiona tus hábitos y sigue tu progreso."
             motivation={motivation}
-            image={habitsHeaderImage}
+            imageId="habits-header"
         >
             <div className="flex shrink-0 items-center gap-2">
                 <Button variant="outline" asChild>
@@ -493,8 +492,7 @@ export default function HabitsPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="habit-category">Categoría</Label>
-              <Select
+              <Label htmlFor="habit-category">Categoría</Label>              <Select
                 value={newHabitCategory}
                 onValueChange={setNewHabitCategory}
               >

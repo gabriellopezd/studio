@@ -63,7 +63,6 @@ import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppContext } from '@/app/_providers/AppContext';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { routinesHeaderImage } from '@/app/(app)/_lib/page-images';
 
 const motivationalQuotes = [
     "La disciplina es el puente entre las metas y los logros.",
@@ -114,7 +113,7 @@ export default function RoutinesPage() {
   const handleOpenDialog = (routine?: any) => {
     if (routine) {
       setRoutineToEdit(routine);
-      setName(routine.name);
+setName(routine.name);
       setDescription(routine.description || '');
       setSelectedHabitIds(routine.habitIds || []);
     } else {
@@ -187,7 +186,7 @@ export default function RoutinesPage() {
             title="RUTINAS"
             description="Crea y sigue tus rutinas diarias para construir consistencia."
             motivation={motivation}
-            image={routinesHeaderImage}
+            imageId="routines-header"
         >
             <Button onClick={() => handleOpenDialog()}>
                 <PlusCircle className="mr-2 h-4 w-4" />

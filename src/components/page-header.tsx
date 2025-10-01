@@ -3,13 +3,13 @@ import type { ReactNode } from 'react';
 import { Card, CardHeader } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
-import type { ImagePlaceholder } from '@/lib/placeholder-images';
+import { PlaceHolderImages, type ImagePlaceholder } from '@/lib/placeholder-images';
 
 type PageHeaderProps = {
   title: string;
   description?: string;
   motivation?: string;
-  image?: ImagePlaceholder;
+  imageId?: string;
   children?: ReactNode;
 };
 
@@ -17,9 +17,10 @@ export default function PageHeader({
   title,
   description,
   motivation,
-  image,
+  imageId,
   children,
 }: PageHeaderProps) {
+  const image: ImagePlaceholder | undefined = imageId ? PlaceHolderImages.find(img => img.id === imageId) : undefined;
   const imageUrl = image?.imageUrl;
   const imageHint = image?.imageHint;
 

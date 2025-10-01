@@ -12,7 +12,6 @@ import { doc } from 'firebase/firestore';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { PRESET_EXPENSE_CATEGORIES } from '@/lib/transaction-categories';
-import { settingsHeaderImage } from '@/app/(app)/_lib/page-images';
 
 export default function ExpenseSettingsPage() {
   const { firestore, user, shoppingLists, shoppingListsLoading } = useAppContext();
@@ -33,7 +32,7 @@ export default function ExpenseSettingsPage() {
       <PageHeader
         title="Configurar Listas de Compra"
         description="Activa o desactiva las categorías que quieres usar como listas de compra."
-        image={settingsHeaderImage}
+        imageId="settings-header"
       >
         <Button variant="outline" asChild>
           <Link href="/expenses">

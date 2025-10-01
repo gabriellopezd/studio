@@ -16,7 +16,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { moodLevels, feelings, influences } from '@/lib/moods';
 import { useAppContext } from '@/app/_providers/AppContext';
-import { moodHeaderImage } from '@/app/(app)/_lib/page-images';
 
 const motivationalQuotes = [
     "Tus emociones son válidas. Escúchalas.",
@@ -125,7 +124,7 @@ export default function MoodTrackerPage() {
         title="RASTREADOR DE ÁNIMO"
         description="Registra tu ánimo diario y observa tus tendencias emocionales."
         motivation={motivation}
-        image={moodHeaderImage}
+        imageId="mood-header"
       >
         <Button onClick={handleStartMoodRegistration}>
           {todayEntry ? 'Actualizar mi día' : 'Registrar mi día'}
