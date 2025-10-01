@@ -3,20 +3,20 @@
     {
       "id": "default-user-avatar",
       "description": "Abstract profile image for a user",
-      "imageUrl": "https://images.unsplash.com/photo-1604079628040-94301bb21b91?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzMHx8YWJzdHJhY3QlMjBwcm9maWxlfGVufDB8fHx8MTc1OTQ4NjQxMnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1604079628040-94301bb21b91?q=80&w=1080&auto=format&fit=crop",
       "imageHint": "abstract profile"
     },
     {
       "id": "login-background",
       "description": "A calm and focused workspace with blue tones",
-      "imageUrl": "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxibHVlJTIwbWluaW1hbGlzdCUyMHdvcmtzcGFjZXxlbnwwfHx8fDE3NTk0ODU3OTB8MA&ixlib=rb-4.1.0&q=80&w=1920",
+      "imageUrl": "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?q=80&w=1920&auto=format&fit=crop",
       "imageHint": "blue minimalist workspace"
     },
     {
       "id": "dashboard-header",
-      "description": "Clean and modern desk setup with a monitor and keyboard, conveying a sense of organized productivity.",
-      "imageUrl": "https://images.unsplash.com/photo-1586281380349-632531db7ed4?q=80&w=1200&auto=format&fit=crop",
-      "imageHint": "organized desk"
+      "description": "A panoramic view of a modern and bright workspace, conveying a sense of clarity and focus.",
+      "imageUrl": "https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=1200&auto=format&fit=crop",
+      "imageHint": "modern bright workspace"
     },
     {
       "id": "today-header",
@@ -38,9 +38,9 @@
     },
     {
       "id": "tasks-header",
-      "description": "A focused shot of a to-do list on a clipboard with a pen, representing task management.",
-      "imageUrl": "https://images.unsplash.com/photo-1507925921958-8a62f3d1a50d?q=80&w=1200&auto=format&fit=crop",
-      "imageHint": "taks list"
+      "description": "A dynamic shot of a checklist being marked, representing action and progress on tasks.",
+      "imageUrl": "https://images.unsplash.com/photo-1554486858-69a50ab4a493?q=80&w=1200&auto=format&fit=crop",
+      "imageHint": "checklist action"
     },
     {
       "id": "goals-header",
@@ -56,9 +56,9 @@
     },
     {
       "id": "finances-header",
-      "description": "A sleek calculator and pen on financial documents, indicating financial management.",
-      "imageUrl": "https://images.unsplash.com/photo-1633113087795-f9a888791530?q=80&w=1200&auto=format&fit=crop",
-      "imageHint": "financial documents"
+      "description": "A modern flat lay of a laptop, coffee, and financial tools on a clean desk, indicating financial planning.",
+      "imageUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=1200&auto=format&fit=crop",
+      "imageHint": "financial planning"
     },
     {
       "id": "expenses-header",
@@ -68,9 +68,15 @@
     },
     {
       "id": "settings-header",
-      "description": "Close-up of intricate metal gears, representing the inner workings of settings.",
-      "imageUrl": "https://images.unsplash.com/photo-1524824267900-2fa9cbf7a5e6?q=80&w=1200&auto=format&fit=crop",
-      "imageHint": "metal gears"
+      "description": "A macro shot of intricate, polished metal gears, symbolizing the detailed mechanics of settings.",
+      "imageUrl": "https://images.unsplash.com/photo-1506880018603-34cf09756a62?q=80&w=1200&auto=format&fit=crop",
+      "imageHint": "polished gears"
+    },
+    {
+      "id": "settings-sub-header",
+      "description": "A slightly out-of-focus background of the main settings gears, creating a cohesive visual link for sub-pages.",
+      "imageUrl": "https://images.unsplash.com/photo-1506880018603-34cf09756a62?q=80&w=1200&auto=format&fit=crop&blur=10",
+      "imageHint": "blurred gears"
     }
   ]
 }

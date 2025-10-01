@@ -99,14 +99,14 @@ export default function HabitSettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Configurar Biblioteca de Hábitos"
-        description="Activa o desactiva los hábitos sugeridos y los que has creado para personalizar tu experiencia."
-        imageId="settings-header"
+        title="Biblioteca de Hábitos"
+        description="Activa o desactiva los hábitos para personalizar tu experiencia."
+        imageId="settings-sub-header"
       >
         <Button variant="outline" asChild>
-          <Link href="/habits">
+          <Link href="/settings">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver a Hábitos
+            Volver a Configuración
           </Link>
         </Button>
       </PageHeader>

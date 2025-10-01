@@ -30,14 +30,14 @@ export default function ExpenseSettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Configurar Listas de Compra"
-        description="Activa o desactiva las categorías que quieres usar como listas de compra."
-        imageId="settings-header"
+        title="Categorías de Compra"
+        description="Activa o desactiva las categorías para usarlas como listas de compra."
+        imageId="settings-sub-header"
       >
         <Button variant="outline" asChild>
-          <Link href="/expenses">
+          <Link href="/settings">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver a Listas de Compra
+            Volver a Configuración
           </Link>
         </Button>
       </PageHeader>
