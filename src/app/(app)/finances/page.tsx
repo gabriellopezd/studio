@@ -598,15 +598,11 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label>Fecha</Label>
-                         <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal",!newTransactionDate && "text-muted-foreground")}>
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {newTransactionDate ? format(newTransactionDate, "PPP", { locale: es }) : <span>Elige una fecha</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={newTransactionDate} onSelect={setNewTransactionDate} initialFocus /></PopoverContent>
-                        </Popover>
+                        <Input
+                            type="date"
+                            value={newTransactionDate ? format(newTransactionDate, 'yyyy-MM-dd') : ''}
+                            onChange={(e) => setNewTransactionDate(e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined)}
+                        />
                     </div>
                     {newTransactionType === 'expense' && (
                         <div className="space-y-2">
@@ -1165,20 +1161,15 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
                <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label>Fecha</Label>
-                         <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal",!transactionToEdit.date && "text-muted-foreground")}>
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {transactionToEdit.date ? format(transactionToEdit.date, "PPP", { locale: es }) : <span>Elige una fecha</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={transactionToEdit.date} onSelect={(date) => setTransactionToEdit({...transactionToEdit, date: date || new Date()})} initialFocus /></PopoverContent>
-                        </Popover>
+                        <Input
+                            type="date"
+                            value={transactionToEdit.date ? format(transactionToEdit.date, 'yyyy-MM-dd') : ''}
+                            onChange={(e) => setTransactionToEdit({ ...transactionToEdit, date: e.target.value ? new Date(e.target.value + 'T00:00:00') : new Date() })}
+                        />
                     </div>
                     {transactionToEdit.type === 'expense' && (
                         <div className="space-y-2">
-                          <Label htmlFor="edit-budget-focus">Enfoque Presupuesto</Label>
-                          <Select value={transactionToEdit.budgetFocus} onValueChange={(value) => setTransactionToEdit({...transactionToEdit, budgetFocus: value})}>
+                          <Label htmlFor="edit-budget-focus">Enfoque Presupuesto</Label>                          <Select value={transactionToEdit.budgetFocus} onValueChange={(value) => setTransactionToEdit({...transactionToEdit, budgetFocus: value})}>
                             <SelectTrigger id="edit-budget-focus"><SelectValue placeholder="Selecciona" /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="Necesidades">Necesidades</SelectItem>

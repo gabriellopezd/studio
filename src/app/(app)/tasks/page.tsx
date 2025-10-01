@@ -423,28 +423,12 @@ export default function TasksPage() {
               </div>
               <div className="space-y-2">
                   <Label htmlFor="task-due-date">Fecha de Vencimiento</Label>
-                  <Popover>
-                  <PopoverTrigger asChild>
-                      <Button
-                      variant={"outline"}
-                      className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !taskToEdit.dueDate && "text-muted-foreground"
-                      )}
-                      >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {taskToEdit.dueDate ? format(taskToEdit.dueDate, "PPP", { locale: es }) : <span>Elige una fecha</span>}
-                      </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                      <Calendar
-                      mode="single"
-                      selected={taskToEdit.dueDate}
-                      onSelect={(date) => setTaskToEdit({ ...taskToEdit, dueDate: date })}
-                      initialFocus
-                      />
-                  </PopoverContent>
-                  </Popover>
+                  <Input
+                    id="task-due-date"
+                    type="date"
+                    value={taskToEdit.dueDate ? format(taskToEdit.dueDate, 'yyyy-MM-dd') : ''}
+                    onChange={(e) => setTaskToEdit({ ...taskToEdit, dueDate: e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined })}
+                  />
               </div>
             </div>
           )}
