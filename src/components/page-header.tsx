@@ -62,7 +62,7 @@ export default function PageHeader({
               )}
             </div>
             {children && (
-              <div className="flex shrink-0 items-center gap-2 [&_a]:text-primary-foreground [&_[data-variant=outline]]:border-primary-foreground/50 [&_[data-variant=outline]]:text-primary-foreground [&_[data-variant=outline]]:hover:bg-white/10 [&_[data-variant=outline]]:hover:text-primary-foreground">{children}</div>
+              <div className="flex shrink-0 items-center gap-2 [&_[data-variant=outline]]:bg-black/20 [&_[data-variant=outline]]:border-primary-foreground/50 [&_[data-variant=outline]]:text-primary-foreground [&_[data-variant=outline]]:hover:bg-black/40 [&_[data-variant=outline]]:hover:text-primary-foreground">{children}</div>
             )}
           </div>
         </CardHeader>
