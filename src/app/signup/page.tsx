@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -81,7 +82,7 @@ export default function SignupPage() {
       <Card className="mx-auto w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="mb-4 flex justify-center">
-            <Logo className="h-12 w-12 text-primary" />
+            <Logo className="h-12 w-12 text-orange-500" />
           </div>
           <CardTitle className="text-2xl">Crea tu cuenta en Inngenia</CardTitle>
           <CardDescription>

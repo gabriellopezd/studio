@@ -141,7 +141,7 @@ export default function TodayPage() {
                                         <p className="font-medium">{habit.name}</p>
                                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                         <span className="flex items-center gap-1">
-                                            <Flame className="h-4 w-4 text-accent"/> 
+                                            <Flame className="h-4 w-4 text-orange-500"/> 
                                             {habit.currentStreak || 0}
                                         </span>
                                         <span className="flex items-center gap-1">

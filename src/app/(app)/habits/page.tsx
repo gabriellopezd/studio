@@ -262,7 +262,7 @@ export default function HabitsPage() {
                                   </div>
                                 </div>
                                 <div className="flex flex-col items-end gap-1 text-right">
-                                  <div className="flex items-center gap-1 text-accent">
+                                  <div className="flex items-center gap-1 text-orange-500">
                                     <Flame className="h-5 w-5" />
                                     <span className="font-bold">{habit.currentStreak || 0}</span>
                                   </div>

@@ -113,7 +113,7 @@ export default function DashboardPage() {
          <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                    <Flame className="size-5 text-accent"/>
+                    <Flame className="size-5 text-orange-500"/>
                     Racha Actual
                 </CardTitle>
             </CardHeader>
