@@ -19,30 +19,9 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import {
   signInWithEmailAndPassword,
-  User,
 } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-
-
-export const handleUserLogin = async (user: User, firestore: any, displayName?: string) => {
-    if (!user) return;
-    const userRef = doc(firestore, 'users', user.uid);
-    
-    const userDoc = await getDoc(userRef);
-    if (!userDoc.exists()) {
-        const userProfileData = {
-            displayName: displayName || user.displayName || user.email?.split('@')[0],
-            email: user.email,
-            photoURL: user.photoURL,
-            createdAt: serverTimestamp(),
-            lastLoginAt: serverTimestamp(),
-        };
-        await setDoc(userRef, userProfileData);
-    } else {
-        await setDoc(userRef, { lastLoginAt: serverTimestamp() }, { merge: true });
-    }
-};
+import { handleUserLogin } from '@/firebase/user-management';
 
 
 export default function LoginPage() {
@@ -55,7 +34,7 @@ export default function LoginPage() {
   const loginImage = PlaceHolderImages.find((img) => img.id === 'login-background');
 
   const handleLogin = async () => {
-    if (!auth) return;
+    if (!auth || !firestore) return;
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       await handleUserLogin(userCredential.user, firestore);

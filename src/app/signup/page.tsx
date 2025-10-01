@@ -20,7 +20,7 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
 } from 'firebase/auth';
-import { handleUserLogin } from '@/app/login/page';
+import { handleUserLogin } from '@/firebase/user-management';
 
 
 export default function SignupPage() {
