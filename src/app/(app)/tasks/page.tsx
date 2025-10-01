@@ -436,7 +436,7 @@ export default function TasksPage() {
                       {taskToEdit.dueDate ? format(taskToEdit.dueDate, "PPP", { locale: es }) : <span>Elige una fecha</span>}
                       </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
+                  <PopoverContent className="w-auto p-0" portal={false}>
                       <Calendar
                       mode="single"
                       selected={taskToEdit.dueDate}
