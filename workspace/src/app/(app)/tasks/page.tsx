@@ -71,7 +71,7 @@ export default function TasksPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [isClient, setIsClient] = useState(false);
   const [motivation, setMotivation] = useState('');
-
+  
   const {
     tasks,
     tasksLoading,
@@ -422,6 +422,7 @@ export default function TasksPage() {
               <div className="space-y-2">
                 <Label htmlFor="task-due-date">Fecha de Vencimiento</Label>
                 <ResponsiveCalendar
+                  id="task-due-date"
                   value={taskToEdit.dueDate}
                   onSelect={(date) =>
                     setTaskToEdit({ ...taskToEdit, dueDate: date })

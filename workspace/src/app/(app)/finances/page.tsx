@@ -600,9 +600,10 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2 relative">
-                    <Label>Fecha</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Fecha</Label>
                     <ResponsiveCalendar 
+                        id="date"
                         value={newTransactionDate}
                         onSelect={setNewTransactionDate}
                     />
@@ -1163,8 +1164,9 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
               </div>
                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Fecha</Label>
+                    <Label htmlFor="edit-date">Fecha</Label>
                     <ResponsiveCalendar
+                      id="edit-date"
                       value={transactionToEdit.date}
                       onSelect={(date) =>
                         setTransactionToEdit({ ...transactionToEdit, date: date })
