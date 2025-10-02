@@ -132,10 +132,6 @@
         "presetHabitId": {
           "type": ["string", "null"],
           "description": "The ID of the preset habit this user habit was created from, if any."
-        },
-        "isActive": {
-            "type": "boolean",
-            "description": "Whether the habit is currently active and visible to the user."
         }
       },
       "required": [
@@ -145,8 +141,7 @@
         "icon",
         "frequency",
         "createdAt",
-        "category",
-        "isActive"
+        "category"
       ]
     },
     "Routine": {
@@ -790,19 +785,10 @@
         "path": "/users/{userId}",
         "definition": {
           "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
+          "schema": { "$ref": "#/backend/entities/User" },
           "description": "Stores user profile information. All user-owned data is stored under this document to simplify security rules and ensure data isolation.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user, corresponding to the Firebase Auth UID."
-            }
-          ],
           "rules": {
             "allow": {
-              "create": "if request.auth != null && request.auth.uid == userId;",
               "read": "if request.auth != null && request.auth.uid == userId;",
               "update": "if request.auth != null && request.auth.uid == userId;",
               "delete": "if request.auth != null && request.auth.uid == userId;"
@@ -811,386 +797,263 @@
         }
       },
       {
-        "path": "/users/{userId}/habits/{habitId}",
+        "path": "/users/{userId}/habits",
         "definition": {
-          "entityName": "Habit",
-          "schema": {
-            "$ref": "#/backend/entities/Habit"
-          },
-          "description": "Stores habits belonging to a specific user. Uses path-based ownership for simplified security rules.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "habitId",
-              "description": "The unique identifier for the habit."
-            }
-          ],
+          "description": "Collection of all habits for a specific user. The client must query this specific path.",
           "rules": {
             "allow": {
-              "create": "if request.auth != null && request.auth.uid == userId;",
-              "read": "if request.auth != null && request.auth.uid == userId;",
-              "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;",
               "list": "if request.auth != null && request.auth.uid == userId;"
             }
           }
+        }
+      },
+      {
+        "path": "/users/{userId}/habits/{habitId}",
+        "definition": {
+          "entityName": "Habit",
+          "schema": { "$ref": "#/backend/entities/Habit" },
+          "description": "A single habit document owned by a user.",
+          "rules": {
+            "allow": {
+              "get": "if request.auth != null && request.auth.uid == userId;",
+              "create": "if request.auth != null && request.auth.uid == userId;",
+              "update": "if request.auth != null && request.auth.uid == userId;",
+              "delete": "if request.auth != null && request.auth.uid == userId;"
+            }
+          }
+        }
+      },
+      {
+        "path": "/users/{userId}/routines",
+        "definition": {
+          "description": "Collection of all routines for a specific user.",
+          "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
         }
       },
       {
         "path": "/users/{userId}/routines/{routineId}",
         "definition": {
           "entityName": "Routine",
-          "schema": {
-            "$ref": "#/backend/entities/Routine"
-          },
-          "description": "Stores routines belonging to a specific user. Uses path-based ownership for simplified security rules.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "routineId",
-              "description": "The unique identifier for the routine."
-            }
-          ],
+          "schema": { "$ref": "#/backend/entities/Routine" },
+          "description": "A single routine document.",
           "rules": {
             "allow": {
+              "get": "if request.auth != null && request.auth.uid == userId;",
               "create": "if request.auth != null && request.auth.uid == userId;",
-              "read": "if request.auth != null && request.auth.uid == userId;",
               "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;",
-              "list": "if request.auth != null && request.auth.uid == userId;"
+              "delete": "if request.auth != null && request.auth.uid == userId;"
             }
           }
+        }
+      },
+      {
+        "path": "/users/{userId}/tasks",
+        "definition": {
+            "description": "Collection of all tasks for a specific user.",
+            "rules": { "allow": { "list": "if request.auth.uid == userId;" } }
         }
       },
       {
         "path": "/users/{userId}/tasks/{taskId}",
         "definition": {
           "entityName": "Task",
-          "schema": {
-            "$ref": "#/backend/entities/Task"
-          },
-          "description": "Stores tasks belonging to a specific user. Uses path-based ownership for simplified security rules.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "taskId",
-              "description": "The unique identifier for the task."
-            }
-          ],
+          "schema": { "$ref": "#/backend/entities/Task" },
+          "description": "A single task document.",
           "rules": {
             "allow": {
+              "get": "if request.auth != null && request.auth.uid == userId;",
               "create": "if request.auth != null && request.auth.uid == userId;",
-              "read": "if request.auth != null && request.auth.uid == userId;",
               "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;",
-              "list": "if request.auth != null && request.auth.uid == userId;"
+              "delete": "if request.auth != null && request.auth.uid == userId;"
             }
           }
+        }
+      },
+      {
+        "path": "/users/{userId}/goals",
+        "definition": {
+            "description": "Collection of all goals for a specific user.",
+            "rules": { "allow": { "list": "if request.auth.uid == userId;" } }
         }
       },
       {
         "path": "/users/{userId}/goals/{goalId}",
         "definition": {
           "entityName": "Goal",
-          "schema": {
-            "$ref": "#/backend/entities/Goal"
-          },
-          "description": "Stores goals belonging to a specific user. Uses path-based ownership for simplified security rules.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "goalId",
-              "description": "The unique identifier for the goal."
-            }
-          ],
+          "schema": { "$ref": "#/backend/entities/Goal" },
+          "description": "A single goal document.",
           "rules": {
             "allow": {
+              "get": "if request.auth != null && request.auth.uid == userId;",
               "create": "if request.auth != null && request.auth.uid == userId;",
-              "read": "if request.auth != null && request.auth.uid == userId;",
               "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;",
-              "list": "if request.auth != null && request.auth.uid == userId;"
+              "delete": "if request.auth != null && request.auth.uid == userId;"
             }
           }
+        }
+      },
+      {
+        "path": "/users/{userId}/moods",
+        "definition": {
+            "description": "Collection of all mood entries for a specific user.",
+            "rules": { "allow": { "list": "if request.auth.uid == userId;" } }
         }
       },
       {
         "path": "/users/{userId}/moods/{moodId}",
         "definition": {
           "entityName": "Mood",
-          "schema": {
-            "$ref": "#/backend/entities/Mood"
-          },
-          "description": "Stores mood entries belonging to a specific user. Uses path-based ownership for simplified security rules.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "moodId",
-              "description": "The unique identifier for the mood entry."
-            }
-          ],
+          "schema": { "$ref": "#/backend/entities/Mood" },
+          "description": "A single mood entry.",
           "rules": {
             "allow": {
+              "get": "if request.auth != null && request.auth.uid == userId;",
               "create": "if request.auth != null && request.auth.uid == userId;",
-              "read": "if request.auth != null && request.auth.uid == userId;",
               "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;",
-              "list": "if request.auth != null && request.auth.uid == userId;"
+              "delete": "if request.auth != null && request.auth.uid == userId;"
             }
           }
+        }
+      },
+      {
+        "path": "/users/{userId}/transactions",
+        "definition": {
+            "description": "Collection of all transactions for a specific user.",
+            "rules": { "allow": { "list": "if request.auth.uid == userId;" } }
         }
       },
       {
         "path": "/users/{userId}/transactions/{transactionId}",
         "definition": {
           "entityName": "Transaction",
-          "schema": {
-            "$ref": "#/backend/entities/Transaction"
-          },
-          "description": "Stores transaction entries belonging to a specific user. Uses path-based ownership for simplified security rules.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "transactionId",
-              "description": "The unique identifier for the transaction."
-            }
-          ],
+          "schema": { "$ref": "#/backend/entities/Transaction" },
+          "description": "A single transaction document.",
           "rules": {
             "allow": {
+              "get": "if request.auth != null && request.auth.uid == userId;",
               "create": "if request.auth != null && request.auth.uid == userId;",
-              "read": "if request.auth != null && request.auth.uid == userId;",
               "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;",
-              "list": "if request.auth != null && request.auth.uid == userId;"
+              "delete": "if request.auth != null && request.auth.uid == userId;"
             }
           }
+        }
+      },
+      {
+        "path": "/users/{userId}/budgets",
+        "definition": {
+            "description": "Collection of all budgets for a specific user.",
+            "rules": { "allow": { "list": "if request.auth.uid == userId;" } }
         }
       },
       {
         "path": "/users/{userId}/budgets/{budgetId}",
         "definition": {
           "entityName": "Budget",
-          "schema": {
-            "$ref": "#/backend/entities/Budget"
-          },
-          "description": "Stores budgets belonging to a specific user. Uses path-based ownership for simplified security rules.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "budgetId",
-              "description": "The unique identifier for the budget."
-            }
-          ],
+          "schema": { "$ref": "#/backend/entities/Budget" },
+          "description": "A single budget document.",
           "rules": {
             "allow": {
+              "get": "if request.auth != null && request.auth.uid == userId;",
               "create": "if request.auth != null && request.auth.uid == userId;",
-              "read": "if request.auth != null && request.auth.uid == userId;",
               "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;",
-              "list": "if request.auth != null && request.auth.uid == userId;"
+              "delete": "if request.auth != null && request.auth.uid == userId;"
             }
           }
+        }
+      },
+      {
+        "path": "/users/{userId}/shoppingLists",
+        "definition": {
+            "description": "Collection of all shopping lists for a specific user.",
+            "rules": { "allow": { "list": "if request.auth.uid == userId;" } }
         }
       },
       {
         "path": "/users/{userId}/shoppingLists/{shoppingListId}",
         "definition": {
           "entityName": "ShoppingList",
-          "schema": {
-            "$ref": "#/backend/entities/ShoppingList"
-          },
-          "description": "Stores shopping lists belonging to a specific user. Uses path-based ownership for simplified security rules.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "shoppingListId",
-              "description": "The unique identifier for the shopping list."
-            }
-          ],
+          "schema": { "$ref": "#/backend/entities/ShoppingList" },
+          "description": "A single shopping list document.",
           "rules": {
             "allow": {
+              "get": "if request.auth != null && request.auth.uid == userId;",
               "create": "if request.auth != null && request.auth.uid == userId;",
-              "read": "if request.auth != null && request.auth.uid == userId;",
               "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;",
-              "list": "if request.auth != null && request.auth.uid == userId;"
+              "delete": "if request.auth != null && request.auth.uid == userId;"
             }
           }
+        }
+      },
+      {
+        "path": "/users/{userId}/recurringExpenses",
+        "definition": {
+            "description": "Collection of all recurring expenses for a specific user.",
+            "rules": { "allow": { "list": "if request.auth.uid == userId;" } }
         }
       },
       {
         "path": "/users/{userId}/recurringExpenses/{recurringExpenseId}",
         "definition": {
           "entityName": "RecurringExpense",
-          "schema": {
-            "$ref": "#/backend/entities/RecurringExpense"
-          },
-          "description": "Stores recurring expenses for a specific user.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "recurringExpenseId",
-              "description": "The unique identifier for the recurring expense."
-            }
-          ],
+          "schema": { "$ref": "#/backend/entities/RecurringExpense" },
+          "description": "A single recurring expense document.",
           "rules": {
             "allow": {
+              "get": "if request.auth != null && request.auth.uid == userId;",
               "create": "if request.auth != null && request.auth.uid == userId;",
-              "read": "if request.auth != null && request.auth.uid == userId;",
               "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;",
-              "list": "if request.auth != null && request.auth.uid == userId;"
+              "delete": "if request.auth != null && request.auth.uid == userId;"
             }
           }
         }
       },
-       {
+      {
+        "path": "/users/{userId}/recurringIncomes",
+        "definition": {
+            "description": "Collection of all recurring incomes for a specific user.",
+            "rules": { "allow": { "list": "if request.auth.uid == userId;" } }
+        }
+      },
+      {
         "path": "/users/{userId}/recurringIncomes/{recurringIncomeId}",
         "definition": {
           "entityName": "RecurringIncome",
-          "schema": {
-            "$ref": "#/backend/entities/RecurringIncome"
-          },
-          "description": "Stores recurring incomes for a specific user.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "recurringIncomeId",
-              "description": "The unique identifier for the recurring income."
-            }
-          ],
+          "schema": { "$ref": "#/backend/entities/RecurringIncome" },
+          "description": "A single recurring income document.",
           "rules": {
             "allow": {
+              "get": "if request.auth != null && request.auth.uid == userId;",
               "create": "if request.auth != null && request.auth.uid == userId;",
-              "read": "if request.auth != null && request.auth.uid == userId;",
               "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;",
-              "list": "if request.auth != null && request.auth.uid == userId;"
+              "delete": "if request.auth != null && request.auth.uid == userId;"
             }
           }
         }
       },
       {
-        "path": "/users/{userId}/purchaseHistory/{purchaseHistoryId}",
+        "path": "/users/{userId}/timeLogs",
         "definition": {
-          "entityName": "PurchaseHistory",
-          "schema": {
-            "$ref": "#/backend/entities/PurchaseHistory"
-          },
-          "description": "Stores purchase history entries belonging to a specific user. Uses path-based ownership for simplified security rules.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "purchaseHistoryId",
-              "description": "The unique identifier for the purchase history entry."
-            }
-          ],
-          "rules": {
-            "allow": {
-              "create": "if request.auth != null && request.auth.uid == userId;",
-              "read": "if request.auth != null && request.auth.uid == userId;",
-              "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;",
-              "list": "if request.auth != null && request.auth.uid == userId;"
-            }
-          }
-        }
-      },
-      {
-        "path": "/users/{userId}/files/{fileId}",
-        "definition": {
-          "entityName": "File",
-          "schema": {
-            "$ref": "#/backend/entities/File"
-          },
-          "description": "Stores files belonging to a specific user. Uses path-based ownership for simplified security rules.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "fileId",
-              "description": "The unique identifier for the file."
-            }
-          ],
-          "rules": {
-            "allow": {
-              "create": "if request.auth != null && request.auth.uid == userId;",
-              "read": "if request.auth != null && request.auth.uid == userId;",
-              "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;",
-              "list": "if request.auth != null && request.auth.uid == userId;"
-            }
-          }
+            "description": "Collection of all time logs for a specific user.",
+            "rules": { "allow": { "list": "if request.auth.uid == userId;" } }
         }
       },
       {
         "path": "/users/{userId}/timeLogs/{timeLogId}",
         "definition": {
             "entityName": "TimeLog",
-            "schema": {
-                "$ref": "#/backend/entities/TimeLog"
-            },
-            "description": "Stores time log entries for habits and tasks.",
-            "params": [
-                {
-                    "name": "userId",
-                    "description": "The unique identifier for the user."
-                },
-                {
-                    "name": "timeLogId",
-                    "description": "The unique identifier for the time log entry."
-                }
-            ],
+            "schema": { "$ref": "#/backend/entities/TimeLog" },
+            "description": "A single time log document.",
             "rules": {
                 "allow": {
+                    "get": "if request.auth != null && request.auth.uid == userId;",
                     "create": "if request.auth != null && request.auth.uid == userId;",
-                    "read": "if request.auth != null && request.auth.uid == userId;",
                     "update": "if request.auth != null && request.auth.uid == userId;",
-                    "delete": "if request.auth != null && request.auth.uid == userId;",
-                    "list": "if request.auth != null && request.auth.uid == userId;"
+                    "delete": "if request.auth != null && request.auth.uid == userId;"
                 }
             }
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to ensure data isolation and efficient querying, leveraging subcollections for user-specific data and denormalization for authorization independence. The core principle is that all data related to a user is stored under their respective user document, fostering clear ownership and simplifies security rules. This approach avoids complex queries across collections and maintains data integrity. The design adheres to structural segregation by keeping data with similar access needs in the same collection.\\n\\nAuthorization Independence is achieved by storing all data belonging to a user under the `/users/{userId}` path. This allows security rules to be written based on `request.auth.uid` and the path, without needing to `get()` data from other documents.\\n\\nThe data structure supports required QAPs (Rules are not Filters) by employing path-based ownership and structural segregation, allowing secure `list` operations, so a user can only list documents under its user id, not other user's documents."
+    "reasoning": "This architecture adheres to the 'Data Sharding by Owner' principle by nesting all user-specific data under a `/users/{userId}` path. This inherently links data ownership to the document path, making security rules simple and robust. It also follows the 'Rules Dictate Access Patterns' principle by explicitly separating collection-level `list` rules from document-level `get`, `create`, `update`, and `delete` rules. This creates a clear contract for the client-side code: to read a list of items, it MUST query the collection path (e.g., `/users/{userId}/tasks`), which the `list` rule permits. To interact with a single document, it MUST reference the specific document path (e.g., `/users/{userId}/tasks/{taskId}`), which the `get`, `update`, etc., rules permit. This structural separation prevents the client from making insecure queries (like trying to list a root collection) and thus fundamentally prevents 'Missing or insufficient permissions' errors."
   }
 }
-    
-
-    
