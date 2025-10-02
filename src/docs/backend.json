@@ -515,6 +515,10 @@
         "order": {
           "type": "number",
           "description": "The order of the shopping list in the user's list."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates if the shopping list category is active for the user."
         }
       },
       "required": [
@@ -523,7 +527,8 @@
         "name",
         "createdAt",
         "order",
-        "budgetFocus"
+        "budgetFocus",
+        "isActive"
       ]
     },
     "RecurringExpense": {
@@ -633,92 +638,6 @@
         "dayOfMonth"
       ]
     },
-    "PurchaseHistory": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "PurchaseHistory",
-      "type": "object",
-      "description": "Represents the purchase history of a user for a given month.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the purchase history record."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N PurchaseHistory)"
-        },
-        "month": {
-          "type": "number",
-          "description": "The month for which the purchase history is recorded (1-12)."
-        },
-        "year": {
-          "type": "number",
-          "description": "The year for which the purchase history is recorded."
-        },
-        "totalSpent": {
-          "type": "number",
-          "description": "The total amount spent during the month."
-        },
-        "purchaseDetails": {
-          "type": "string",
-          "description": "JSON string containing details of each individual purchase during the month."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "month",
-        "year",
-        "totalSpent",
-        "purchaseDetails"
-      ]
-    },
-    "File": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "File",
-      "type": "object",
-      "description": "Represents a file stored on the server.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the file."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N File)"
-        },
-        "fileName": {
-          "type": "string",
-          "description": "Name of the file."
-        },
-        "fileType": {
-          "type": "string",
-          "description": "Type of the file (e.g., 'image/jpeg', 'application/pdf')."
-        },
-        "fileSize": {
-          "type": "number",
-          "description": "Size of the file in bytes."
-        },
-        "uploadDate": {
-          "type": "string",
-          "description": "Timestamp indicating when the file was uploaded.",
-          "format": "date-time"
-        },
-        "storageLocation": {
-          "type": "string",
-          "description": "Location of the file in the storage system (e.g., URL)."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "fileName",
-        "fileType",
-        "fileSize",
-        "uploadDate",
-        "storageLocation"
-      ]
-    },
     "TimeLog": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "TimeLog",
@@ -799,12 +718,8 @@
       {
         "path": "/users/{userId}/habits",
         "definition": {
-          "description": "Collection of all habits for a specific user. The client must query this specific path.",
-          "rules": {
-            "allow": {
-              "list": "if request.auth != null && request.auth.uid == userId;"
-            }
-          }
+          "description": "Collection of all habits for a specific user. To list these habits, the client MUST query this exact path.",
+          "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
         }
       },
       {
@@ -812,7 +727,7 @@
         "definition": {
           "entityName": "Habit",
           "schema": { "$ref": "#/backend/entities/Habit" },
-          "description": "A single habit document owned by a user.",
+          "description": "A single habit document owned by a user. To access a single document, the client MUST use a direct reference.",
           "rules": {
             "allow": {
               "get": "if request.auth != null && request.auth.uid == userId;",
@@ -826,7 +741,7 @@
       {
         "path": "/users/{userId}/routines",
         "definition": {
-          "description": "Collection of all routines for a specific user.",
+          "description": "Collection of all routines for a specific user. To list these routines, the client MUST query this exact path.",
           "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
         }
       },
@@ -835,7 +750,7 @@
         "definition": {
           "entityName": "Routine",
           "schema": { "$ref": "#/backend/entities/Routine" },
-          "description": "A single routine document.",
+          "description": "A single routine document owned by a user. To access a single document, the client MUST use a direct reference.",
           "rules": {
             "allow": {
               "get": "if request.auth != null && request.auth.uid == userId;",
@@ -849,8 +764,8 @@
       {
         "path": "/users/{userId}/tasks",
         "definition": {
-            "description": "Collection of all tasks for a specific user.",
-            "rules": { "allow": { "list": "if request.auth.uid == userId;" } }
+            "description": "Collection of all tasks for a specific user. To list these tasks, the client MUST query this exact path.",
+            "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
         }
       },
       {
@@ -858,7 +773,7 @@
         "definition": {
           "entityName": "Task",
           "schema": { "$ref": "#/backend/entities/Task" },
-          "description": "A single task document.",
+          "description": "A single task document owned by a user. To access a single document, the client MUST use a direct reference.",
           "rules": {
             "allow": {
               "get": "if request.auth != null && request.auth.uid == userId;",
@@ -872,8 +787,8 @@
       {
         "path": "/users/{userId}/goals",
         "definition": {
-            "description": "Collection of all goals for a specific user.",
-            "rules": { "allow": { "list": "if request.auth.uid == userId;" } }
+            "description": "Collection of all goals for a specific user. To list these goals, the client MUST query this exact path.",
+            "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
         }
       },
       {
@@ -881,7 +796,7 @@
         "definition": {
           "entityName": "Goal",
           "schema": { "$ref": "#/backend/entities/Goal" },
-          "description": "A single goal document.",
+          "description": "A single goal document owned by a user. To access a single document, the client MUST use a direct reference.",
           "rules": {
             "allow": {
               "get": "if request.auth != null && request.auth.uid == userId;",
@@ -895,8 +810,8 @@
       {
         "path": "/users/{userId}/moods",
         "definition": {
-            "description": "Collection of all mood entries for a specific user.",
-            "rules": { "allow": { "list": "if request.auth.uid == userId;" } }
+            "description": "Collection of all mood entries for a specific user. To list these moods, the client MUST query this exact path.",
+            "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
         }
       },
       {
@@ -904,7 +819,7 @@
         "definition": {
           "entityName": "Mood",
           "schema": { "$ref": "#/backend/entities/Mood" },
-          "description": "A single mood entry.",
+          "description": "A single mood entry owned by a user. To access a single document, the client MUST use a direct reference.",
           "rules": {
             "allow": {
               "get": "if request.auth != null && request.auth.uid == userId;",
@@ -918,8 +833,8 @@
       {
         "path": "/users/{userId}/transactions",
         "definition": {
-            "description": "Collection of all transactions for a specific user.",
-            "rules": { "allow": { "list": "if request.auth.uid == userId;" } }
+            "description": "Collection of all transactions for a specific user. To list these transactions, the client MUST query this exact path.",
+            "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
         }
       },
       {
@@ -927,7 +842,7 @@
         "definition": {
           "entityName": "Transaction",
           "schema": { "$ref": "#/backend/entities/Transaction" },
-          "description": "A single transaction document.",
+          "description": "A single transaction document owned by a user. To access a single document, the client MUST use a direct reference.",
           "rules": {
             "allow": {
               "get": "if request.auth != null && request.auth.uid == userId;",
@@ -941,8 +856,8 @@
       {
         "path": "/users/{userId}/budgets",
         "definition": {
-            "description": "Collection of all budgets for a specific user.",
-            "rules": { "allow": { "list": "if request.auth.uid == userId;" } }
+            "description": "Collection of all budgets for a specific user. To list these budgets, the client MUST query this exact path.",
+            "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
         }
       },
       {
@@ -950,7 +865,7 @@
         "definition": {
           "entityName": "Budget",
           "schema": { "$ref": "#/backend/entities/Budget" },
-          "description": "A single budget document.",
+          "description": "A single budget document owned by a user. To access a single document, the client MUST use a direct reference.",
           "rules": {
             "allow": {
               "get": "if request.auth != null && request.auth.uid == userId;",
@@ -964,8 +879,8 @@
       {
         "path": "/users/{userId}/shoppingLists",
         "definition": {
-            "description": "Collection of all shopping lists for a specific user.",
-            "rules": { "allow": { "list": "if request.auth.uid == userId;" } }
+            "description": "Collection of all shopping lists for a specific user. To list these shopping lists, the client MUST query this exact path.",
+            "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
         }
       },
       {
@@ -973,7 +888,7 @@
         "definition": {
           "entityName": "ShoppingList",
           "schema": { "$ref": "#/backend/entities/ShoppingList" },
-          "description": "A single shopping list document.",
+          "description": "A single shopping list document owned by a user. To access a single document, the client MUST use a direct reference.",
           "rules": {
             "allow": {
               "get": "if request.auth != null && request.auth.uid == userId;",
@@ -987,8 +902,8 @@
       {
         "path": "/users/{userId}/recurringExpenses",
         "definition": {
-            "description": "Collection of all recurring expenses for a specific user.",
-            "rules": { "allow": { "list": "if request.auth.uid == userId;" } }
+            "description": "Collection of all recurring expenses for a specific user. To list these, the client MUST query this exact path.",
+            "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
         }
       },
       {
@@ -996,7 +911,7 @@
         "definition": {
           "entityName": "RecurringExpense",
           "schema": { "$ref": "#/backend/entities/RecurringExpense" },
-          "description": "A single recurring expense document.",
+          "description": "A single recurring expense document. To access a single document, the client MUST use a direct reference.",
           "rules": {
             "allow": {
               "get": "if request.auth != null && request.auth.uid == userId;",
@@ -1010,8 +925,8 @@
       {
         "path": "/users/{userId}/recurringIncomes",
         "definition": {
-            "description": "Collection of all recurring incomes for a specific user.",
-            "rules": { "allow": { "list": "if request.auth.uid == userId;" } }
+            "description": "Collection of all recurring incomes for a specific user. To list these, the client MUST query this exact path.",
+            "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
         }
       },
       {
@@ -1019,7 +934,7 @@
         "definition": {
           "entityName": "RecurringIncome",
           "schema": { "$ref": "#/backend/entities/RecurringIncome" },
-          "description": "A single recurring income document.",
+          "description": "A single recurring income document. To access a single document, the client MUST use a direct reference.",
           "rules": {
             "allow": {
               "get": "if request.auth != null && request.auth.uid == userId;",
@@ -1033,7 +948,7 @@
       {
         "path": "/users/{userId}/timeLogs",
         "definition": {
-            "description": "Collection of all time logs for a specific user.",
+            "description": "Collection of all time logs for a specific user. To list these, the client MUST query this exact path.",
             "rules": { "allow": { "list": "if request.auth.uid == userId;" } }
         }
       },
@@ -1042,7 +957,7 @@
         "definition": {
             "entityName": "TimeLog",
             "schema": { "$ref": "#/backend/entities/TimeLog" },
-            "description": "A single time log document.",
+            "description": "A single time log document. To access a single document, the client MUST use a direct reference.",
             "rules": {
                 "allow": {
                     "get": "if request.auth != null && request.auth.uid == userId;",
@@ -1053,7 +968,7 @@
             }
         }
       }
-    ],
-    "reasoning": "This architecture adheres to the 'Data Sharding by Owner' principle by nesting all user-specific data under a `/users/{userId}` path. This inherently links data ownership to the document path, making security rules simple and robust. It also follows the 'Rules Dictate Access Patterns' principle by explicitly separating collection-level `list` rules from document-level `get`, `create`, `update`, and `delete` rules. This creates a clear contract for the client-side code: to read a list of items, it MUST query the collection path (e.g., `/users/{userId}/tasks`), which the `list` rule permits. To interact with a single document, it MUST reference the specific document path (e.g., `/users/{userId}/tasks/{taskId}`), which the `get`, `update`, etc., rules permit. This structural separation prevents the client from making insecure queries (like trying to list a root collection) and thus fundamentally prevents 'Missing or insufficient permissions' errors."
-  }
+    ]
+  },
+  "reasoning": "This architecture adheres to the 'Aislamiento Total por Propietario' principle by nesting all user-specific data under a `/users/{userId}` path, linking data ownership directly to the document path for simple, robust security. It also follows the 'Las Reglas Documentan el Acceso' principle by explicitly separating collection-level `list` rules from document-level `get`, `create`, `update`, and `delete` rules for every entity. This creates a clear contract for the client-side code: to read a list of items, it MUST query the specific collection path (e.g., `/users/{userId}/tasks`), which the `list` rule permits. To interact with a single document, it MUST reference the specific document path (e.g., `/users/{userId}/tasks/{taskId}`). This structural separation prevents insecure queries and makes 'Missing or insufficient permissions' errors a matter of incorrect code paths rather than complex rule logic, thus building a secure and predictable foundation."
 }

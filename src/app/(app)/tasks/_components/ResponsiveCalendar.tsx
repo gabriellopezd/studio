@@ -1,105 +1,47 @@
 
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetFooter,
-  SheetClose,
-} from '@/components/ui/sheet';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { cn } from '@/lib/utils';
-import { CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface ResponsiveCalendarProps {
   value: Date | undefined;
   onSelect: (date: Date | undefined) => void;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  triggerLabel?: string;
+  id?: string;
+}
+
+// Helper function to format a Date object to a 'yyyy-mm-dd' string
+function formatDateToInput(date: Date | undefined): string {
+  if (!date) return '';
+  // Adjust for timezone offset to prevent off-by-one-day errors
+  const adjustedDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return adjustedDate.toISOString().split('T')[0];
 }
 
 export function ResponsiveCalendar({
   value,
   onSelect,
-  open,
-  onOpenChange,
-  triggerLabel = 'Selecciona una fecha',
+  id,
 }: ResponsiveCalendarProps) {
-  const isMobile = useIsMobile();
-
-  const handleSelect = (date: Date | undefined) => {
-    onSelect(date);
-    onOpenChange(false); // Close after selection
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const dateValue = event.target.value;
+    if (dateValue) {
+      // The input value is a string 'YYYY-MM-DD'. The Date constructor
+      // correctly interprets this in the local timezone.
+      const newDate = new Date(dateValue + 'T00:00:00');
+      onSelect(newDate);
+    } else {
+      onSelect(undefined);
+    }
   };
 
-  const TriggerButton = () => (
-    <Button
-      variant={'outline'}
-      className={cn(
-        'w-full justify-start text-left font-normal',
-        !value && 'text-muted-foreground'
-      )}
-    >
-      <CalendarIcon className="mr-2 h-4 w-4" />
-      {value ? format(value, 'PPP', { locale: es }) : <span>{triggerLabel}</span>}
-    </Button>
-  );
-
-  if (isMobile) {
-    return (
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetTrigger asChild>
-          <TriggerButton />
-        </SheetTrigger>
-        <SheetContent side="bottom">
-          <SheetHeader>
-            <SheetTitle>{triggerLabel}</SheetTitle>
-          </SheetHeader>
-          <div className="flex justify-center py-4">
-            <Calendar
-              mode="single"
-              selected={value}
-              onSelect={handleSelect}
-              initialFocus
-            />
-          </div>
-          <SheetFooter>
-            <SheetClose asChild>
-              <Button variant="outline">Cerrar</Button>
-            </SheetClose>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
-    );
-  }
-
   return (
-    <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverTrigger asChild>
-        <TriggerButton />
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
-        <Calendar
-          mode="single"
-          selected={value}
-          onSelect={handleSelect}
-          initialFocus
-        />
-      </PopoverContent>
-    </Popover>
+    <Input
+      id={id}
+      type="date"
+      value={formatDateToInput(value)}
+      onChange={handleChange}
+      className="w-full"
+    />
   );
 }
-

@@ -157,8 +157,7 @@ export default function FinancesPage() {
   const [newRecurringDay, setNewRecurringDay] = useState('');
   const [newRecurringBudgetFocus, setNewRecurringBudgetFocus] = useState('Necesidades');
   const [motivation, setMotivation] = useState('');
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-
+  
   const { toast } = useToast();
   
   useEffect(() => {
@@ -602,12 +601,11 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2 relative">
-                    <Label>Fecha</Label>
+                    <Label htmlFor="date">Fecha</Label>
                     <ResponsiveCalendar 
+                        id="date"
                         value={newTransactionDate}
                         onSelect={setNewTransactionDate}
-                        open={isCalendarOpen}
-                        onOpenChange={setIsCalendarOpen}
                     />
                   </div>
                   {newTransactionType === 'expense' && (
@@ -1166,14 +1164,13 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
               </div>
                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Fecha</Label>
+                    <Label htmlFor="edit-date">Fecha</Label>
                     <ResponsiveCalendar
+                      id="edit-date"
                       value={transactionToEdit.date}
                       onSelect={(date) =>
                         setTransactionToEdit({ ...transactionToEdit, date: date })
                       }
-                      open={isCalendarOpen}
-                      onOpenChange={setIsCalendarOpen}
                     />
                   </div>
                   {transactionToEdit.type === 'expense' && (
