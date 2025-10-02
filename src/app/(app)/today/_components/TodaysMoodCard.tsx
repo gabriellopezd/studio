@@ -136,14 +136,14 @@ export function TodaysMoodCard() {
           </DialogHeader>
 
           {step === 1 && (
-            <div className="flex justify-around py-6">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,1fr))] gap-2 justify-center py-6">
               {moodLevels.map((mood) => (
                 <Button
                   key={mood.level}
                   variant={selectedMood?.level === mood.level ? 'secondary' : 'ghost'}
                   size="icon"
                   onClick={() => handleMoodSelect(mood)}
-                  className="h-20 w-20 rounded-full"
+                  className="h-24 w-full rounded-lg"
                 >
                   <div className="flex flex-col items-center gap-1">
                     <span className="text-4xl">{mood.emoji}</span>

@@ -95,7 +95,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { useAppContext } from '@/app/_providers/AppContext';
+import { useAppContext } from '@/app/_providers/AppProvider';
 
 const motivationalQuotes = [
     "Tus finanzas son el reflejo de tus hábitos. ¡Constrúyelos sabiamente!",
@@ -1217,5 +1217,3 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
     </>
   );
 }
-
-    
