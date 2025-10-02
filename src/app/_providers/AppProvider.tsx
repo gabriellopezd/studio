@@ -14,7 +14,7 @@ import { PresetHabits } from '@/lib/preset-habits';
 import { PRESET_EXPENSE_CATEGORIES } from '@/lib/transaction-categories';
 
 // --- Context Definition ---
-const AppContext = createContext<AppState | undefined>(undefined);
+export const AppContext = createContext<AppState | undefined>(undefined);
 
 export const useAppContext = () => {
     const context = useContext(AppContext);
@@ -134,7 +134,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (!user || !firestore) return null;
       return collection(firestore, `users/${user.uid}/habits`);
     }, [user, firestore]);
-    const { data: allHabits, isLoading: habitsLoading } = useCollection(allHabitsQuery);
+    const { data: allHabits, isLoading: habitsLoading } = useCollection<Habit>(allHabitsQuery);
 
     const routinesQuery = useMemo(() => {
       if (!user || !firestore) return null;
@@ -908,3 +908,5 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
+
+    

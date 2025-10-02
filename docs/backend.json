@@ -643,92 +643,6 @@
         "dayOfMonth"
       ]
     },
-    "PurchaseHistory": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "PurchaseHistory",
-      "type": "object",
-      "description": "Represents the purchase history of a user for a given month.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the purchase history record."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N PurchaseHistory)"
-        },
-        "month": {
-          "type": "number",
-          "description": "The month for which the purchase history is recorded (1-12)."
-        },
-        "year": {
-          "type": "number",
-          "description": "The year for which the purchase history is recorded."
-        },
-        "totalSpent": {
-          "type": "number",
-          "description": "The total amount spent during the month."
-        },
-        "purchaseDetails": {
-          "type": "string",
-          "description": "JSON string containing details of each individual purchase during the month."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "month",
-        "year",
-        "totalSpent",
-        "purchaseDetails"
-      ]
-    },
-    "File": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "File",
-      "type": "object",
-      "description": "Represents a file stored on the server.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the file."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N File)"
-        },
-        "fileName": {
-          "type": "string",
-          "description": "Name of the file."
-        },
-        "fileType": {
-          "type": "string",
-          "description": "Type of the file (e.g., 'image/jpeg', 'application/pdf')."
-        },
-        "fileSize": {
-          "type": "number",
-          "description": "Size of the file in bytes."
-        },
-        "uploadDate": {
-          "type": "string",
-          "description": "Timestamp indicating when the file was uploaded.",
-          "format": "date-time"
-        },
-        "storageLocation": {
-          "type": "string",
-          "description": "Location of the file in the storage system (e.g., URL)."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "fileName",
-        "fileType",
-        "fileSize",
-        "uploadDate",
-        "storageLocation"
-      ]
-    },
     "TimeLog": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "TimeLog",
@@ -790,27 +704,29 @@
     ]
   },
   "firestore": {
+    "rules": {
+      "version": "2",
+      "rules": {
+        "service": "cloud.firestore",
+        "match": {
+          "database": "{database}",
+          "documents": {
+            "match": "/users/{userId}/{document=**}",
+            "allow": {
+              "read": "if request.auth != null && request.auth.uid == userId;",
+              "write": "if request.auth != null && request.auth.uid == userId;"
+            }
+          }
+        }
+      }
+    },
     "structure": [
       {
         "path": "/users/{userId}",
         "definition": {
           "entityName": "User",
           "schema": { "$ref": "#/backend/entities/User" },
-          "description": "Stores user profile information. All user-owned data is stored under this document to simplify security rules and ensure data isolation.",
-          "rules": {
-            "allow": {
-              "read": "if request.auth != null && request.auth.uid == userId;",
-              "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;"
-            }
-          }
-        }
-      },
-      {
-        "path": "/users/{userId}/habits",
-        "definition": {
-          "description": "Collection of all habits for a specific user. To list these habits, the client MUST query this exact path.",
-          "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
+          "description": "Stores user profile information. All user-owned data is stored under this document to simplify security rules and ensure data isolation."
         }
       },
       {
@@ -818,22 +734,7 @@
         "definition": {
           "entityName": "Habit",
           "schema": { "$ref": "#/backend/entities/Habit" },
-          "description": "A single habit document owned by a user. To access a single document, the client MUST use a direct reference.",
-          "rules": {
-            "allow": {
-              "get": "if request.auth != null && request.auth.uid == userId;",
-              "create": "if request.auth != null && request.auth.uid == userId;",
-              "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;"
-            }
-          }
-        }
-      },
-      {
-        "path": "/users/{userId}/routines",
-        "definition": {
-          "description": "Collection of all routines for a specific user. To list these routines, the client MUST query this exact path.",
-          "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
+          "description": "A single habit document owned by a user. To access a single document, the client MUST use a direct reference."
         }
       },
       {
@@ -841,22 +742,7 @@
         "definition": {
           "entityName": "Routine",
           "schema": { "$ref": "#/backend/entities/Routine" },
-          "description": "A single routine document owned by a user. To access a single document, the client MUST use a direct reference.",
-          "rules": {
-            "allow": {
-              "get": "if request.auth != null && request.auth.uid == userId;",
-              "create": "if request.auth != null && request.auth.uid == userId;",
-              "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;"
-            }
-          }
-        }
-      },
-      {
-        "path": "/users/{userId}/tasks",
-        "definition": {
-            "description": "Collection of all tasks for a specific user. To list these tasks, the client MUST query this exact path.",
-            "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
+          "description": "A single routine document owned by a user. To access a single document, the client MUST use a direct reference."
         }
       },
       {
@@ -864,22 +750,7 @@
         "definition": {
           "entityName": "Task",
           "schema": { "$ref": "#/backend/entities/Task" },
-          "description": "A single task document owned by a user. To access a single document, the client MUST use a direct reference.",
-          "rules": {
-            "allow": {
-              "get": "if request.auth != null && request.auth.uid == userId;",
-              "create": "if request.auth != null && request.auth.uid == userId;",
-              "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;"
-            }
-          }
-        }
-      },
-      {
-        "path": "/users/{userId}/goals",
-        "definition": {
-            "description": "Collection of all goals for a specific user. To list these goals, the client MUST query this exact path.",
-            "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
+          "description": "A single task document owned by a user. To access a single document, the client MUST use a direct reference."
         }
       },
       {
@@ -887,22 +758,7 @@
         "definition": {
           "entityName": "Goal",
           "schema": { "$ref": "#/backend/entities/Goal" },
-          "description": "A single goal document owned by a user. To access a single document, the client MUST use a direct reference.",
-          "rules": {
-            "allow": {
-              "get": "if request.auth != null && request.auth.uid == userId;",
-              "create": "if request.auth != null && request.auth.uid == userId;",
-              "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;"
-            }
-          }
-        }
-      },
-      {
-        "path": "/users/{userId}/moods",
-        "definition": {
-            "description": "Collection of all mood entries for a specific user. To list these moods, the client MUST query this exact path.",
-            "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
+          "description": "A single goal document owned by a user. To access a single document, the client MUST use a direct reference."
         }
       },
       {
@@ -910,22 +766,7 @@
         "definition": {
           "entityName": "Mood",
           "schema": { "$ref": "#/backend/entities/Mood" },
-          "description": "A single mood entry owned by a user. To access a single document, the client MUST use a direct reference.",
-          "rules": {
-            "allow": {
-              "get": "if request.auth != null && request.auth.uid == userId;",
-              "create": "if request.auth != null && request.auth.uid == userId;",
-              "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;"
-            }
-          }
-        }
-      },
-      {
-        "path": "/users/{userId}/transactions",
-        "definition": {
-            "description": "Collection of all transactions for a specific user. To list these transactions, the client MUST query this exact path.",
-            "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
+          "description": "A single mood entry owned by a user. To access a single document, the client MUST use a direct reference."
         }
       },
       {
@@ -933,22 +774,7 @@
         "definition": {
           "entityName": "Transaction",
           "schema": { "$ref": "#/backend/entities/Transaction" },
-          "description": "A single transaction document owned by a user. To access a single document, the client MUST use a direct reference.",
-          "rules": {
-            "allow": {
-              "get": "if request.auth != null && request.auth.uid == userId;",
-              "create": "if request.auth != null && request.auth.uid == userId;",
-              "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;"
-            }
-          }
-        }
-      },
-      {
-        "path": "/users/{userId}/budgets",
-        "definition": {
-            "description": "Collection of all budgets for a specific user. To list these budgets, the client MUST query this exact path.",
-            "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
+          "description": "A single transaction document owned by a user. To access a single document, the client MUST use a direct reference."
         }
       },
       {
@@ -956,22 +782,7 @@
         "definition": {
           "entityName": "Budget",
           "schema": { "$ref": "#/backend/entities/Budget" },
-          "description": "A single budget document owned by a user. To access a single document, the client MUST use a direct reference.",
-          "rules": {
-            "allow": {
-              "get": "if request.auth != null && request.auth.uid == userId;",
-              "create": "if request.auth != null && request.auth.uid == userId;",
-              "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;"
-            }
-          }
-        }
-      },
-      {
-        "path": "/users/{userId}/shoppingLists",
-        "definition": {
-            "description": "Collection of all shopping lists for a specific user. To list these shopping lists, the client MUST query this exact path.",
-            "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
+          "description": "A single budget document owned by a user. To access a single document, the client MUST use a direct reference."
         }
       },
       {
@@ -979,22 +790,7 @@
         "definition": {
           "entityName": "ShoppingList",
           "schema": { "$ref": "#/backend/entities/ShoppingList" },
-          "description": "A single shopping list document owned by a user. To access a single document, the client MUST use a direct reference.",
-          "rules": {
-            "allow": {
-              "get": "if request.auth != null && request.auth.uid == userId;",
-              "create": "if request.auth != null && request.auth.uid == userId;",
-              "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;"
-            }
-          }
-        }
-      },
-      {
-        "path": "/users/{userId}/recurringExpenses",
-        "definition": {
-            "description": "Collection of all recurring expenses for a specific user. To list these, the client MUST query this exact path.",
-            "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
+          "description": "A single shopping list document owned by a user. To access a single document, the client MUST use a direct reference."
         }
       },
       {
@@ -1002,22 +798,7 @@
         "definition": {
           "entityName": "RecurringExpense",
           "schema": { "$ref": "#/backend/entities/RecurringExpense" },
-          "description": "A single recurring expense document. To access a single document, the client MUST use a direct reference.",
-          "rules": {
-            "allow": {
-              "get": "if request.auth != null && request.auth.uid == userId;",
-              "create": "if request.auth != null && request.auth.uid == userId;",
-              "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;"
-            }
-          }
-        }
-      },
-      {
-        "path": "/users/{userId}/recurringIncomes",
-        "definition": {
-            "description": "Collection of all recurring incomes for a specific user. To list these, the client MUST query this exact path.",
-            "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
+          "description": "A single recurring expense document. To access a single document, the client MUST use a direct reference."
         }
       },
       {
@@ -1025,22 +806,7 @@
         "definition": {
           "entityName": "RecurringIncome",
           "schema": { "$ref": "#/backend/entities/RecurringIncome" },
-          "description": "A single recurring income document. To access a single document, the client MUST use a direct reference.",
-          "rules": {
-            "allow": {
-              "get": "if request.auth != null && request.auth.uid == userId;",
-              "create": "if request.auth != null && request.auth.uid == userId;",
-              "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null && request.auth.uid == userId;"
-            }
-          }
-        }
-      },
-      {
-        "path": "/users/{userId}/timeLogs",
-        "definition": {
-            "description": "Collection of all time logs for a specific user. To list these, the client MUST query this exact path.",
-            "rules": { "allow": { "list": "if request.auth != null && request.auth.uid == userId;" } }
+          "description": "A single recurring income document. To access a single document, the client MUST use a direct reference."
         }
       },
       {
@@ -1048,15 +814,7 @@
         "definition": {
             "entityName": "TimeLog",
             "schema": { "$ref": "#/backend/entities/TimeLog" },
-            "description": "A single time log document. To access a single document, the client MUST use a direct reference.",
-            "rules": {
-                "allow": {
-                    "get": "if request.auth != null && request.auth.uid == userId;",
-                    "create": "if request.auth != null && request.auth.uid == userId;",
-                    "update": "if request.auth != null && request.auth.uid == userId;",
-                    "delete": "if request.auth != null && request.auth.uid == userId;"
-                }
-            }
+            "description": "A single time log document. To access a single document, the client MUST use a direct reference."
         }
       }
     ]
