@@ -68,7 +68,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useAppContext } from '@/app/_providers/AppContext';
+import { useAppContext } from '@/app/_providers/AppProvider';
 
 const motivationalQuotes = [
     "Una meta sin un plan es solo un deseo.",

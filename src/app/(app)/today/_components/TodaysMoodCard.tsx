@@ -14,7 +14,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { moodLevels, feelings, influences } from '@/lib/moods';
-import { useAppContext } from '@/app/_providers/AppContext';
+import { useAppContext } from '@/app/_providers/AppProvider';
 
 export function TodaysMoodCard() {
   const { todayMood, handleSaveMood } = useAppContext();

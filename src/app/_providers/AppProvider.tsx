@@ -2,10 +2,10 @@
 
 'use client';
 
-import React, { useReducer, useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc, limit } from 'firebase/firestore';
 import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking, type FirebaseServicesAndUser } from '@/firebase';
-import { AppContext, AppState, Habit, Task, Mood, ActiveSession } from './AppContext';
+import { AppState, Habit, Task, Mood, ActiveSession } from './types';
 import { isHabitCompletedToday, calculateStreak, checkHabitStreak } from '@/lib/habits';
 import { Button } from '@/components/ui/button';
 import { Timer, X } from 'lucide-react';
@@ -13,6 +13,17 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { PresetHabits } from '@/lib/preset-habits';
 import { PRESET_EXPENSE_CATEGORIES } from '@/lib/transaction-categories';
+
+// --- Context Definition ---
+const AppContext = createContext<AppState | undefined>(undefined);
+
+export const useAppContext = () => {
+    const context = useContext(AppContext);
+    if (context === undefined) {
+        throw new Error('useAppContext must be used within an AppProvider');
+    }
+    return context;
+};
 
 
 function TimerDisplay({ activeSession, elapsedTime, stopSession }: { activeSession: ActiveSession | null, elapsedTime: number, stopSession: () => void }) {
@@ -737,11 +748,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const incomeCats = [...new Set(["Salario", "Bonificación", "Otro", ...(transactions?.filter(t => t.type === 'income').map(t => t.category) ?? [])])].filter(Boolean);
         const catsNoBudget = allCategoryNames.filter(cat => !(budgets || []).some(b => b.categoryName === cat));
 
-        const sorted = (shoppingLists || []).filter(l => l.isActive).sort((a, b) => a.order - b.order) ?? [];
+        const activeShoppingLists = (shoppingLists || []).filter((l: any) => l.isActive);
+        const sorted = [...activeShoppingLists].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
-        const spendingByCat = (shoppingLists || []).filter(l => l.isActive).map(l => ({ name: l.name, gasto: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.gasto > 0) ?? [];
-        const budgetAcc = (shoppingLists || []).filter(l => l.isActive).map(l => ({ name: l.name, estimado: l.items.filter((i:any) => i.isPurchased).reduce((s:number, i:any) => s + i.amount, 0), real: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.real > 0 || d.estimado > 0) ?? [];
-        const spendingByF = (Object.entries((shoppingLists || []).filter(l => l.isActive).reduce((acc, l) => {
+        const spendingByCat = activeShoppingLists.map(l => ({ name: l.name, gasto: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.gasto > 0) ?? [];
+        const budgetAcc = activeShoppingLists.map(l => ({ name: l.name, estimado: l.items.filter((i:any) => i.isPurchased).reduce((s:number, i:any) => s + i.amount, 0), real: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.real > 0 || d.estimado > 0) ?? [];
+        const spendingByF = (Object.entries(activeShoppingLists.reduce((acc, l) => {
             const total = l.items.filter((i: any) => i.isPurchased && i.price).reduce((s: number, i: any) => s + i.price, 0);
             if(l.budgetFocus && acc.hasOwnProperty(l.budgetFocus)) acc[l.budgetFocus] += total;
             return acc;
@@ -897,6 +909,3 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
-
-
-    

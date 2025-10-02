@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { moodLevels, feelings, influences } from '@/lib/moods';
-import { useAppContext } from '@/app/_providers/AppContext';
+import { useAppContext } from '@/app/_providers/AppProvider';
 
 const motivationalQuotes = [
     "Tus emociones son válidas. Escúchalas.",
