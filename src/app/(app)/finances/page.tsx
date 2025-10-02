@@ -297,33 +297,43 @@ export default function FinancesPage() {
     
     const amountDifference = amount - originalTransaction.amount;
 
-    if (originalTransaction.category === transactionToEdit.category) {
-      if (transactionToEdit.type === 'expense') {
-        const budget = budgets?.find(b => b.categoryName === transactionToEdit.category);
-        if (budget) {
-          const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-          batch.update(budgetRef, { currentSpend: increment(amountDifference) });
+    // Smart budget adjustment
+    if (originalTransaction.type === 'expense' && transactionToEdit.type === 'expense') {
+        if (originalTransaction.category === transactionToEdit.category) {
+            // Category hasn't changed, just update with the difference
+            const budget = budgets?.find(b => b.categoryName === transactionToEdit.category);
+            if (budget) {
+                const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+                batch.update(budgetRef, { currentSpend: increment(amountDifference) });
+            }
+        } else {
+            // Category has changed, revert from old and apply to new
+            const oldBudget = budgets?.find(b => b.categoryName === originalTransaction.category);
+            if (oldBudget) {
+                const oldBudgetRef = doc(firestore, 'users', user.uid, 'budgets', oldBudget.id);
+                batch.update(oldBudgetRef, { currentSpend: increment(-originalTransaction.amount) });
+            }
+            const newBudget = budgets?.find(b => b.categoryName === transactionToEdit.category);
+            if (newBudget) {
+                const newBudgetRef = doc(firestore, 'users', user.uid, 'budgets', newBudget.id);
+                batch.update(newBudgetRef, { currentSpend: increment(amount) });
+            }
         }
-      }
-    } else {
-      // Revert old budget spend
-      if (originalTransaction.type === 'expense') {
+    } else if (originalTransaction.type === 'expense' && transactionToEdit.type === 'income') {
+        // Was expense, now is income: revert old budget spend
         const oldBudget = budgets?.find(b => b.categoryName === originalTransaction.category);
         if (oldBudget) {
-          const oldBudgetRef = doc(firestore, 'users', user.uid, 'budgets', oldBudget.id);
-          batch.update(oldBudgetRef, { currentSpend: increment(-originalTransaction.amount) });
+            const oldBudgetRef = doc(firestore, 'users', user.uid, 'budgets', oldBudget.id);
+            batch.update(oldBudgetRef, { currentSpend: increment(-originalTransaction.amount) });
         }
-      }
-      // Apply new budget spend
-      if (transactionToEdit.type === 'expense') {
+    } else if (originalTransaction.type === 'income' && transactionToEdit.type === 'expense') {
+        // Was income, now is expense: apply to new budget
         const newBudget = budgets?.find(b => b.categoryName === transactionToEdit.category);
         if (newBudget) {
-          const newBudgetRef = doc(firestore, 'users', user.uid, 'budgets', newBudget.id);
-          batch.update(newBudgetRef, { currentSpend: increment(amount) });
+            const newBudgetRef = doc(firestore, 'users', user.uid, 'budgets', newBudget.id);
+            batch.update(newBudgetRef, { currentSpend: increment(amount) });
         }
-      }
     }
-
 
     await batch.commit();
     setTransactionToEdit(null);
@@ -545,7 +555,7 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
           title="MIS FINANZAS"
           description="Controla tus ingresos, gastos y presupuestos."
           motivation={motivation}
-          imageId="dashboard-header"
+          imageId="finances-header"
         >
           <Dialog open={isTransactionDialogOpen} onOpenChange={setTransactionDialogOpen}>
             <DialogTrigger asChild>
@@ -1199,11 +1209,13 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
             </div>
           )}
           <DialogFooter>
-            <DialogClose asChild><Button type="button" variant="outline" onClick={() => setTransactionToEdit(null)}>Cancelar</Button></DialogClose>
-            <DialogClose asChild><Button type="submit" onClick={handleUpdateTransaction}>Guardar Cambios</Button></DialogClose>
+            <Button type="button" variant="outline" onClick={() => setTransactionToEdit(null)}>Cancelar</Button>
+            <Button type="submit" onClick={handleUpdateTransaction}>Guardar Cambios</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
   );
 }
+
+    

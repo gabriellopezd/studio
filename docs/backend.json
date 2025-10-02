@@ -1,5 +1,4 @@
 
-      
 {
   "entities": {
     "User": {
@@ -986,7 +985,7 @@
               "get": "if request.auth != null && request.auth.uid == userId;",
               "create": "if request.auth != null && request.auth.uid == userId;",
               "update": "if request.auth != null && request.auth.uid == userId;",
-              "delete": "if request.auth != null and request.auth.uid == userId;"
+              "delete": "if request.auth != null && request.auth.uid == userId;"
             }
           }
         }
