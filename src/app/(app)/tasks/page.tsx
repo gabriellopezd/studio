@@ -422,21 +422,34 @@ export default function TasksPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="task-due-date">Fecha de Vencimiento</Label>
-                <div className="relative">
-                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !taskToEdit.dueDate && "text-muted-foreground")}>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !taskToEdit.dueDate && "text-muted-foreground"
+                      )}
+                    >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {taskToEdit.dueDate ? format(taskToEdit.dueDate, 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}
+                      {taskToEdit.dueDate ? (
+                        format(taskToEdit.dueDate, "PPP", { locale: es })
+                      ) : (
+                        <span>Selecciona una fecha</span>
+                      )}
                     </Button>
-                    <Input
-                        type="date"
-                        value={taskToEdit.dueDate ? format(taskToEdit.dueDate, 'yyyy-MM-dd') : ''}
-                        onChange={(e) => {
-                            const date = e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined;
-                            setTaskToEdit({ ...taskToEdit, dueDate: date });
-                        }}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={taskToEdit.dueDate}
+                      onSelect={(date) =>
+                        setTaskToEdit({ ...taskToEdit, dueDate: date })
+                      }
+                      initialFocus
                     />
-                </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           )}
@@ -467,3 +480,5 @@ export default function TasksPage() {
     </>
   );
 }
+
+    
