@@ -43,7 +43,6 @@ import {
   Landmark,
   PiggyBank,
   Heart,
-  CalendarIcon,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import {
@@ -90,12 +89,8 @@ import {
 } from 'firebase/firestore';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
 import { useAppContext } from '@/app/_providers/AppProvider';
+import { ResponsiveCalendar } from '../tasks/_components/ResponsiveCalendar';
 
 const motivationalQuotes = [
     "Tus finanzas son el reflejo de tus hábitos. ¡Constrúyelos sabiamente!",
@@ -607,19 +602,10 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2 relative">
                     <Label>Fecha</Label>
-                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !newTransactionDate && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {newTransactionDate ? format(newTransactionDate, 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}
-                      <Input
-                        type="date"
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        value={newTransactionDate ? format(newTransactionDate, 'yyyy-MM-dd') : ''}
-                        onChange={(e) => {
-                          const date = e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined;
-                          setNewTransactionDate(date);
-                        }}
-                      />
-                    </Button>
+                    <ResponsiveCalendar 
+                        value={newTransactionDate}
+                        onSelect={setNewTransactionDate}
+                    />
                   </div>
                   {newTransactionType === 'expense' && (
                     <div className="space-y-2">
@@ -1176,21 +1162,14 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
                 </Select>
               </div>
                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2 relative">
+                  <div className="space-y-2">
                     <Label>Fecha</Label>
-                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !transactionToEdit.date && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {transactionToEdit.date ? format(new Date(transactionToEdit.date), 'PPP', { locale: es }) : <span>Selecciona una fecha</span>}
-                      <Input
-                        type="date"
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        value={transactionToEdit.date ? format(new Date(transactionToEdit.date), 'yyyy-MM-dd') : ''}
-                        onChange={(e) => {
-                          const date = e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined;
-                          setTransactionToEdit({ ...transactionToEdit, date: date });
-                        }}
-                      />
-                    </Button>
+                    <ResponsiveCalendar
+                      value={transactionToEdit.date}
+                      onSelect={(date) =>
+                        setTransactionToEdit({ ...transactionToEdit, date: date })
+                      }
+                    />
                   </div>
                   {transactionToEdit.type === 'expense' && (
                     <div className="space-y-2">

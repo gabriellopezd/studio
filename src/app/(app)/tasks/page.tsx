@@ -6,7 +6,7 @@ import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, MoreHorizontal, Pencil, Trash2, CalendarIcon, Timer, Check, Play, Square } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Pencil, Trash2, Timer, Check, Play, Square } from 'lucide-react';
 import { addDocumentNonBlocking } from '@/firebase';
 import { collection, doc, query, Timestamp, serverTimestamp, where } from 'firebase/firestore';
 import {
@@ -41,8 +41,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
@@ -57,6 +55,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAppContext } from '@/app/_providers/AppProvider';
+import { ResponsiveCalendar } from './_components/ResponsiveCalendar';
 
 const taskCategories = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro"];
 
@@ -422,34 +421,12 @@ export default function TasksPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="task-due-date">Fecha de Vencimiento</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !taskToEdit.dueDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {taskToEdit.dueDate ? (
-                        format(taskToEdit.dueDate, "PPP", { locale: es })
-                      ) : (
-                        <span>Selecciona una fecha</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={taskToEdit.dueDate}
-                      onSelect={(date) =>
-                        setTaskToEdit({ ...taskToEdit, dueDate: date })
-                      }
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <ResponsiveCalendar
+                  value={taskToEdit.dueDate}
+                  onSelect={(date) =>
+                    setTaskToEdit({ ...taskToEdit, dueDate: date })
+                  }
+                />
               </div>
             </div>
           )}
