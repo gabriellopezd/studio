@@ -157,6 +157,7 @@ export default function FinancesPage() {
   const [newRecurringDay, setNewRecurringDay] = useState('');
   const [newRecurringBudgetFocus, setNewRecurringBudgetFocus] = useState('Necesidades');
   const [motivation, setMotivation] = useState('');
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const { toast } = useToast();
   
@@ -605,6 +606,8 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
                     <ResponsiveCalendar 
                         value={newTransactionDate}
                         onSelect={setNewTransactionDate}
+                        open={isCalendarOpen}
+                        onOpenChange={setIsCalendarOpen}
                     />
                   </div>
                   {newTransactionType === 'expense' && (
@@ -1169,6 +1172,8 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
                       onSelect={(date) =>
                         setTransactionToEdit({ ...transactionToEdit, date: date })
                       }
+                      open={isCalendarOpen}
+                      onOpenChange={setIsCalendarOpen}
                     />
                   </div>
                   {transactionToEdit.type === 'expense' && (

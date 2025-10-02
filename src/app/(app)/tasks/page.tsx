@@ -71,6 +71,7 @@ export default function TasksPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [isClient, setIsClient] = useState(false);
   const [motivation, setMotivation] = useState('');
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const {
     tasks,
@@ -426,6 +427,8 @@ export default function TasksPage() {
                   onSelect={(date) =>
                     setTaskToEdit({ ...taskToEdit, dueDate: date })
                   }
+                  open={isCalendarOpen}
+                  onOpenChange={setIsCalendarOpen}
                 />
               </div>
             </div>

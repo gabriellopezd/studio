@@ -1,6 +1,6 @@
+
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -26,20 +26,23 @@ import { es } from 'date-fns/locale';
 interface ResponsiveCalendarProps {
   value: Date | undefined;
   onSelect: (date: Date | undefined) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   triggerLabel?: string;
 }
 
 export function ResponsiveCalendar({
   value,
   onSelect,
+  open,
+  onOpenChange,
   triggerLabel = 'Selecciona una fecha',
 }: ResponsiveCalendarProps) {
   const isMobile = useIsMobile();
-  const [isOpen, setIsOpen] = useState(false);
 
   const handleSelect = (date: Date | undefined) => {
     onSelect(date);
-    setIsOpen(false); // Close after selection
+    onOpenChange(false); // Close after selection
   };
 
   const TriggerButton = () => (
@@ -57,7 +60,7 @@ export function ResponsiveCalendar({
 
   if (isMobile) {
     return (
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetTrigger asChild>
           <TriggerButton />
         </SheetTrigger>
@@ -84,7 +87,7 @@ export function ResponsiveCalendar({
   }
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <TriggerButton />
       </PopoverTrigger>
@@ -99,3 +102,4 @@ export function ResponsiveCalendar({
     </Popover>
   );
 }
+
