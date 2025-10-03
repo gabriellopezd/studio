@@ -16,6 +16,9 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { moodLevels, feelings, influences } from '@/lib/moods';
 import { useAppContext } from '@/app/_providers/AppProvider';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const motivationalQuotes = [
     "Tus emociones son válidas. Escúchalas.",
@@ -38,6 +41,7 @@ export default function MoodTrackerPage() {
 
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [step, setStep] = useState(1);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   
   const [selectedMood, setSelectedMood] = useState<{ level: number; emoji: string; label: string } | null>(null);
   const [selectedFeelings, setSelectedFeelings] = useState<string[]>([]);
@@ -66,11 +70,27 @@ export default function MoodTrackerPage() {
     setSelectedMood(null);
     setSelectedFeelings([]);
     setSelectedInfluences([]);
+    setSelectedDate(null);
     setDialogOpen(false);
   };
   
-  const handleStartMoodRegistration = () => {
-    resetForm();
+  const handleDayClick = (day: number) => {
+    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+    const existingMood = getMoodForDay(day);
+    
+    setSelectedDate(date);
+    
+    if (existingMood) {
+        setSelectedMood(moodLevels.find(m => m.level === existingMood.moodLevel) || null);
+        setSelectedFeelings(existingMood.feelings || []);
+        setSelectedInfluences(existingMood.influences || []);
+    } else {
+        setSelectedMood(null);
+        setSelectedFeelings([]);
+        setSelectedInfluences([]);
+    }
+
+    setStep(1);
     setDialogOpen(true);
   };
 
@@ -90,13 +110,14 @@ export default function MoodTrackerPage() {
   };
 
   const onSaveMood = async () => {
-    if (!selectedMood) return;
+    if (!selectedMood || !selectedDate) return;
     await handleSaveMood({
       moodLevel: selectedMood.level,
       moodLabel: selectedMood.label,
       emoji: selectedMood.emoji,
       feelings: selectedFeelings,
       influences: selectedInfluences,
+      date: selectedDate,
     });
     resetForm();
   };
@@ -126,7 +147,7 @@ export default function MoodTrackerPage() {
         motivation={motivation}
         imageId="dashboard-header"
       >
-        <Button onClick={handleStartMoodRegistration}>
+        <Button onClick={() => handleDayClick(new Date().getDate())}>
           {todayEntry ? 'Actualizar mi día' : 'Registrar mi día'}
         </Button>
       </PageHeader>
@@ -157,16 +178,23 @@ export default function MoodTrackerPage() {
                             return <div key={`empty-${index}`} />;
                         }
                         const moodEntry = getMoodForDay(day);
+                        const isToday = new Date().getFullYear() === currentMonth.getFullYear() &&
+                                      new Date().getMonth() === currentMonth.getMonth() &&
+                                      new Date().getDate() === day;
                         return (
-                            <div
+                            <button
                                 key={day}
-                                className="flex aspect-square flex-col items-center justify-center rounded-lg border bg-card p-1 text-center"
+                                onClick={() => handleDayClick(day)}
+                                className={cn(
+                                    "flex aspect-square flex-col items-center justify-center rounded-lg border bg-card p-1 text-center transition-colors hover:bg-muted/50",
+                                    isToday && 'border-primary'
+                                )}
                             >
                                 <span className="text-xs md:text-sm text-muted-foreground">{day}</span>
                                 <span className="text-xl md:text-2xl mt-1">
                                     {moodEntry?.emoji || ''}
                                 </span>
-                            </div>
+                            </button>
                         );
                     })}
                 </div>
@@ -227,9 +255,9 @@ export default function MoodTrackerPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-                {step === 1 && '¿Cómo te sientes hoy?'}
-                {step === 2 && '¿Qué características describen mejor lo que sientes?'}
-                {step === 3 && '¿Qué es lo que más está influyendo en tu ánimo?'}
+                {step === 1 && `¿Cómo te sentiste el ${selectedDate ? format(selectedDate, 'd \'de\' LLLL', { locale: es }) : ''}?`}
+                {step === 2 && '¿Qué características describen mejor lo que sentiste?'}
+                {step === 3 && '¿Qué es lo que más influyó en tu ánimo?'}
             </DialogTitle>
           </DialogHeader>
 
@@ -238,7 +266,7 @@ export default function MoodTrackerPage() {
                 {moodLevels.map((mood) => (
                   <Button
                     key={mood.level}
-                    variant="ghost"
+                    variant={selectedMood?.level === mood.level ? 'secondary' : 'ghost'}
                     size="icon"
                     onClick={() => handleMoodSelect(mood)}
                     className="h-24 w-full rounded-lg"

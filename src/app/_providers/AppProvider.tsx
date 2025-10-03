@@ -464,22 +464,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const handleSaveMood = async (moodData: Mood) => {
         if (!user || !firestore) return;
-        const today = new Date();
-        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
-        const fullMoodData = { ...moodData, date: new Date().toISOString(), userId: user.uid };
-        
+    
+        const dateToSave = moodData.date || new Date();
+        // Remove the local 'date' property before saving to Firestore
+        const { date, ...dataToSave } = moodData;
+    
+        const startOfDay = new Date(dateToSave.getFullYear(), dateToSave.getMonth(), dateToSave.getDate());
+        const endOfDay = new Date(dateToSave.getFullYear(), dateToSave.getMonth(), dateToSave.getDate(), 23, 59, 59, 999);
+    
+        const fullMoodData = { ...dataToSave, date: dateToSave.toISOString(), userId: user.uid };
+    
         const q = query(
-            collection(firestore, 'users', user.uid, 'moods'), 
-            where('date', '>=', startOfDay.toISOString()), 
+            collection(firestore, 'users', user.uid, 'moods'),
+            where('date', '>=', startOfDay.toISOString()),
             where('date', '<=', endOfDay.toISOString())
         );
+    
         const snapshot = await getDocs(q);
-
+    
         if (!snapshot.empty) {
+            // Update existing entry for the day
             await updateDocumentNonBlocking(snapshot.docs[0].ref, fullMoodData);
         } else {
-            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'moods'), { ...fullMoodData, createdAt: serverTimestamp() });
+            // Create new entry
+            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'moods'), {
+                ...fullMoodData,
+                createdAt: serverTimestamp(),
+            });
         }
     };
     
@@ -754,7 +765,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const overdue = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() < startOfDay);
         const forToday = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= startOfDay && t.dueDate.toDate() <= endOfDay);
         const forTomorrow = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= tomorrow && t.dueDate.toDate() <= endOfTomorrow);
-        const upcoming = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() > endOfTomorrow && t.dueDate.toDate() <= endOfWeek);
+        const upcoming = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() > endOfDay && t.dueDate.toDate() <= endOfWeek);
 
         const dailyTs = tasks.filter(t => t.dueDate && t.dueDate.toDate() >= startOfDay && t.dueDate.toDate() <= endOfDay);
         const completedDaily = dailyTs.filter(t => t.isCompleted).length;
@@ -770,7 +781,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const total = tasks.length;
         const totalStats = { completed, total, completionRate: total > 0 ? (completed / total) * 100 : 0 };
 
-        const catStats = taskCategories.reduce((acc, category) => {
+        const catStats = (taskCategories || []).reduce((acc, category) => {
             const tasksInCategory = tasks.filter(t => t.category === category.name);
             if (tasksInCategory.length > 0) {
                 const completed = tasksInCategory.filter(t => t.isCompleted).length;
@@ -780,10 +791,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }, {} as Record<string, any>);
 
         const completedWithDueDate = tasks.filter(t => t.isCompleted && t.dueDate && t.completionDate);
-        const onTime = completedWithDueDate.filter(t => t.completionDate.toDate() <= t.dueDate.toDate()).length;
+        const onTime = completedWithDueDate.filter(t => {
+            const completion = t.completionDate.toDate();
+            const due = t.dueDate.toDate();
+            completion.setHours(0,0,0,0);
+            due.setHours(0,0,0,0);
+            return completion <= due;
+        }).length;
+
         const onTimeRate = completedWithDueDate.length > 0 ? (onTime / completedWithDueDate.length) * 100 : 0;
         
-        const completedByCategoryData = taskCategories.map(category => {
+        const completedByCategoryData = (taskCategories || []).map(category => {
             const count = tasks.filter(t => t.isCompleted && t.category === category.name).length;
             return { name: category.name, tareas: count };
         }).filter(c => c.tareas > 0);
@@ -797,8 +815,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             dayEnd.setHours(23, 59, 59, 999);
 
             const dueTasks = tasks.filter(t => t.dueDate && t.dueDate.toDate() >= dayStart && t.dueDate.toDate() <= dayEnd);
-            const completedOnDay = dueTasks.filter(t => t.isCompleted).length;
-            const pendingOnDay = dueTasks.length - completedOnDay;
+            const completedOnDay = tasks.filter(t => t.isCompleted && t.completionDate && t.completionDate.toDate() >= dayStart && t.completionDate.toDate() <= dayEnd).length;
+            const pendingOnDay = dueTasks.filter(t => !t.isCompleted).length;
 
             return { name, completadas: completedOnDay, pendientes: pendingOnDay };
         });

@@ -28,6 +28,7 @@ export interface Mood {
     emoji: string;
     feelings: string[];
     influences: string[];
+    date?: Date;
 }
 
 export interface ActiveSession {
