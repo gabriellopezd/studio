@@ -59,7 +59,7 @@ type Action =
     | { type: 'SET_ACTIVE_SESSION'; payload: ActiveSession | null }
     | { type: 'SET_ELAPSED_TIME'; payload: number };
 
-const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'handlePayRecurringItem' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'routineCompletionAnalytics' |'totalStats' | 'categoryStats' | 'taskTimeAnalytics' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'tasksForTomorrow' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress' | 'onTimeCompletionRate' | 'dailyCompletionStats' | 'completedTasksByCategory' | 'taskCategories' | 'taskCategoriesLoading'> = {
+const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'handlePayRecurringItem' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'routineCompletionAnalytics' |'totalStats' | 'categoryStats' | 'taskTimeAnalytics' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'tasksForTomorrow' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress' | 'onTimeCompletionRate' | 'dailyCompletionStats' | 'completedTasksByCategory' | 'taskCategories' | 'taskCategoriesLoading' | 'feelings' | 'feelingsLoading' | 'influences' | 'influencesLoading'> = {
     allHabits: null,
     routines: null,
     tasks: null,
@@ -193,6 +193,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [user, firestore]);
     const { data: recurringIncomes, isLoading: recurringIncomesLoading } = useCollection(recurringIncomesQuery);
 
+    const feelingsQuery = useMemo(() => {
+        if (!user || !firestore) return null;
+        return collection(firestore, 'users', user.uid, 'feelings');
+    }, [user, firestore]);
+    const { data: feelings, isLoading: feelingsLoading } = useCollection(feelingsQuery);
+    
+    const influencesQuery = useMemo(() => {
+        if (!user || !firestore) return null;
+        return collection(firestore, 'users', user.uid, 'influences');
+    }, [user, firestore]);
+    const { data: influences, isLoading: influencesLoading } = useCollection(influencesQuery);
 
     const urgentTasksQuery = useMemo(() => {
         if (!user || !firestore) return null;
@@ -856,14 +867,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { feelingStats, influenceStats, todayMood } = useMemo(() => {
         const moodSource = moods ?? [];
 
-        const feelings = moodSource.flatMap(m => m.feelings).reduce((acc, f) => { acc[f] = (acc[f] || 0) + 1; return acc; }, {} as Record<string, number>);
-        const influences = moodSource.flatMap(m => m.influences).reduce((acc, i) => { acc[i] = (acc[i] || 0) + 1; return acc; }, {} as Record<string, number>);
+        const feelingsCount = moodSource.flatMap(m => m.feelings).reduce((acc, f) => { acc[f] = (acc[f] || 0) + 1; return acc; }, {} as Record<string, number>);
+        const influencesCount = moodSource.flatMap(m => m.influences).reduce((acc, i) => { acc[i] = (acc[i] || 0) + 1; return acc; }, {} as Record<string, number>);
         
         const today = todayMoodData?.[0] || null;
 
         return {
-            feelingStats: (Object.entries(feelings) as [string, number][]).sort((a, b) => b[1] - a[1]).slice(0, 5),
-            influenceStats: (Object.entries(influences) as [string, number][]).sort((a, b) => b[1] - a[1]).slice(0, 5),
+            feelingStats: (Object.entries(feelingsCount) as [string, number][]).sort((a, b) => b[1] - a[1]).slice(0, 5),
+            influenceStats: (Object.entries(influencesCount) as [string, number][]).sort((a, b) => b[1] - a[1]).slice(0, 5),
             todayMood: today,
         };
     }, [moods, todayMoodData]);
@@ -1022,6 +1033,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         dispatch({ type: 'SET_DATA', payload: { key: 'moods', data: moods, loading: moodsLoading } });
     }, [moods, moodsLoading]);
 
+     useEffect(() => {
+        dispatch({ type: 'SET_DATA', payload: { key: 'feelings', data: feelings, loading: feelingsLoading } });
+    }, [feelings, feelingsLoading]);
+
+    useEffect(() => {
+        dispatch({ type: 'SET_DATA', payload: { key: 'influences', data: influences, loading: influencesLoading } });
+    }, [influences, influencesLoading]);
     
     useEffect(() => {
         dispatch({ type: 'SET_DATA', payload: { key: 'urgentTasks', data: urgentTasks, loading: urgentTasksLoading } });
@@ -1043,6 +1061,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         goalsLoading,
         moods: moods ?? [],
         moodsLoading,
+        feelings: feelings ?? [],
+        feelingsLoading,
+        influences: influences ?? [],
+        influencesLoading,
         transactions: transactions ?? [],
         transactionsLoading,
         budgets,

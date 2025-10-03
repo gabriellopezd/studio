@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -142,8 +141,8 @@ export default function MoodTrackerPage() {
   
   const todayEntry = moods?.find(m => new Date(m.date).toDateString() === new Date().toDateString());
 
-  const activeFeelings = useMemo(() => feelings.filter(f => f.isActive), [feelings]);
-  const activeInfluences = useMemo(() => influences.filter(i => i.isActive), [influences]);
+  const activeFeelings = useMemo(() => (feelings || []).filter(f => f.isActive), [feelings]);
+  const activeInfluences = useMemo(() => (influences || []).filter(i => i.isActive), [influences]);
 
   return (
     <>
@@ -175,8 +174,8 @@ export default function MoodTrackerPage() {
                     <Button variant="outline" size="icon" onClick={() => changeMonth(-1)}>
                     <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    <h2 className="text-center font-bold text-lg">
-                    {currentMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+                    <h2 className="text-center font-bold text-lg capitalize">
+                        {currentMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
                     </h2>
                     <Button variant="outline" size="icon" onClick={() => changeMonth(1)}>
                     <ChevronRight className="h-4 w-4" />
@@ -270,7 +269,7 @@ export default function MoodTrackerPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-                {step === 1 && `¿Cómo te sentiste el ${selectedDate ? format(selectedDate, 'd \'de\' LLLL', { locale: es }) : ''}?`}
+                {step === 1 && `¿Cómo te sentiste el ${selectedDate ? format(selectedDate, 'd \\'de\\' LLLL', { locale: es }) : ''}?`}
                 {step === 2 && '¿Qué características describen mejor lo que sentiste?'}
                 {step === 3 && '¿Qué es lo que más influyó en tu ánimo?'}
             </DialogTitle>

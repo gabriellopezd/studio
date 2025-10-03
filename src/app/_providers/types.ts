@@ -50,6 +50,8 @@ export interface AppState {
     taskCategories: any[] | null;
     goals: any[] | null;
     moods: any[] | null;
+    feelings: any[] | null;
+    influences: any[] | null;
     transactions: any[] | null;
     budgets: any[] | null;
     shoppingLists: any[] | null;
@@ -65,6 +67,8 @@ export interface AppState {
     taskCategoriesLoading: boolean;
     goalsLoading: boolean;
     moodsLoading: boolean;
+    feelingsLoading: boolean;
+    influencesLoading: boolean;
     transactionsLoading: boolean;
     budgetsLoading: boolean;
     shoppingListsLoading: boolean;
