@@ -125,11 +125,15 @@ const motivationalQuotes = [
     "Cada peso que no gastas es un peso que trabaja para ti."
 ];
 
+const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+const months = Array.from({ length: 12 }, (_, i) => ({ value: i, label: new Date(0, i).toLocaleString('es-ES', { month: 'long' }) }));
+
 export default function FinancialPlanningPage() {
   const { 
     firestore, 
     user,
     currentMonth,
+    setCurrentMonth,
     shoppingLists,
     shoppingListsLoading,
     budgets,
@@ -512,6 +516,24 @@ export default function FinancialPlanningPage() {
         motivation={motivation}
         imageId="expenses-header"
       >
+        <div className='flex items-center gap-2'>
+            <Select value={String(currentMonth.getFullYear())} onValueChange={(value) => setCurrentMonth(new Date(Number(value), currentMonth.getMonth()))}>
+                <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="Año" />
+                </SelectTrigger>
+                <SelectContent>
+                    {years.map(year => <SelectItem key={year} value={String(year)}>{year}</SelectItem>)}
+                </SelectContent>
+            </Select>
+            <Select value={String(currentMonth.getMonth())} onValueChange={(value) => setCurrentMonth(new Date(currentMonth.getFullYear(), Number(value)))}>
+                <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Mes" />
+                </SelectTrigger>
+                <SelectContent>
+                    {months.map(month => <SelectItem key={month.value} value={String(month.value)}>{month.label}</SelectItem>)}
+                </SelectContent>
+            </Select>
+        </div>
       </PageHeader>
         
         <Tabs defaultValue="variable">
