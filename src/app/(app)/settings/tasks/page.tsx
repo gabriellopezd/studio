@@ -8,6 +8,7 @@ import {
   Card,
   CardHeader,
   CardTitle,
+  CardDescription
 } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { useAppContext } from '@/app/_providers/AppProvider';
@@ -50,22 +51,19 @@ import {
 } from '@/components/ui/select';
 
 export default function TaskSettingsPage() {
-  const { firestore, user, taskCategories, taskCategoriesLoading } = useAppContext();
+  const { firestore, user, taskCategories, taskCategoriesLoading, handleDeleteTaskCategory } = useAppContext();
   const { toast } = useToast();
 
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [categoryToEdit, setCategoryToEdit] = useState<any | null>(null);
 
   const [categoryName, setCategoryName] = useState('');
-  const [budgetFocus, setBudgetFocus] = useState('Deseos');
 
   useEffect(() => {
     if (categoryToEdit) {
       setCategoryName(categoryToEdit.name);
-      setBudgetFocus(categoryToEdit.budgetFocus || 'Deseos');
     } else {
       setCategoryName('');
-      setBudgetFocus('Deseos');
     }
   }, [categoryToEdit]);
 
@@ -125,7 +123,6 @@ export default function TaskSettingsPage() {
       name: trimmedName,
       isActive: true,
       userId: user.uid,
-      budgetFocus: budgetFocus,
     });
   };
 
@@ -149,7 +146,7 @@ export default function TaskSettingsPage() {
     const batch = writeBatch(firestore);
     const categoryRef = doc(firestore, 'users', user.uid, 'taskCategories', categoryToEdit.id);
     
-    batch.update(categoryRef, { name: trimmedName, budgetFocus });
+    batch.update(categoryRef, { name: trimmedName });
 
     // If name changed, update all tasks with the old category name
     if (originalName !== trimmedName) {
@@ -170,35 +167,6 @@ export default function TaskSettingsPage() {
     }
   }
 
-
-  const handleDeleteCategory = async (categoryId: string, categoryName: string) => {
-    if (!user || !firestore) return;
-    
-    const batch = writeBatch(firestore);
-
-    // 1. Reassign tasks from the deleted category to "Otro"
-    const tasksQuery = query(
-        collection(firestore, 'users', user.uid, 'tasks'),
-        where('category', '==', categoryName)
-    );
-    const tasksSnapshot = await getDocs(tasksQuery);
-    tasksSnapshot.forEach(taskDoc => {
-        const taskRef = doc(firestore, 'users', user.uid, 'tasks', taskDoc.id);
-        batch.update(taskRef, { category: "Otro" });
-    });
-
-    // 2. Delete the category itself
-    const categoryRef = doc(firestore, 'users', user.uid, 'taskCategories', categoryId);
-    batch.delete(categoryRef);
-
-    try {
-        await batch.commit();
-        toast({ title: "Categoría eliminada", description: `Las tareas asociadas se movieron a "Otro".` });
-    } catch(error) {
-        console.error("Error deleting category:", error);
-        toast({ variant: 'destructive', title: 'Error', description: "No se pudo eliminar la categoría." });
-    }
-  };
 
   const sortedCategories = useMemo(() => {
     if (!taskCategories) return [];
@@ -227,6 +195,17 @@ export default function TaskSettingsPage() {
       </PageHeader>
 
       {taskCategoriesLoading && <p>Cargando categorías...</p>}
+      
+      {!taskCategoriesLoading && sortedCategories.length === 0 && (
+         <Card className="mt-4 flex flex-col items-center justify-center p-10 text-center">
+            <CardHeader>
+                <CardTitle className="mt-4">No hay categorías</CardTitle>
+                <CardDescription>
+                    Crea tu primera categoría para empezar a organizar tus tareas.
+                </CardDescription>
+            </CardHeader>
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {sortedCategories.map((cat: any) => (
@@ -262,7 +241,7 @@ export default function TaskSettingsPage() {
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
                             <AlertDialogAction
-                            onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                            onClick={() => handleDeleteTaskCategory(cat.id, cat.name)}
                             className="bg-destructive hover:bg-destructive/90"
                             >
                             Eliminar
@@ -293,19 +272,6 @@ export default function TaskSettingsPage() {
                         placeholder="Ej: Universidad, Trabajo Secundario..."
                         />
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="budgetFocus">Enfoque Presupuesto</Label>
-                        <Select value={budgetFocus} onValueChange={setBudgetFocus}>
-                            <SelectTrigger id="budgetFocus">
-                                <SelectValue placeholder="Selecciona un enfoque" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Necesidades">Necesidades</SelectItem>
-                                <SelectItem value="Deseos">Deseos</SelectItem>
-                                <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
                 </div>
                 <DialogFooter>
                  <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
@@ -323,3 +289,5 @@ export default function TaskSettingsPage() {
     </div>
   );
 }
+
+    

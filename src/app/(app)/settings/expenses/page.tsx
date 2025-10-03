@@ -32,7 +32,7 @@ export default function ExpenseSettingsPage() {
       <PageHeader
         title="Categorías de Compra"
         description="Activa o desactiva las categorías para usarlas como listas de compra."
-        imageId="dashboard-header"
+        imageId="settings-sub-header"
       >
         <Button variant="outline" asChild>
           <Link href="/settings">
@@ -43,6 +43,17 @@ export default function ExpenseSettingsPage() {
       </PageHeader>
       
       {shoppingListsLoading && <p>Cargando configuración...</p>}
+
+       {!shoppingListsLoading && sortedLists.length === 0 && (
+         <Card className="mt-4 flex flex-col items-center justify-center p-10 text-center">
+            <CardHeader>
+                <CardTitle className="mt-4">No hay categorías de compra</CardTitle>
+                <CardDescription>
+                    Crea una categoría desde la página de Listas de Compra para empezar.
+                </CardDescription>
+            </CardHeader>
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {sortedLists.map((list: any) => (
@@ -65,3 +76,5 @@ export default function ExpenseSettingsPage() {
     </div>
   );
 }
+
+    

@@ -24,7 +24,6 @@ async function initializeDefaultTaskCategories(user: User, firestore: any, batch
                 name: categoryName,
                 isActive: true,
                 userId: user.uid,
-                budgetFocus: 'Deseos',
             });
         }
     });
@@ -83,3 +82,5 @@ export const handleUserLogin = async (user: User, firestore: any, displayName?: 
 
     await batch.commit();
 };
+
+    
