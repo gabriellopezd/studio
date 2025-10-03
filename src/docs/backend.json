@@ -407,36 +407,6 @@
         "emoji"
       ]
     },
-    "Feeling": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Feeling",
-      "type": "object",
-      "description": "Represents a user-defined feeling for mood tracking.",
-      "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "name": { "type": "string" },
-        "type": { "type": "string", "enum": ["Positivo Alta Energía", "Positivo Baja Energía", "Negativo Alta Energía", "Negativo Baja Energía"] },
-        "icon": { "type": "string" },
-        "isActive": { "type": "boolean" }
-      },
-      "required": ["id", "userId", "name", "type", "icon", "isActive"]
-    },
-    "Influence": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Influence",
-      "type": "object",
-      "description": "Represents a user-defined influence for mood tracking.",
-      "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "name": { "type": "string" },
-        "category": { "type": "string", "enum": ["Relaciones", "Trabajo y Crecimiento", "Bienestar", "Entorno y Ocio", "Interno"] },
-        "icon": { "type": "string" },
-        "isActive": { "type": "boolean" }
-      },
-      "required": ["id", "userId", "name", "category", "icon", "isActive"]
-    },
     "Transaction": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Transaction",
@@ -491,7 +461,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Budget",
       "type": "object",
-      "description": "Represents a budget for a specific category for a given month and year.",
+      "description": "Represents a budget for a specific category.",
       "properties": {
         "id": {
           "type": "string",
@@ -512,14 +482,6 @@
         "currentSpend": {
           "type": "number",
           "description": "Current amount spent in the budget category."
-        },
-        "year": {
-            "type": "number",
-            "description": "The year this budget applies to."
-        },
-        "month": {
-            "type": "number",
-            "description": "The month this budget applies to (1-12)."
         }
       },
       "required": [
@@ -527,9 +489,7 @@
         "userId",
         "categoryName",
         "monthlyLimit",
-        "currentSpend",
-        "year",
-        "month"
+        "currentSpend"
       ]
     },
     "ShoppingList": {
@@ -832,22 +792,6 @@
         }
       },
       {
-        "path": "/users/{userId}/feelings/{feelingId}",
-        "definition": {
-          "entityName": "Feeling",
-          "schema": { "$ref": "#/backend/entities/Feeling" },
-          "description": "A user-defined feeling for mood tracking."
-        }
-      },
-      {
-        "path": "/users/{userId}/influences/{influenceId}",
-        "definition": {
-          "entityName": "Influence",
-          "schema": { "$ref": "#/backend/entities/Influence" },
-          "description": "A user-defined influence for mood tracking."
-        }
-      },
-      {
         "path": "/users/{userId}/transactions/{transactionId}",
         "definition": {
           "entityName": "Transaction",
@@ -860,7 +804,7 @@
         "definition": {
           "entityName": "Budget",
           "schema": { "$ref": "#/backend/entities/Budget" },
-          "description": "A single budget document owned by a user for a specific month and year. To access a single document, the client MUST use a direct reference."
+          "description": "A single budget document owned by a user. To access a single document, the client MUST use a direct reference."
         }
       },
       {
