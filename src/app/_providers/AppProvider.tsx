@@ -1392,8 +1392,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const paidRecurringExpenses = allRecurringExpensesData.filter((e: any) => e.lastInstanceCreated === currentMonthYear);
         const pendingRecurringIncomes = allRecurringIncomesData.filter((i: any) => i.lastInstanceCreated !== currentMonthYear);
         const receivedRecurringIncomes = allRecurringIncomesData.filter((i: any) => i.lastInstanceCreated === currentMonthYear);
-        const pendingExpensesTotal = pendingRecurringExpenses.reduce((s: number, e: any) => s + e.amount, 0);
+        const pendingExpensesFromRecurring = pendingRecurringExpenses.reduce((s: number, e: any) => s + e.amount, 0);
         const pendingIncomesTotal = pendingRecurringIncomes.reduce((s: number, i: any) => s + i.amount, 0);
+
+        const pendingShoppingListExpenses = allShoppingListsData.reduce((total: number, list: any) => {
+            const listTotal = (list.items || [])
+                .filter((item: any) => !item.isPurchased)
+                .reduce((sum: number, item: any) => sum + (item.amount || 0), 0);
+            return total + listTotal;
+        }, 0);
+
+        const pendingExpensesTotal = pendingExpensesFromRecurring + pendingShoppingListExpenses;
         
         const balance = (monthlyIncome + pendingIncomesTotal) - (monthlyExpenses + pendingExpensesTotal);
 
