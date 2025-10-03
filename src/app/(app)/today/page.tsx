@@ -36,6 +36,7 @@ import { useAppContext } from '@/app/_providers/AppProvider';
 import { TodaysMoodCard } from './_components/TodaysMoodCard';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { formatCurrency } from '@/lib/utils';
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
 
@@ -93,6 +94,7 @@ export default function TodayPage() {
   const { 
     allHabits, 
     habitsLoading, 
+    overdueTasks,
     todayTasks,
     tasksForTomorrow,
     tasksLoading, 
@@ -146,7 +148,7 @@ export default function TodayPage() {
         motivation={motivation}
         imageId="dashboard-header"
       />
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 flex flex-col gap-6">
             <Card>
                 <CardHeader>
@@ -221,69 +223,73 @@ export default function TodayPage() {
                     )}
                 </CardContent>
             </Card>
+
+            <Card>
+                <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <ListTodo className="size-5" />
+                    <span>Foco en Tareas</span>
+                </CardTitle>
+                <CardDescription>Tus tareas más urgentes.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {tasksLoading && <p>Cargando tareas...</p>}
+                    {!tasksLoading && todayTasks.length === 0 && tasksForTomorrow.length === 0 && overdueTasks.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-4">No tienes tareas urgentes.</p>
+                    )}
+                    <div className="space-y-4">
+                        {overdueTasks.length > 0 && (
+                            <div>
+                                <h3 className="font-semibold text-sm flex items-center gap-2 mb-2 text-destructive"><AlertTriangle className="size-4"/>Vencidas</h3>
+                                <div className="space-y-1"><Separator className="-mt-1"/>{overdueTasks.map(task => <TaskListItem key={task.id} task={task} onToggle={handleToggleTask} onStartSession={startSession} onStopSession={stopSession} activeSession={activeSession}/>)}</div>
+                            </div>
+                        )}
+                        {todayTasks.length > 0 && (
+                            <div>
+                                <h3 className="font-semibold text-sm flex items-center gap-2 mb-2"><CalendarClock className="size-4"/>Para Hoy</h3>
+                                <div className="space-y-1"><Separator className="-mt-1"/>{todayTasks.map(task => <TaskListItem key={task.id} task={task} onToggle={handleToggleTask} onStartSession={startSession} onStopSession={stopSession} activeSession={activeSession}/>)}</div>
+                            </div>
+                        )}
+                        {tasksForTomorrow.length > 0 && (
+                            <div>
+                                <h3 className="font-semibold text-sm flex items-center gap-2 mb-2"><CalendarDays className="size-4"/>Para Mañana</h3>
+                            <div className="space-y-1"><Separator className="-mt-1"/>{tasksForTomorrow.map(task => <TaskListItem key={task.id} task={task} onToggle={handleToggleTask} onStartSession={startSession} onStopSession={stopSession} activeSession={activeSession}/>)}</div>
+                            </div>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
         </div>
 
         <div className="lg:col-span-1 flex flex-col gap-6">
            <TodaysMoodCard />
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ListTodo className="size-5" />
-                <span>Foco en Tareas</span>
-              </CardTitle>
-              <CardDescription>Tus tareas más urgentes.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                {tasksLoading && <p>Cargando tareas...</p>}
-                {!tasksLoading && todayTasks.length === 0 && tasksForTomorrow.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-4">No tienes tareas para hoy o mañana.</p>
-                )}
-                 <div className="space-y-4">
-                     {todayTasks.length > 0 && (
-                        <div>
-                            <h3 className="font-semibold text-sm flex items-center gap-2 mb-2"><CalendarClock className="size-4"/>Para Hoy</h3>
-                            <div className="space-y-1"><Separator className="-mt-1"/>{todayTasks.map(task => <TaskListItem key={task.id} task={task} onToggle={handleToggleTask} onStartSession={startSession} onStopSession={stopSession} activeSession={activeSession}/>)}</div>
-                        </div>
+           <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <CreditCard className="size-5"/>
+                        Pagos Recurrentes Pendientes
+                    </CardTitle>
+                    <CardDescription>Gastos fijos de este mes que aún no has registrado.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {tasksLoading && <p>Cargando pagos...</p>}
+                    {!tasksLoading && pendingRecurringExpenses.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">No tienes pagos fijos pendientes este mes.</p>
+                    ) : (
+                        <ul className="space-y-3">
+                        {pendingRecurringExpenses.map(payment => (
+                            <li key={payment.id} className="flex justify-between items-center rounded-lg border p-3">
+                                <div>
+                                    <p className="font-medium">{payment.name}</p>
+                                    <p className="text-sm text-muted-foreground">{formatCurrency(payment.amount)}</p>
+                                </div>
+                                <Button size="sm" onClick={() => handlePayRecurringItem(payment, 'expense')}><CheckCircle className="mr-2 h-4 w-4"/>Pagar</Button>
+                            </li>
+                        ))}
+                        </ul>
                     )}
-                     {tasksForTomorrow.length > 0 && (
-                        <div>
-                            <h3 className="font-semibold text-sm flex items-center gap-2 mb-2"><CalendarDays className="size-4"/>Para Mañana</h3>
-                           <div className="space-y-1"><Separator className="-mt-1"/>{tasksForTomorrow.map(task => <TaskListItem key={task.id} task={task} onToggle={handleToggleTask} onStartSession={startSession} onStopSession={stopSession} activeSession={activeSession}/>)}</div>
-                        </div>
-                    )}
-                </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <CreditCard className="size-5"/>
-                    Pagos Recurrentes Pendientes
-                </CardTitle>
-                 <CardDescription>Gastos fijos de este mes que aún no has registrado.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                {tasksLoading && <p>Cargando pagos...</p>}
-                {!tasksLoading && pendingRecurringExpenses.length === 0 && (
-                     <p className="text-sm text-muted-foreground text-center py-4">No tienes pagos fijos pendientes este mes.</p>
-                )}
-                 {pendingRecurringExpenses.length > 0 && (
-                    <ul className="space-y-3">
-                       {pendingRecurringExpenses.map(payment => (
-                        <li key={payment.id} className="flex justify-between items-center rounded-lg border p-3">
-                            <div>
-                                <p className="font-medium">{payment.name}</p>
-                                <p className="text-sm text-muted-foreground">Día de pago: {payment.dayOfMonth}</p>
-                            </div>
-                            <Button size="sm" onClick={() => handlePayRecurringItem(payment, 'expense')}><CheckCircle className="mr-2 h-4 w-4"/>Pagar</Button>
-                        </li>
-                       ))}
-                    </ul>
-                 )}
-            </CardContent>
-          </Card>
+                </CardContent>
+            </Card>
         </div>
       </div>
     </div>
