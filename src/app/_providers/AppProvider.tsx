@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import React, { useReducer, useEffect, useMemo, useState } from 'react';
 import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc, limit } from 'firebase/firestore';
 import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking, type FirebaseServicesAndUser } from '@/firebase';
 import { AppState, Habit, Task, Mood, ActiveSession } from './types';
@@ -13,43 +13,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { PresetHabits } from '@/lib/preset-habits';
 import { PRESET_EXPENSE_CATEGORIES } from '@/lib/transaction-categories';
-
-// Create the context with a default undefined value
-export const AppContext = createContext<AppState | undefined>(undefined);
-
-// Create a custom hook for using the context
-export const useAppContext = () => {
-    const context = useContext(AppContext);
-    if (context === undefined) {
-        throw new Error('useAppContext must be used within an AppProvider');
-    }
-    return context;
-};
-
-function TimerDisplay({ activeSession, elapsedTime, stopSession }: { activeSession: ActiveSession | null, elapsedTime: number, stopSession: () => void }) {
-    const formatTime = (totalSeconds: number) => {
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-    };
-    
-    if (!activeSession) return null;
-
-    return (
-        <div className="fixed bottom-4 right-4 z-50">
-            <div className="flex items-center gap-4 rounded-lg bg-primary p-4 text-primary-foreground shadow-lg">
-                <Timer className="h-6 w-6 animate-pulse" />
-                <div className="flex-1">
-                    <p className="text-sm font-medium">{activeSession.name}</p>
-                    <p className="font-mono text-lg font-bold">{formatTime(elapsedTime)}</p>
-                </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/80" onClick={stopSession}>
-                    <X className="h-5 w-5" />
-                </Button>
-            </div>
-        </div>
-    );
-}
+import { AppContext } from './AppContext';
 
 // --- Reducer Logic ---
 
@@ -59,12 +23,15 @@ type Action =
     | { type: 'SET_ACTIVE_SESSION'; payload: ActiveSession | null }
     | { type: 'SET_ELAPSED_TIME'; payload: number };
 
-const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'handlePayRecurringItem' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'routineCompletionAnalytics' |'totalStats' | 'categoryStats' | 'taskTimeAnalytics' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'tasksForTomorrow' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress' | 'onTimeCompletionRate' | 'dailyCompletionStats' | 'completedTasksByCategory' | 'taskCategories' | 'taskCategoriesLoading' | 'feelings' | 'feelingsLoading' | 'influences' | 'influencesLoading'> = {
+const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask'| 'handleDeleteTaskCategory' | 'handleSaveMood' | 'handlePayRecurringItem' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'routineCompletionAnalytics' |'totalStats' | 'categoryStats' | 'taskTimeAnalytics' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'tasksForTomorrow' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress' | 'onTimeCompletionRate' | 'dailyCompletionStats' | 'completedTasksByCategory'> = {
     allHabits: null,
     routines: null,
     tasks: null,
+    taskCategories: null,
     goals: null,
     moods: null,
+    feelings: null,
+    influences: null,
     transactions: null,
     budgets: null,
     shoppingLists: null,
@@ -74,8 +41,11 @@ const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggle
     habitsLoading: true,
     routinesLoading: true,
     tasksLoading: true,
+    taskCategoriesLoading: true,
     goalsLoading: true,
     moodsLoading: true,
+    feelingsLoading: true,
+    influencesLoading: true,
     transactionsLoading: true,
     budgetsLoading: true,
     shoppingListsLoading: true,
@@ -104,6 +74,32 @@ function appReducer(state: typeof initialState, action: Action) {
         default:
             return state;
     }
+}
+
+
+function TimerDisplay({ activeSession, elapsedTime, stopSession }: { activeSession: ActiveSession | null, elapsedTime: number, stopSession: () => void }) {
+    const formatTime = (totalSeconds: number) => {
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    };
+    
+    if (!activeSession) return null;
+
+    return (
+        <div className="fixed bottom-4 right-4 z-50">
+            <div className="flex items-center gap-4 rounded-lg bg-primary p-4 text-primary-foreground shadow-lg">
+                <Timer className="h-6 w-6 animate-pulse" />
+                <div className="flex-1">
+                    <p className="text-sm font-medium">{activeSession.name}</p>
+                    <p className="font-mono text-lg font-bold">{formatTime(elapsedTime)}</p>
+                </div>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/80" onClick={stopSession}>
+                    <X className="h-5 w-5" />
+                </Button>
+            </div>
+        </div>
+    );
 }
 
 const getStartOfWeek = (date: Date) => {
@@ -472,6 +468,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (!user || !firestore) return;
         await deleteDocumentNonBlocking(doc(firestore, 'users', user.uid, 'tasks', taskId));
     };
+
+    const handleDeleteTaskCategory = async (categoryId: string, categoryName: string) => {
+        if (!user || !firestore) return;
+    
+        const batch = writeBatch(firestore);
+    
+        // 1. Get all tasks with the category to be deleted
+        const tasksToUpdateQuery = query(
+          collection(firestore, 'users', user.uid, 'tasks'),
+          where('category', '==', categoryName)
+        );
+        const tasksSnapshot = await getDocs(tasksToUpdateQuery);
+    
+        // 2. Update their category to "Otro"
+        tasksSnapshot.forEach(taskDoc => {
+          const taskRef = doc(firestore, 'users', user.uid, 'tasks', taskDoc.id);
+          batch.update(taskRef, { category: 'Otro' });
+        });
+    
+        // 3. Delete the category itself
+        const categoryRef = doc(firestore, 'users', user.uid, 'taskCategories', categoryId);
+        batch.delete(categoryRef);
+    
+        try {
+          await batch.commit();
+          toast({
+            title: 'Categoría Eliminada',
+            description: `Las tareas de "${categoryName}" se han movido a "Otro".`,
+          });
+        } catch (error) {
+          console.error("Error deleting category and updating tasks:", error);
+          toast({
+            variant: 'destructive',
+            title: 'Error al eliminar',
+            description: 'No se pudo eliminar la categoría.',
+          });
+        }
+      };
+      
 
     const handleSaveMood = async (moodData: Mood) => {
         if (!user || !firestore) return;
@@ -1145,6 +1180,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         handleToggleTask,
         handleSaveTask,
         handleDeleteTask,
+        handleDeleteTaskCategory,
         handleSaveMood,
         handlePayRecurringItem,
         setCurrentMonth,
