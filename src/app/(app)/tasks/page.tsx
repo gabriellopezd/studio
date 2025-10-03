@@ -79,6 +79,8 @@ export default function TasksPage() {
     totalStats,
     categoryStats,
     weeklyTaskStats,
+    taskTimeAnalytics,
+    analyticsLoading,
     handleToggleTask,
     handleSaveTask,
     handleDeleteTask,
@@ -352,8 +354,8 @@ export default function TasksPage() {
             ))}
         </div>
         
-        <div className="grid grid-cols-1 gap-6">
-          {isClient ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {isClient && weeklyTaskStats.length > 0 && (
             <Card>
                 <CardHeader>
                     <CardTitle>Tareas de la Semana</CardTitle>
@@ -371,7 +373,29 @@ export default function TasksPage() {
                     </ResponsiveContainer>
                 </CardContent>
             </Card>
-          ) : (
+          )}
+
+           {isClient && taskTimeAnalytics.length > 0 && (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Tiempo de Enfoque por Categoría</CardTitle>
+                    <CardDescription>Minutos totales registrados en cada categoría de tarea.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={taskTimeAnalytics} layout="vertical" margin={{ left: 20, right: 30 }}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis type="number" unit=" min" />
+                            <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
+                            <Tooltip formatter={(value) => `${value} min`} />
+                            <Bar dataKey="minutos" name="Minutos" fill="hsl(var(--accent))" />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </CardContent>
+            </Card>
+          )}
+
+          {!isClient && (
             <Card>
               <CardHeader>
                 <CardTitle>Tareas de la Semana</CardTitle>

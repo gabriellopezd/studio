@@ -96,6 +96,7 @@ export interface AppState {
     totalStats: { completed: number; total: number; completionRate: number; };
     categoryStats: Record<string, { completed: number; total: number; completionRate: number; }>;
     weeklyTaskStats: { name: string; tasks: number; }[];
+    taskTimeAnalytics: { name: string; minutos: number; }[];
     
     // Task-related selectors for dashboard
     overdueTasks: any[];
