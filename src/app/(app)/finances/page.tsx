@@ -37,12 +37,9 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
-  CheckCircle,
-  Undo2,
   Landmark,
   PiggyBank,
   Heart,
-  AreaChart,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import {
@@ -99,10 +96,6 @@ export default function FinancesPage() {
     monthlyExpenses,
     balance,
     budget503020,
-    pendingRecurringExpenses,
-    paidRecurringExpenses,
-    pendingRecurringIncomes,
-    receivedRecurringIncomes,
     pendingExpensesTotal,
     pendingIncomesTotal,
     expenseCategories,
@@ -112,8 +105,6 @@ export default function FinancesPage() {
     annualCategorySpending,
     monthlySummaryData,
     annualTransactionsLoading,
-    handlePayRecurringItem,
-    handleRevertRecurringItem,
     handleSaveTransaction,
     handleDeleteTransaction,
     handleSaveBudget,
@@ -164,9 +155,8 @@ export default function FinancesPage() {
         </PageHeader>
         
         <Tabs defaultValue="monthly">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="monthly">Resumen Mensual</TabsTrigger>
-            <TabsTrigger value="recurring">Seguimiento de Pagos Fijos</TabsTrigger>
             <TabsTrigger value="annual">Análisis Anual</TabsTrigger>
           </TabsList>
           
@@ -384,87 +374,6 @@ export default function FinancesPage() {
                 </div>
           </TabsContent>
 
-          <TabsContent value="recurring" className="mt-6">
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                <div className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Ingresos Pendientes</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            {pendingRecurringIncomes.length > 0 ? pendingRecurringIncomes.map(income => (
-                                <div key={income.id} className="flex items-center justify-between rounded-lg border bg-card p-3 shadow-sm">
-                                    <div>
-                                        <p className="font-semibold">{income.name}</p>
-                                        <p className="text-sm text-muted-foreground">{formatCurrency(income.amount)}</p>
-                                    </div>
-                                    <Button onClick={() => handlePayRecurringItem(income, 'income')}><CheckCircle className="mr-2 h-4 w-4" />Recibir</Button>
-                                </div>
-                            )) : (
-                                !annualTransactionsLoading && <p className="text-sm text-center text-muted-foreground">No tienes ingresos pendientes este mes.</p>
-                            )}
-                        </CardContent>
-                    </Card>
-                    
-                    <Card>
-                        <CardHeader><CardTitle>Ingresos Recibidos</CardTitle></CardHeader>
-                        <CardContent className="space-y-3">
-                            {receivedRecurringIncomes.length > 0 ? receivedRecurringIncomes.map(income => (
-                                <div key={income.id} className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
-                                     <div>
-                                        <p className="font-semibold text-muted-foreground line-through">{income.name}</p>
-                                        <p className="text-sm text-muted-foreground">{formatCurrency(income.amount)}</p>
-                                    </div>
-                                    <Button variant="ghost" onClick={() => handleRevertRecurringItem(income, 'income')}><Undo2 className="mr-2 h-4 w-4" />Revertir</Button>
-                                </div>
-                            )) : (
-                               !annualTransactionsLoading && <p className="text-sm text-center text-muted-foreground">No has recibido ingresos fijos este mes.</p>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
-                
-                <div className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Gastos Pendientes</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            {pendingRecurringExpenses.length > 0 ? pendingRecurringExpenses.map(expense => (
-                                <div key={expense.id} className="flex items-center justify-between rounded-lg border bg-card p-3 shadow-sm">
-                                    <div>
-                                        <p className="font-semibold">{expense.name}</p>
-                                        <p className="text-sm text-muted-foreground">{formatCurrency(expense.amount)}</p>
-                                    </div>
-                                    <Button onClick={() => handlePayRecurringItem(expense, 'expense')}><CheckCircle className="mr-2 h-4 w-4" />Pagar</Button>
-                                </div>
-                            )) : (
-                               !annualTransactionsLoading && <p className="text-sm text-center text-muted-foreground">No tienes gastos pendientes este mes.</p>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                     <Card>
-                        <CardHeader><CardTitle>Gastos Pagados</CardTitle></CardHeader>
-                        <CardContent className="space-y-3">
-                            {paidRecurringExpenses.length > 0 ? paidRecurringExpenses.map(expense => (
-                                <div key={expense.id} className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
-                                     <div>
-                                        <p className="font-semibold text-muted-foreground line-through">{expense.name}</p>
-                                        <p className="text-sm text-muted-foreground">{formatCurrency(expense.amount)}</p>
-                                    </div>
-                                    <Button variant="ghost" onClick={() => handleRevertRecurringItem(expense, 'expense')}><Undo2 className="mr-2 h-4 w-4" />Revertir</Button>
-                                </div>
-                            )) : (
-                                !annualTransactionsLoading && <p className="text-sm text-center text-muted-foreground">No has pagado gastos fijos este mes.</p>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
-
-            </div>
-          </TabsContent>
            <TabsContent value="annual" className="mt-6 space-y-6">
                 {annualTransactionsLoading ? (
                     <p>Cargando análisis anual...</p>

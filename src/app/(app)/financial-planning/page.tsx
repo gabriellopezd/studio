@@ -83,7 +83,6 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppContext } from '@/app/_providers/AppProvider';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 function SortableListItem({
@@ -116,12 +115,6 @@ function SortableListItem({
   );
 }
 
-const COLORS = {
-    'Necesidades': '#ef4444', // red-500
-    'Deseos': '#f97316', // orange-500
-    'Ahorros y Deudas': '#22c55e' // green-500
-};
-
 const motivationalQuotes = [
     "Cuida de los pequeños gastos; un pequeño agujero hunde un barco.",
     "Un presupuesto es decirle a tu dinero a dónde ir, en lugar de preguntarte a dónde se fue.",
@@ -144,8 +137,14 @@ export default function FinancialPlanningPage() {
     recurringIncomesLoading,
     expenseCategories,
     incomeCategories,
+    pendingRecurringExpenses,
+    paidRecurringExpenses,
+    pendingRecurringIncomes,
+    receivedRecurringIncomes,
     handleSaveRecurringItem,
     handleDeleteRecurringItem,
+    handlePayRecurringItem,
+    handleRevertRecurringItem,
     modalState,
     handleOpenModal,
     handleCloseModal,
@@ -513,8 +512,8 @@ export default function FinancialPlanningPage() {
         
         <Tabs defaultValue="variable">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="variable">Gestión de Gastos Variables</TabsTrigger>
-            <TabsTrigger value="fixed">Gestión de Ingresos y Gastos Fijos</TabsTrigger>
+            <TabsTrigger value="variable">Gastos Variables</TabsTrigger>
+            <TabsTrigger value="fixed">Ingresos y Gastos Fijos</TabsTrigger>
           </TabsList>
           <TabsContent value="variable" className="mt-6">
             <Card>
@@ -805,58 +804,137 @@ export default function FinancialPlanningPage() {
           </TabsContent>
           <TabsContent value="fixed" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle>Ingresos Fijos</CardTitle>
-                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal('recurringIncome')}>
-                            <PlusCircle className="h-4 w-4" />
-                        </Button>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        {recurringIncomes?.map(income => (
-                            <div key={income.id} className="flex items-center justify-between rounded-lg border p-3">
-                            <div>
-                                <p className="font-semibold">{income.name}</p>
-                                <p className="text-sm text-muted-foreground">{formatCurrency(income.amount)} - Día {income.dayOfMonth}</p>
+                 {/* Recurring Incomes Column */}
+                <div className="space-y-6">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle>Ingresos Fijos</CardTitle>
+                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal('recurringIncome')}>
+                                <PlusCircle className="h-4 w-4" />
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            {recurringIncomes?.map(income => (
+                                <div key={income.id} className="flex items-center justify-between rounded-lg border p-3">
+                                <div>
+                                    <p className="font-semibold">{income.name}</p>
+                                    <p className="text-sm text-muted-foreground">{formatCurrency(income.amount)} - Día {income.dayOfMonth}</p>
+                                </div>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                            <DropdownMenuItem onClick={() => handleOpenModal('recurringIncome', income)}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
+                                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleOpenModal('deleteRecurring', { ...income, type: 'income' })} className="text-red-500"><Trash2 className="mr-2 h-4 w-4" />Eliminar</DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                             </div>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                        <DropdownMenuItem onClick={() => handleOpenModal('recurringIncome', income)}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
-                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleOpenModal('deleteRecurring', { ...income, type: 'income' })} className="text-red-500"><Trash2 className="mr-2 h-4 w-4" />Eliminar</DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                        </div>
-                        ))}
-                        {recurringIncomes?.length === 0 && !recurringIncomesLoading && <p className="text-sm text-center text-muted-foreground pt-4">No has definido ingresos fijos.</p>}
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle>Gastos Fijos</CardTitle>
-                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal('recurringExpense')}>
-                            <PlusCircle className="h-4 w-4" />
-                        </Button>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        {recurringExpenses?.map(expense => (
-                            <div key={expense.id} className="flex items-center justify-between rounded-lg border p-3">
-                            <div>
-                                <p className="font-semibold">{expense.name}</p>
-                                <p className="text-sm text-muted-foreground">{formatCurrency(expense.amount)} - Día {expense.dayOfMonth}</p>
+                            ))}
+                            {recurringIncomes?.length === 0 && !recurringIncomesLoading && <p className="text-sm text-center text-muted-foreground pt-4">No has definido ingresos fijos.</p>}
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Ingresos Pendientes este Mes</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            {pendingRecurringIncomes.length > 0 ? pendingRecurringIncomes.map(income => (
+                                <div key={income.id} className="flex items-center justify-between rounded-lg border bg-card p-3 shadow-sm">
+                                    <div>
+                                        <p className="font-semibold">{income.name}</p>
+                                        <p className="text-sm text-muted-foreground">{formatCurrency(income.amount)}</p>
+                                    </div>
+                                    <Button onClick={() => handlePayRecurringItem(income, 'income')}><CheckCircle className="mr-2 h-4 w-4" />Recibir</Button>
+                                </div>
+                            )) : (
+                                !recurringIncomesLoading && <p className="text-sm text-center text-muted-foreground">No tienes ingresos pendientes este mes.</p>
+                            )}
+                        </CardContent>
+                    </Card>
+                    
+                    <Card>
+                        <CardHeader><CardTitle>Ingresos Recibidos este Mes</CardTitle></CardHeader>
+                        <CardContent className="space-y-3">
+                            {receivedRecurringIncomes.length > 0 ? receivedRecurringIncomes.map(income => (
+                                <div key={income.id} className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
+                                     <div>
+                                        <p className="font-semibold text-muted-foreground line-through">{income.name}</p>
+                                        <p className="text-sm text-muted-foreground">{formatCurrency(income.amount)}</p>
+                                    </div>
+                                    <Button variant="ghost" onClick={() => handleRevertRecurringItem(income, 'income')}><Undo2 className="mr-2 h-4 w-4" />Revertir</Button>
+                                </div>
+                            )) : (
+                               !recurringIncomesLoading && <p className="text-sm text-center text-muted-foreground">No has recibido ingresos fijos este mes.</p>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+                
+                {/* Recurring Expenses Column */}
+                <div className="space-y-6">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle>Gastos Fijos</CardTitle>
+                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal('recurringExpense')}>
+                                <PlusCircle className="h-4 w-4" />
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            {recurringExpenses?.map(expense => (
+                                <div key={expense.id} className="flex items-center justify-between rounded-lg border p-3">
+                                <div>
+                                    <p className="font-semibold">{expense.name}</p>
+                                    <p className="text-sm text-muted-foreground">{formatCurrency(expense.amount)} - Día {expense.dayOfMonth}</p>
+                                </div>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                            <DropdownMenuItem onClick={() => handleOpenModal('recurringExpense', expense)}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
+                                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleOpenModal('deleteRecurring', { ...expense, type: 'expense' })} className="text-red-500"><Trash2 className="mr-2 h-4 w-4" />Eliminar</DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                             </div>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                        <DropdownMenuItem onClick={() => handleOpenModal('recurringExpense', expense)}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
-                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleOpenModal('deleteRecurring', { ...expense, type: 'expense' })} className="text-red-500"><Trash2 className="mr-2 h-4 w-4" />Eliminar</DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                        </div>
-                        ))}
-                        {recurringExpenses?.length === 0 && !recurringExpensesLoading && <p className="text-sm text-center text-muted-foreground pt-4">No has definido gastos fijos.</p>}
-                    </CardContent>
-                </Card>
+                            ))}
+                            {recurringExpenses?.length === 0 && !recurringExpensesLoading && <p className="text-sm text-center text-muted-foreground pt-4">No has definido gastos fijos.</p>}
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Gastos Pendientes este Mes</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            {pendingRecurringExpenses.length > 0 ? pendingRecurringExpenses.map(expense => (
+                                <div key={expense.id} className="flex items-center justify-between rounded-lg border bg-card p-3 shadow-sm">
+                                    <div>
+                                        <p className="font-semibold">{expense.name}</p>
+                                        <p className="text-sm text-muted-foreground">{formatCurrency(expense.amount)}</p>
+                                    </div>
+                                    <Button onClick={() => handlePayRecurringItem(expense, 'expense')}><CheckCircle className="mr-2 h-4 w-4" />Pagar</Button>
+                                </div>
+                            )) : (
+                               !recurringExpensesLoading && <p className="text-sm text-center text-muted-foreground">No tienes gastos pendientes este mes.</p>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                     <Card>
+                        <CardHeader><CardTitle>Gastos Pagados este Mes</CardTitle></CardHeader>
+                        <CardContent className="space-y-3">
+                            {paidRecurringExpenses.length > 0 ? paidRecurringExpenses.map(expense => (
+                                <div key={expense.id} className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
+                                     <div>
+                                        <p className="font-semibold text-muted-foreground line-through">{expense.name}</p>
+                                        <p className="text-sm text-muted-foreground">{formatCurrency(expense.amount)}</p>
+                                    </div>
+                                    <Button variant="ghost" onClick={() => handleRevertRecurringItem(expense, 'expense')}><Undo2 className="mr-2 h-4 w-4" />Revertir</Button>
+                                </div>
+                            )) : (
+                                !recurringExpensesLoading && <p className="text-sm text-center text-muted-foreground">No has pagado gastos fijos este mes.</p>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
           </TabsContent>
         </Tabs>
@@ -957,4 +1035,3 @@ export default function FinancialPlanningPage() {
     </div>
   );
 }
-
