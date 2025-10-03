@@ -223,7 +223,10 @@ export default function TodayPage() {
                     )}
                 </CardContent>
             </Card>
+        </div>
 
+        <div className="lg:col-span-1 flex flex-col gap-6">
+           <TodaysMoodCard />
             <Card>
                 <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -259,10 +262,6 @@ export default function TodayPage() {
                     </div>
                 </CardContent>
             </Card>
-        </div>
-
-        <div className="lg:col-span-1 flex flex-col gap-6">
-           <TodaysMoodCard />
            <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
