@@ -1,7 +1,7 @@
 
 'use client';
 
-import { createContext } from 'react';
+import { createContext, useContext } from 'react';
 import { AppState } from './types';
 
 // Create the context with a default undefined value

@@ -60,7 +60,7 @@ import { Progress } from '@/components/ui/progress';
 import { calculateStreak, isHabitCompletedToday } from '@/lib/habits';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAppContext } from '@/app/_providers/AppProvider';
+import { useAppContext } from '@/app/_providers/AppContext';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 const motivationalQuotes = [

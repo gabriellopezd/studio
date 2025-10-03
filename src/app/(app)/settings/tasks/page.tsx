@@ -11,7 +11,7 @@ import {
   CardDescription
 } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { useAppContext } from '@/app/_providers/AppProvider';
+import { useAppContext } from '@/app/_providers/AppContext';
 import {
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
@@ -289,5 +289,4 @@ export default function TaskSettingsPage() {
     </div>
   );
 }
-
     

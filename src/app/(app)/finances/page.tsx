@@ -89,7 +89,7 @@ import {
 } from 'firebase/firestore';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { useAppContext } from '@/app/_providers/AppProvider';
+import { useAppContext } from '@/app/_providers/AppContext';
 import { ResponsiveCalendar } from '../tasks/_components/ResponsiveCalendar';
 
 const motivationalQuotes = [
@@ -127,6 +127,7 @@ export default function FinancesPage() {
     expenseCategories,
     incomeCategories,
     categoriesWithoutBudget,
+    handlePayRecurringItem,
   } = useAppContext();
   
   const [isTransactionDialogOpen, setTransactionDialogOpen] = useState(false);
@@ -460,44 +461,6 @@ export default function FinancesPage() {
     const itemRef = doc(firestore, 'users', user.uid, collectionName, recurringToDelete.id);
     await deleteDocumentNonBlocking(itemRef);
     setRecurringToDelete(null);
-  };
-
-  const handlePayRecurringItem = async (item: any, type: 'income' | 'expense') => {
-    if (!user || !firestore) return;
-    
-    const batch = writeBatch(firestore);
-
-    const transactionData = {
-      type: type,
-      description: item.name,
-      category: item.category,
-      date: new Date().toISOString(),
-      amount: item.amount,
-      budgetFocus: type === 'expense' ? item.budgetFocus : null,
-      userId: user.uid,
-      createdAt: serverTimestamp(),
-    };
-
-    const newTransactionRef = doc(collection(firestore, 'users', user.uid, 'transactions'));
-    batch.set(newTransactionRef, transactionData);
-
-    if (type === 'expense') {
-      const budget = budgets?.find(b => b.categoryName === item.category);
-      if (budget) {
-        const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-        batch.update(budgetRef, { currentSpend: increment(item.amount) });
-      }
-    }
-
-    const collectionName = type === 'income' ? 'recurringIncomes' : 'recurringExpenses';
-    const itemRef = doc(firestore, 'users', user.uid, collectionName, item.id);
-    batch.update(itemRef, {
-      lastInstanceCreated: currentMonthYear,
-      lastTransactionId: newTransactionRef.id,
-    });
-
-    await batch.commit();
-    toast({ title: `Registro exitoso`, description: `${item.name} ha sido registrado.` });
   };
   
 const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') => {

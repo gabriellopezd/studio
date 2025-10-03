@@ -51,7 +51,7 @@ import {
 import { Check, MoreHorizontal, Pencil, PlusCircle, Trash2, Trophy, RotateCcw, Play, Square, CalendarDays, Settings, Flame } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { isHabitCompletedToday } from '@/lib/habits';
-import { useAppContext } from '@/app/_providers/AppProvider';
+import { useAppContext } from '@/app/_providers/AppContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';

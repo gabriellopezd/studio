@@ -40,7 +40,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { useAppContext } from '@/app/_providers/AppProvider';
+import { useAppContext } from '@/app/_providers/AppContext';
 import Link from 'next/link';
 import { doc } from 'firebase/firestore';
 

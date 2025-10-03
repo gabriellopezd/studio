@@ -6,7 +6,7 @@ import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { useAppContext } from '@/app/_providers/AppProvider';
+import { useAppContext } from '@/app/_providers/AppContext';
 import { updateDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import Link from 'next/link';
@@ -76,5 +76,4 @@ export default function ExpenseSettingsPage() {
     </div>
   );
 }
-
     
