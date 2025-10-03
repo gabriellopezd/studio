@@ -238,6 +238,11 @@
         "totalTimeSpent": {
             "type": "number",
             "description": "The total time spent on the task in seconds."
+        },
+        "completionDate": {
+            "type": ["string", "null"],
+            "description": "Timestamp indicating when the task was completed.",
+            "format": "date-time"
         }
       },
       "required": [
@@ -249,6 +254,36 @@
         "priority",
         "category"
       ]
+    },
+    "TaskCategory": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TaskCategory",
+      "type": "object",
+      "description": "Represents a user-defined category for tasks.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the task category."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N TaskCategory)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the category."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates if the category is currently active for the user."
+        },
+        "budgetFocus": {
+          "type": "string",
+          "description": "The budget focus this task category relates to.",
+          "enum": ["Necesidades", "Deseos", "Ahorros y Deudas"]
+        }
+      },
+      "required": ["id", "userId", "name", "isActive", "budgetFocus"]
     },
     "Goal": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -735,6 +770,14 @@
           "entityName": "Task",
           "schema": { "$ref": "#/backend/entities/Task" },
           "description": "A single task document owned by a user. To access a single document, the client MUST use a direct reference."
+        }
+      },
+      {
+        "path": "/users/{userId}/taskCategories/{taskCategoryId}",
+        "definition": {
+          "entityName": "TaskCategory",
+          "schema": { "$ref": "#/backend/entities/TaskCategory" },
+          "description": "A single task category document owned by a user."
         }
       },
       {

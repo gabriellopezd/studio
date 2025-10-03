@@ -8,15 +8,12 @@ import {
   Card,
   CardHeader,
   CardTitle,
-  CardDescription,
-  CardContent,
 } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { useAppContext } from '@/app/_providers/AppProvider';
 import {
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
-  deleteDocumentNonBlocking,
 } from '@/firebase';
 import { collection, doc, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import Link from 'next/link';
@@ -44,10 +41,18 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export default function TaskSettingsPage() {
   const { firestore, user, taskCategories, taskCategoriesLoading } = useAppContext();
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryFocus, setNewCategoryFocus] = useState('Deseos');
   const { toast } = useToast();
 
   const handleToggleCategory = async (
@@ -92,8 +97,10 @@ export default function TaskSettingsPage() {
       name: categoryName,
       isActive: true,
       userId: user.uid,
+      budgetFocus: newCategoryFocus,
     });
     setNewCategoryName('');
+    setNewCategoryFocus('Deseos');
   };
 
   const handleDeleteCategory = async (categoryId: string, categoryName: string) => {
@@ -137,46 +144,63 @@ export default function TaskSettingsPage() {
         description="Gestiona las categorías para organizar tus tareas."
         imageId="settings-sub-header"
       >
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Crear Categoría
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Crear Nueva Categoría</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-2">
-              <Label htmlFor="categoryName">Nombre de la categoría</Label>
-              <Input
-                id="categoryName"
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-                placeholder="Ej: Universidad, Trabajo Secundario..."
-              />
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button
-                  type="button"
-                  onClick={handleCreateCategory}
-                  disabled={!newCategoryName.trim()}
-                >
-                  Crear Categoría
+        <div className="flex items-center gap-2">
+            <Dialog>
+            <DialogTrigger asChild>
+                <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Crear Categoría
                 </Button>
-              </DialogClose>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                <DialogTitle>Crear Nueva Categoría</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="categoryName">Nombre de la categoría</Label>
+                        <Input
+                        id="categoryName"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        placeholder="Ej: Universidad, Trabajo Secundario..."
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="budgetFocus">Enfoque Presupuesto</Label>
+                        <Select value={newCategoryFocus} onValueChange={setNewCategoryFocus}>
+                            <SelectTrigger id="budgetFocus">
+                                <SelectValue placeholder="Selecciona un enfoque" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Necesidades">Necesidades</SelectItem>
+                                <SelectItem value="Deseos">Deseos</SelectItem>
+                                <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <DialogFooter>
+                <DialogClose asChild>
+                    <Button
+                    type="button"
+                    onClick={handleCreateCategory}
+                    disabled={!newCategoryName.trim()}
+                    >
+                    Crear Categoría
+                    </Button>
+                </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+            </Dialog>
 
-        <Button variant="outline" asChild>
-          <Link href="/settings">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver a Configuración
-          </Link>
-        </Button>
+            <Button variant="outline" asChild>
+            <Link href="/settings">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Volver
+            </Link>
+            </Button>
+        </div>
       </PageHeader>
 
       {taskCategoriesLoading && <p>Cargando categorías...</p>}
