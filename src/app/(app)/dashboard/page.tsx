@@ -112,6 +112,47 @@ export default function DashboardPage() {
         imageId="dashboard-header"
       />
       
+       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+           <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                        <Flame className="size-5 text-orange-500"/>
+                        Racha Actual
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <p className="text-3xl font-bold">{longestCurrentStreak} días</p>
+                    <p className="text-sm text-muted-foreground truncate">Tu mejor racha activa.</p>
+                    <div className="flex flex-wrap gap-1">
+                        {topCurrentStreakHabits.length > 0 ? (
+                            topCurrentStreakHabits.map(habit => <Badge key={habit} variant="secondary">{habit}</Badge>)
+                        ) : (
+                            <p className="text-xs text-muted-foreground">Completa un hábito por 2 días seguidos.</p>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                        <Trophy className="size-5 text-yellow-500"/>
+                        Racha Récord
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <p className="text-3xl font-bold">{longestStreak} días</p>
+                    <p className="text-sm text-muted-foreground">Tu récord histórico.</p>
+                    <div className="flex flex-wrap gap-1">
+                         {topLongestStreakHabits.length > 0 ? (
+                            topLongestStreakHabits.map(habit => <Badge key={habit} variant="secondary">{habit}</Badge>)
+                        ) : (
+                            <p className="text-xs text-muted-foreground">Aún no tienes un récord.</p>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+       </div>
+       
        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card>
             <CardHeader>
@@ -199,120 +240,83 @@ export default function DashboardPage() {
                 </div>
             </CardContent>
           </Card>
+           
            <div className="flex flex-col gap-6">
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <Flame className="size-5 text-orange-500"/>
-                            Racha Actual
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        <p className="text-3xl font-bold">{longestCurrentStreak} días</p>
-                        <p className="text-sm text-muted-foreground truncate">Tu mejor racha activa.</p>
-                        <div className="flex flex-wrap gap-1">
-                            {topCurrentStreakHabits.length > 0 ? (
-                                topCurrentStreakHabits.map(habit => <Badge key={habit} variant="secondary">{habit}</Badge>)
-                            ) : (
-                                <p className="text-xs text-muted-foreground">Completa un hábito por 2 días seguidos.</p>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <Trophy className="size-5 text-yellow-500"/>
-                            Racha Récord
+                        <CardTitle className="flex items-center gap-2">
+                            <Smile className="size-5"/>
+                            Ánimo de Hoy
                         </CardTitle>
+                         <CardDescription>Tu registro emocional del día.</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-3">
-                        <p className="text-3xl font-bold">{longestStreak} días</p>
-                        <p className="text-sm text-muted-foreground">Tu récord histórico.</p>
-                        <div className="flex flex-wrap gap-1">
-                             {topLongestStreakHabits.length > 0 ? (
-                                topLongestStreakHabits.map(habit => <Badge key={habit} variant="secondary">{habit}</Badge>)
-                            ) : (
-                                <p className="text-xs text-muted-foreground">Aún no tienes un récord.</p>
-                            )}
-                        </div>
+                    <CardContent>
+                         {moodsLoading && <p>Cargando ánimo...</p>}
+                         {todayMood ? (
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <p className="text-6xl">{todayMood.emoji}</p>
+                                <p className="text-xl font-semibold mt-2">{todayMood.moodLabel}</p>
+                                <Separator className="my-4"/>
+                                <div className="space-y-3 w-full">
+                                    <div>
+                                        <h4 className="font-medium text-sm text-left mb-2">Sentimientos:</h4>
+                                        <div className="flex flex-wrap gap-1 justify-center">
+                                            {todayMood.feelings.map((f: string) => <Badge key={f} variant="secondary">{f}</Badge>)}
+                                        </div>
+                                    </div>
+                                     <div>
+                                        <h4 className="font-medium text-sm text-left mb-2">Influencias:</h4>
+                                        <div className="flex flex-wrap gap-1 justify-center">
+                                            {todayMood.influences.map((i: string) => <Badge key={i} variant="secondary">{i}</Badge>)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                         ) : (
+                            !moodsLoading && (
+                                <div className="text-center py-8">
+                                    <p className="text-6xl">⚪</p>
+                                    <p className="text-muted-foreground mt-2">Sin registrar</p>
+                                    <Button variant="link" asChild className="mt-2">
+                                        <Link href="/mood-tracker">Registra tu ánimo</Link>
+                                    </Button>
+                                </div>
+                            )
+                         )}
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <CreditCard className="size-5"/>
+                            Próximos Pagos
+                        </CardTitle>
+                         <CardDescription>Gastos recurrentes en los próximos 7 días.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {recurringExpensesLoading && <p>Cargando pagos...</p>}
+                        {!recurringExpensesLoading && upcomingPayments.length === 0 && (
+                             <p className="text-sm text-muted-foreground text-center py-4">No tienes pagos programados para los próximos 7 días.</p>
+                        )}
+                         {upcomingPayments.length > 0 && (
+                            <ul className="space-y-3">
+                               {upcomingPayments.map(payment => (
+                                <li key={payment.id} className="flex justify-between items-center">
+                                    <div>
+                                        <p className="font-medium">{payment.name}</p>
+                                        <p className="text-sm text-muted-foreground">Vence: {format(new Date().setDate(payment.dayOfMonth), 'PPP', { locale: es })}</p>
+                                    </div>
+                                    <span className="font-semibold">{formatCurrency(payment.amount)}</span>
+                                </li>
+                               ))}
+                            </ul>
+                         )}
                     </CardContent>
                 </Card>
            </div>
       </div>
-       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <Smile className="size-5"/>
-                    Ánimo de Hoy
-                </CardTitle>
-                 <CardDescription>Tu registro emocional del día.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                 {moodsLoading && <p>Cargando ánimo...</p>}
-                 {todayMood ? (
-                    <div className="flex flex-col items-center justify-center text-center">
-                        <p className="text-6xl">{todayMood.emoji}</p>
-                        <p className="text-xl font-semibold mt-2">{todayMood.moodLabel}</p>
-                        <Separator className="my-4"/>
-                        <div className="space-y-3 w-full">
-                            <div>
-                                <h4 className="font-medium text-sm text-left mb-2">Sentimientos:</h4>
-                                <div className="flex flex-wrap gap-1 justify-center">
-                                    {todayMood.feelings.map((f: string) => <Badge key={f} variant="secondary">{f}</Badge>)}
-                                </div>
-                            </div>
-                             <div>
-                                <h4 className="font-medium text-sm text-left mb-2">Influencias:</h4>
-                                <div className="flex flex-wrap gap-1 justify-center">
-                                    {todayMood.influences.map((i: string) => <Badge key={i} variant="secondary">{i}</Badge>)}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                 ) : (
-                    !moodsLoading && (
-                        <div className="text-center py-8">
-                            <p className="text-6xl">⚪</p>
-                            <p className="text-muted-foreground mt-2">Sin registrar</p>
-                            <Button variant="link" asChild className="mt-2">
-                                <Link href="/mood-tracker">Registra tu ánimo</Link>
-                            </Button>
-                        </div>
-                    )
-                 )}
-            </CardContent>
-        </Card>
-         <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <CreditCard className="size-5"/>
-                    Próximos Pagos
-                </CardTitle>
-                 <CardDescription>Gastos recurrentes en los próximos 7 días.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                {recurringExpensesLoading && <p>Cargando pagos...</p>}
-                {!recurringExpensesLoading && upcomingPayments.length === 0 && (
-                     <p className="text-sm text-muted-foreground text-center py-4">No tienes pagos programados para los próximos 7 días.</p>
-                )}
-                 {upcomingPayments.length > 0 && (
-                    <ul className="space-y-3">
-                       {upcomingPayments.map(payment => (
-                        <li key={payment.id} className="flex justify-between items-center">
-                            <div>
-                                <p className="font-medium">{payment.name}</p>
-                                <p className="text-sm text-muted-foreground">Vence: {format(new Date().setDate(payment.dayOfMonth), 'PPP', { locale: es })}</p>
-                            </div>
-                            <span className="font-semibold">{formatCurrency(payment.amount)}</span>
-                        </li>
-                       ))}
-                    </ul>
-                 )}
-            </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
+
+    
