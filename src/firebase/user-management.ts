@@ -2,22 +2,36 @@ import { User } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, getDoc, collection, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import { PRESET_EXPENSE_CATEGORIES } from '@/lib/transaction-categories';
 
-// This function ensures that at least the "Otro" category exists.
-// All other categories are fully managed by the user.
 async function initializeDefaultTaskCategories(user: User, firestore: any, batch: any) {
     const taskCategoriesRef = collection(firestore, 'users', user.uid, 'taskCategories');
-    const q = query(taskCategoriesRef, where('name', '==', 'Otro'));
-    const snapshot = await getDocs(q);
+    const tasksRef = collection(firestore, 'users', user.uid, 'tasks');
 
-    if (snapshot.empty) {
-        const otroCategoryRef = doc(taskCategoriesRef);
-        batch.set(otroCategoryRef, {
-            name: 'Otro',
-            isActive: true,
-            userId: user.uid,
-            budgetFocus: 'Deseos',
-        });
-    }
+    // 1. Get all unique categories from existing tasks
+    const tasksSnapshot = await getDocs(tasksRef);
+    const existingTaskCategories = new Set(tasksSnapshot.docs.map(doc => doc.data().category));
+
+    // 2. Ensure "Otro" is in the set
+    existingTaskCategories.add("Otro");
+
+    // 3. Get all categories that are already in the taskCategories collection
+    const categoriesSnapshot = await getDocs(taskCategoriesRef);
+    const definedCategories = new Set(categoriesSnapshot.docs.map(doc => doc.data().name));
+
+    // 4. Find which categories from tasks are missing in the collection
+    const missingCategories = [...existingTaskCategories].filter(cat => !definedCategories.has(cat));
+
+    // 5. Batch-write the missing categories
+    missingCategories.forEach(categoryName => {
+        if (categoryName) { // Ensure category name is not empty
+            const newCategoryRef = doc(taskCategoriesRef);
+            batch.set(newCategoryRef, {
+                name: categoryName,
+                isActive: true,
+                userId: user.uid,
+                budgetFocus: 'Deseos', // Default value
+            });
+        }
+    });
 }
 
 export const handleUserLogin = async (user: User, firestore: any, displayName?: string) => {
@@ -37,15 +51,12 @@ export const handleUserLogin = async (user: User, firestore: any, displayName?: 
             lastLoginAt: serverTimestamp(),
         };
         batch.set(userRef, userProfileData);
-
-        // Initialize default task categories for new user
-        await initializeDefaultTaskCategories(user, firestore, batch);
-
     } else {
         batch.update(userRef, { lastLoginAt: serverTimestamp() });
-        // Also check and initialize categories for existing users who might not have it
-        await initializeDefaultTaskCategories(user, firestore, batch);
     }
     
+    // Always run the category initialization/migration logic on login
+    await initializeDefaultTaskCategories(user, firestore, batch);
+
     await batch.commit();
 };

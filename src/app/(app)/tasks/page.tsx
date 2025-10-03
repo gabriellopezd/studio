@@ -98,6 +98,8 @@ export default function TasksPage() {
     setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, []);
 
+  const activeTaskCategories = useMemo(() => taskCategories?.filter(c => c.isActive) || [], [taskCategories]);
+
   const filteredTasks = useMemo(() => {
     if (!tasks) return { byCategory: {}, all: [] };
 
@@ -466,7 +468,7 @@ export default function TasksPage() {
                         <SelectValue placeholder="Selecciona categoría" />
                       </SelectTrigger>
                       <SelectContent>
-                        {taskCategories?.map(cat => (
+                        {activeTaskCategories.map(cat => (
                           <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
                         ))}
                       </SelectContent>

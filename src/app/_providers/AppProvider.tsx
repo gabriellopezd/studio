@@ -737,7 +737,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Task Selectors
     const { totalStats, categoryStats, taskTimeAnalytics, overdueTasks, todayTasks, tasksForTomorrow, upcomingTasks, completedWeeklyTasks, totalWeeklyTasks, weeklyTasksProgress, completedDailyTasks, totalDailyTasks, dailyTasksProgress, onTimeCompletionRate, dailyCompletionStats, completedTasksByCategory } = useMemo(() => {
-        if (!tasks) return { totalStats: { completed: 0, total: 0, completionRate: 0 }, categoryStats: {}, taskTimeAnalytics: [], overdueTasks: [], todayTasks: [], tasksForTomorrow: [], upcomingTasks: [], completedWeeklyTasks: 0, totalWeeklyTasks: 0, weeklyTasksProgress: 0, completedDailyTasks: 0, totalDailyTasks: 0, dailyTasksProgress: 0, onTimeCompletionRate: 0, dailyCompletionStats: [], completedTasksByCategory: [] };
+        if (!tasks || !taskCategories) return { totalStats: { completed: 0, total: 0, completionRate: 0 }, categoryStats: {}, taskTimeAnalytics: [], overdueTasks: [], todayTasks: [], tasksForTomorrow: [], upcomingTasks: [], completedWeeklyTasks: 0, totalWeeklyTasks: 0, weeklyTasksProgress: 0, completedDailyTasks: 0, totalDailyTasks: 0, dailyTasksProgress: 0, onTimeCompletionRate: 0, dailyCompletionStats: [], completedTasksByCategory: [] };
         
         const today = new Date();
         const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -770,7 +770,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const total = tasks.length;
         const totalStats = { completed, total, completionRate: total > 0 ? (completed / total) * 100 : 0 };
 
-        const catStats = (taskCategories || []).reduce((acc, category) => {
+        const catStats = taskCategories.reduce((acc, category) => {
             const tasksInCategory = tasks.filter(t => t.category === category.name);
             if (tasksInCategory.length > 0) {
                 const completed = tasksInCategory.filter(t => t.isCompleted).length;
@@ -783,7 +783,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const onTime = completedWithDueDate.filter(t => t.completionDate.toDate() <= t.dueDate.toDate()).length;
         const onTimeRate = completedWithDueDate.length > 0 ? (onTime / completedWithDueDate.length) * 100 : 0;
         
-        const completedByCategoryData = (taskCategories || []).map(category => {
+        const completedByCategoryData = taskCategories.map(category => {
             const count = tasks.filter(t => t.isCompleted && t.category === category.name).length;
             return { name: category.name, tareas: count };
         }).filter(c => c.tareas > 0);
