@@ -98,6 +98,7 @@ export interface AppState {
     overdueTasks: any[];
     todayTasks: any[];
     upcomingTasks: any[];
+    tasksForTomorrow: any[];
 
     completedWeeklyTasks: number;
     totalWeeklyTasks: number;

@@ -58,7 +58,7 @@ type Action =
     | { type: 'SET_ACTIVE_SESSION'; payload: ActiveSession | null }
     | { type: 'SET_ELAPSED_TIME'; payload: number };
 
-const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'handlePayRecurringItem' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'totalStats' | 'categoryStats' | 'weeklyTaskStats' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress'> = {
+const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'handlePayRecurringItem' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'totalStats' | 'categoryStats' | 'weeklyTaskStats' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress' | 'tasksForTomorrow'> = {
     allHabits: null,
     routines: null,
     tasks: null,
@@ -675,18 +675,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [routines, allHabits, timeLogs]);
 
     // Task Selectors
-    const { totalStats, categoryStats, weeklyTaskStats, overdueTasks, todayTasks, upcomingTasks, completedWeeklyTasks, totalWeeklyTasks, weeklyTasksProgress, completedDailyTasks, totalDailyTasks, dailyTasksProgress } = useMemo(() => {
+    const { totalStats, categoryStats, weeklyTaskStats, overdueTasks, todayTasks, tasksForTomorrow, upcomingTasks, completedWeeklyTasks, totalWeeklyTasks, weeklyTasksProgress, completedDailyTasks, totalDailyTasks, dailyTasksProgress } = useMemo(() => {
         const taskCategories = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro"];
-        if (!tasks) return { totalStats: { completed: 0, total: 0, completionRate: 0 }, categoryStats: {}, weeklyTaskStats: [], overdueTasks: [], todayTasks: [], upcomingTasks: [], completedWeeklyTasks: 0, totalWeeklyTasks: 0, weeklyTasksProgress: 0, completedDailyTasks: 0, totalDailyTasks: 0, dailyTasksProgress: 0 };
+        if (!tasks) return { totalStats: { completed: 0, total: 0, completionRate: 0 }, categoryStats: {}, weeklyTaskStats: [], overdueTasks: [], todayTasks: [], tasksForTomorrow: [], upcomingTasks: [], completedWeeklyTasks: 0, totalWeeklyTasks: 0, weeklyTasksProgress: 0, completedDailyTasks: 0, totalDailyTasks: 0, dailyTasksProgress: 0 };
         
         const today = new Date();
         const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
         const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
-
-        const dailyTs = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= startOfDay && t.dueDate.toDate() <= endOfDay);
-        const completedDaily = dailyTs.filter(t => t.isCompleted).length;
-        const totalDaily = dailyTs.length;
-        const dailyProgress = totalDaily > 0 ? (completedDaily / totalDaily) * 100 : 0;
+        
+        const tomorrow = new Date(startOfDay);
+        tomorrow.setDate(startOfDay.getDate() + 1);
+        const endOfTomorrow = new Date(tomorrow);
+        endOfTomorrow.setHours(23, 59, 59, 999);
 
         const startOfWeek = getStartOfWeek(today);
         const endOfWeek = getEndOfWeek(today);
@@ -694,8 +694,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         
         const overdue = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() < startOfDay);
         const forToday = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= startOfDay && t.dueDate.toDate() <= endOfDay);
-        const upcoming = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() > endOfDay && t.dueDate.toDate() <= endOfWeek);
+        const forTomorrow = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= tomorrow && t.dueDate.toDate() <= endOfTomorrow);
+        const upcoming = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() > endOfTomorrow && t.dueDate.toDate() <= endOfWeek);
 
+        const dailyTs = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= startOfDay && t.dueDate.toDate() <= endOfDay);
+        const completedDaily = dailyTs.filter(t => t.isCompleted).length;
+        const totalDaily = dailyTs.length;
+        const dailyProgress = totalDaily > 0 ? (completedDaily / totalDaily) * 100 : 0;
+        
         const completedWeekly = weeklyTasks.filter(t => t.isCompleted).length;
         const totalWeekly = weeklyTasks.length;
         const weeklyProgress = totalWeekly > 0 ? (completedWeekly / totalWeekly) * 100 : 0;
@@ -721,7 +727,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
         });
         
-        return { totalStats, categoryStats: catStats, weeklyTaskStats: weekData, overdueTasks: overdue, todayTasks: forToday, upcomingTasks: upcoming, completedWeeklyTasks: completedWeekly, totalWeeklyTasks: totalWeekly, weeklyTasksProgress: weeklyProgress, completedDailyTasks: completedDaily, totalDailyTasks: totalDaily, dailyTasksProgress: dailyProgress };
+        return { totalStats, categoryStats: catStats, weeklyTaskStats: weekData, overdueTasks: overdue, todayTasks: forToday, tasksForTomorrow: forTomorrow, upcomingTasks: upcoming, completedWeeklyTasks: completedWeekly, totalWeeklyTasks: totalWeekly, weeklyTasksProgress: weeklyProgress, completedDailyTasks: completedDaily, totalDailyTasks: totalDaily, dailyTasksProgress: dailyProgress };
     }, [tasks]);
 
     // Mood Selectors
@@ -945,6 +951,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         overdueTasks,
         todayTasks,
         upcomingTasks,
+        tasksForTomorrow,
         completedWeeklyTasks,
         totalWeeklyTasks,
         weeklyTasksProgress,

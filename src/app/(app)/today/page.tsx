@@ -93,9 +93,8 @@ export default function TodayPage() {
   const { 
     allHabits, 
     habitsLoading, 
-    overdueTasks, 
     todayTasks,
-    upcomingTasks,
+    tasksForTomorrow,
     tasksLoading, 
     activeSession, 
     startSession, 
@@ -237,26 +236,20 @@ export default function TodayPage() {
             </CardHeader>
             <CardContent>
                 {tasksLoading && <p>Cargando tareas...</p>}
-                {!tasksLoading && overdueTasks.length === 0 && todayTasks.length === 0 && upcomingTasks.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-4">No tienes tareas pendientes para esta semana.</p>
+                {!tasksLoading && todayTasks.length === 0 && tasksForTomorrow.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">No tienes tareas para hoy o mañana.</p>
                 )}
                  <div className="space-y-4">
-                    {overdueTasks.length > 0 && (
-                        <div>
-                            <h3 className="font-semibold text-sm flex items-center gap-2 mb-2 text-destructive"><AlertTriangle className="size-4"/>Vencidas</h3>
-                            <div className="space-y-1"><Separator className="-mt-1"/>{overdueTasks.map(task => <TaskListItem key={task.id} task={task} onToggle={handleToggleTask} onStartSession={startSession} onStopSession={stopSession} activeSession={activeSession}/>)}</div>
-                        </div>
-                    )}
                      {todayTasks.length > 0 && (
                         <div>
                             <h3 className="font-semibold text-sm flex items-center gap-2 mb-2"><CalendarClock className="size-4"/>Para Hoy</h3>
                             <div className="space-y-1"><Separator className="-mt-1"/>{todayTasks.map(task => <TaskListItem key={task.id} task={task} onToggle={handleToggleTask} onStartSession={startSession} onStopSession={stopSession} activeSession={activeSession}/>)}</div>
                         </div>
                     )}
-                     {upcomingTasks.length > 0 && (
+                     {tasksForTomorrow.length > 0 && (
                         <div>
-                            <h3 className="font-semibold text-sm flex items-center gap-2 mb-2"><CalendarDays className="size-4"/>Próximas en la Semana</h3>
-                           <div className="space-y-1"><Separator className="-mt-1"/>{upcomingTasks.map(task => <TaskListItem key={task.id} task={task} onToggle={handleToggleTask} onStartSession={startSession} onStopSession={stopSession} activeSession={activeSession}/>)}</div>
+                            <h3 className="font-semibold text-sm flex items-center gap-2 mb-2"><CalendarDays className="size-4"/>Para Mañana</h3>
+                           <div className="space-y-1"><Separator className="-mt-1"/>{tasksForTomorrow.map(task => <TaskListItem key={task.id} task={task} onToggle={handleToggleTask} onStartSession={startSession} onStopSession={stopSession} activeSession={activeSession}/>)}</div>
                         </div>
                     )}
                 </div>
