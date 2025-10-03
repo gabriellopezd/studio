@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -186,7 +185,7 @@ setName(routine.name);
             title="RUTINAS"
             description="Crea y sigue tus rutinas diarias para construir consistencia."
             motivation={motivation}
-            imageId="dashboard-header"
+            imageId="routines-header"
         >
             <Button onClick={() => handleOpenDialog()}>
                 <PlusCircle className="mr-2 h-4 w-4" />
