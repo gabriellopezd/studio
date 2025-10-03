@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useReducer, useEffect, useMemo, useState } from 'react';
@@ -1207,5 +1206,3 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
-
-    
