@@ -1,11 +1,12 @@
 
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, Heart, Wind } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Heart, Wind, Settings } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -14,11 +15,12 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { moodLevels, feelings, influences } from '@/lib/moods';
+import { moodLevels } from '@/lib/moods';
 import { useAppContext } from '@/app/_providers/AppProvider';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import Link from 'next/link';
 
 const motivationalQuotes = [
     "Tus emociones son válidas. Escúchalas.",
@@ -34,6 +36,8 @@ export default function MoodTrackerPage() {
     setCurrentMonth,
     moods, 
     moodsLoading,
+    feelings,
+    influences,
     feelingStats,
     influenceStats,
     handleSaveMood,
@@ -138,6 +142,9 @@ export default function MoodTrackerPage() {
   
   const todayEntry = moods?.find(m => new Date(m.date).toDateString() === new Date().toDateString());
 
+  const activeFeelings = useMemo(() => feelings.filter(f => f.isActive), [feelings]);
+  const activeInfluences = useMemo(() => influences.filter(i => i.isActive), [influences]);
+
   return (
     <>
     <div className="flex flex-col gap-6">
@@ -145,11 +152,19 @@ export default function MoodTrackerPage() {
         title="RASTREADOR DE ÁNIMO"
         description="Registra tu ánimo diario y observa tus tendencias emocionales."
         motivation={motivation}
-        imageId="dashboard-header"
+        imageId="mood-header"
       >
-        <Button onClick={() => handleDayClick(new Date().getDate())}>
-          {todayEntry ? 'Actualizar mi día' : 'Registrar mi día'}
-        </Button>
+        <div className="flex items-center gap-2">
+            <Button variant="outline" asChild>
+                <Link href="/settings/mood">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Configurar
+                </Link>
+            </Button>
+            <Button onClick={() => handleDayClick(new Date().getDate())}>
+              {todayEntry ? 'Actualizar mi día' : 'Registrar mi día'}
+            </Button>
+        </div>
       </PageHeader>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -284,13 +299,15 @@ export default function MoodTrackerPage() {
 
           {step === 2 && (
              <div className="flex flex-wrap gap-2 justify-center py-4">
-                {feelings.map((feeling) => (
+                {activeFeelings.map((feeling) => (
                     <Button 
-                        key={feeling} 
-                        variant={selectedFeelings.includes(feeling) ? 'secondary' : 'outline'}
-                        onClick={() => handleToggleSelection(feeling, selectedFeelings, setSelectedFeelings)}
+                        key={feeling.id} 
+                        variant={selectedFeelings.includes(feeling.name) ? 'secondary' : 'outline'}
+                        onClick={() => handleToggleSelection(feeling.name, selectedFeelings, setSelectedFeelings)}
+                        className="gap-2"
                     >
-                      {feeling}
+                      <span>{feeling.icon}</span>
+                      {feeling.name}
                     </Button>
                 ))}
              </div>
@@ -298,13 +315,15 @@ export default function MoodTrackerPage() {
 
            {step === 3 && (
              <div className="flex flex-wrap gap-2 justify-center py-4">
-                {influences.map((influence) => (
+                {activeInfluences.map((influence) => (
                     <Button 
-                        key={influence} 
-                        variant={selectedInfluences.includes(influence) ? 'secondary' : 'outline'}
-                        onClick={() => handleToggleSelection(influence, selectedInfluences, setSelectedInfluences)}
+                        key={influence.id} 
+                        variant={selectedInfluences.includes(influence.name) ? 'secondary' : 'outline'}
+                        onClick={() => handleToggleSelection(influence.name, selectedInfluences, setSelectedInfluences)}
+                        className="gap-2"
                     >
-                      {influence}
+                      <span>{influence.icon}</span>
+                      {influence.name}
                     </Button>
                 ))}
              </div>

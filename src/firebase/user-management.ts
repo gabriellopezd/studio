@@ -1,38 +1,57 @@
 import { User } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, getDoc, collection, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import { PRESET_EXPENSE_CATEGORIES } from '@/lib/transaction-categories';
+import { defaultFeelings, defaultInfluences } from '@/lib/moods';
 
 async function initializeDefaultTaskCategories(user: User, firestore: any, batch: any) {
     const taskCategoriesRef = collection(firestore, 'users', user.uid, 'taskCategories');
     const tasksRef = collection(firestore, 'users', user.uid, 'tasks');
 
-    // 1. Get all unique categories from existing tasks
     const tasksSnapshot = await getDocs(tasksRef);
     const existingTaskCategories = new Set(tasksSnapshot.docs.map(doc => doc.data().category));
 
-    // 2. Ensure "Otro" is in the set
     existingTaskCategories.add("Otro");
 
-    // 3. Get all categories that are already in the taskCategories collection
     const categoriesSnapshot = await getDocs(taskCategoriesRef);
     const definedCategories = new Set(categoriesSnapshot.docs.map(doc => doc.data().name));
 
-    // 4. Find which categories from tasks are missing in the collection
     const missingCategories = [...existingTaskCategories].filter(cat => !definedCategories.has(cat));
 
-    // 5. Batch-write the missing categories
     missingCategories.forEach(categoryName => {
-        if (categoryName) { // Ensure category name is not empty
+        if (categoryName) {
             const newCategoryRef = doc(taskCategoriesRef);
             batch.set(newCategoryRef, {
                 name: categoryName,
                 isActive: true,
                 userId: user.uid,
-                budgetFocus: 'Deseos', // Default value
+                budgetFocus: 'Deseos',
             });
         }
     });
 }
+
+async function initializeDefaultMoodOptions(user: User, firestore: any, batch: any) {
+    // Check for feelings
+    const feelingsRef = collection(firestore, 'users', user.uid, 'feelings');
+    const feelingsSnap = await getDocs(query(feelingsRef, limit(1)));
+    if (feelingsSnap.empty) {
+        defaultFeelings.forEach(feeling => {
+            const newFeelingRef = doc(feelingsRef);
+            batch.set(newFeelingRef, { ...feeling, userId: user.uid, isActive: true });
+        });
+    }
+
+    // Check for influences
+    const influencesRef = collection(firestore, 'users', user.uid, 'influences');
+    const influencesSnap = await getDocs(query(influencesRef, limit(1)));
+    if (influencesSnap.empty) {
+        defaultInfluences.forEach(influence => {
+            const newInfluenceRef = doc(influencesRef);
+            batch.set(newInfluenceRef, { ...influence, userId: user.uid, isActive: true });
+        });
+    }
+}
+
 
 export const handleUserLogin = async (user: User, firestore: any, displayName?: string) => {
     if (!user) return;
@@ -42,7 +61,6 @@ export const handleUserLogin = async (user: User, firestore: any, displayName?: 
     const userDoc = await getDoc(userRef);
 
     if (!userDoc.exists()) {
-        // Create user profile
         const userProfileData = {
             displayName: displayName || user.displayName || user.email?.split('@')[0],
             email: user.email,
@@ -51,11 +69,14 @@ export const handleUserLogin = async (user: User, firestore: any, displayName?: 
             lastLoginAt: serverTimestamp(),
         };
         batch.set(userRef, userProfileData);
+        
+        // This is a new user, so also initialize mood options
+        await initializeDefaultMoodOptions(user, firestore, batch);
+
     } else {
         batch.update(userRef, { lastLoginAt: serverTimestamp() });
     }
     
-    // Always run the category initialization/migration logic on login
     await initializeDefaultTaskCategories(user, firestore, batch);
 
     await batch.commit();

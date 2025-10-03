@@ -1,4 +1,5 @@
 
+
 export const moodLevels = [
   { level: 1, emoji: '😞', label: 'Muy mal' },
   { level: 2, emoji: '🙁', label: 'Mal' },
@@ -9,45 +10,71 @@ export const moodLevels = [
   { level: 7, emoji: '🤩', label: 'Muy bien' },
 ];
 
-export const feelings = [
+export const defaultFeelings = [
     // Positivos de alta energía
-    'Eufórico/a', 'Emocionado/a', 'Inspirado/a', 'Motivado/a', 'Enérgico/a',
-    'Creativo/a', 'Concentrado/a', 'Productivo/a', 'Entusiasta', 'Apasionado/a',
+    { name: 'Eufórico/a', icon: '🎉', type: 'Positivo Alta Energía' },
+    { name: 'Emocionado/a', icon: '🤩', type: 'Positivo Alta Energía' },
+    { name: 'Inspirado/a', icon: '💡', type: 'Positivo Alta Energía' },
+    { name: 'Motivado/a', icon: '🚀', type: 'Positivo Alta Energía' },
+    { name: 'Enérgico/a', icon: '⚡', type: 'Positivo Alta Energía' },
+    { name: 'Creativo/a', icon: '🎨', type: 'Positivo Alta Energía' },
+    { name: 'Concentrado/a', icon: '🎯', type: 'Positivo Alta Energía' },
 
     // Positivos de baja energía
-    'Relajado/a', 'Tranquilo/a', 'Satisfecho/a', 'Agradecido/a', 'Sereno/a',
-    'Cómodo/a', 'Seguro/a', 'Amado/a', 'Orgulloso/a', 'Contento/a',
+    { name: 'Relajado/a', icon: '😌', type: 'Positivo Baja Energía' },
+    { name: 'Tranquilo/a', icon: '🧘', type: 'Positivo Baja Energía' },
+    { name: 'Satisfecho/a', icon: '😊', type: 'Positivo Baja Energía' },
+    { name: 'Agradecido/a', icon: '🙏', type: 'Positivo Baja Energía' },
+    { name: 'Sereno/a', icon: '🏞️', type: 'Positivo Baja Energía' },
+    { name: 'Cómodo/a', icon: '🛋️', type: 'Positivo Baja Energía' },
+    { name: 'Seguro/a', icon: '🛡️', type: 'Positivo Baja Energía' },
 
     // Negativos de alta energía
-    'Estresado/a', 'Ansioso/a', 'Enojado/a', 'Irritable', 'Frustrado/a',
-    'Agitado/a', 'Abrumado/a', 'Celoso/a', 'Inquieto/a', 'Nervioso/a',
+    { name: 'Estresado/a', icon: '🤯', type: 'Negativo Alta Energía' },
+    { name: 'Ansioso/a', icon: '😰', type: 'Negativo Alta Energía' },
+    { name: 'Enojado/a', icon: '😠', type: 'Negativo Alta Energía' },
+    { name: 'Irritable', icon: '😤', type: 'Negativo Alta Energía' },
+    { name: 'Frustrado/a', icon: '😫', type: 'Negativo Alta Energía' },
+    { name: 'Abrumado/a', icon: '😵', type: 'Negativo Alta Energía' },
 
     // Negativos de baja energía
-    'Triste', 'Cansado/a', 'Aburrido/a', 'Solitario/a', 'Apático/a',
-    'Desanimado/a', 'Inseguro/a', 'Avergonzado/a', 'Culpable', 'Melancólico/a'
+    { name: 'Triste', icon: '😢', type: 'Negativo Baja Energía' },
+    { name: 'Cansado/a', icon: '😴', type: 'Negativo Baja Energía' },
+    { name: 'Aburrido/a', icon: '😒', type: 'Negativo Baja Energía' },
+    { name: 'Solitario/a', icon: '👤', type: 'Negativo Baja Energía' },
+    { name: 'Apático/a', icon: '😑', type: 'Negativo Baja Energía' },
+    { name: 'Desanimado/a', icon: '😞', type: 'Negativo Baja Energía' },
 ];
 
-export const influences = [
+export const defaultInfluences = [
     // Relaciones
-    'Amistades', 'Pareja', 'Familia', 'Social', 'Comunidad',
+    { name: 'Amistades', icon: '🧑‍🤝‍🧑', category: 'Relaciones' },
+    { name: 'Pareja', icon: '❤️', category: 'Relaciones' },
+    { name: 'Familia', icon: '👨‍👩‍👧‍👦', category: 'Relaciones' },
+    { name: 'Social', icon: '🎉', category: 'Relaciones' },
 
     // Trabajo y Crecimiento
-    'Trabajo', 'Estudios', 'Finanzas', 'Metas', 'Desarrollo Profesional',
+    { name: 'Trabajo', icon: '💼', category: 'Trabajo y Crecimiento' },
+    { name: 'Estudios', icon: '📚', category: 'Trabajo y Crecimiento' },
+    { name: 'Finanzas', icon: '💰', category: 'Trabajo y Crecimiento' },
+    { name: 'Metas', icon: '🎯', category: 'Trabajo y Crecimiento' },
 
     // Bienestar
-    'Ejercicio', 'Dieta', 'Sueño', 'Salud', 'Autocuidado',
+    { name: 'Ejercicio', icon: '🏋️', category: 'Bienestar' },
+    { name: 'Dieta', icon: '🥗', category: 'Bienestar' },
+    { name: 'Sueño', icon: '😴', category: 'Bienestar' },
+    { name: 'Salud', icon: '🏥', category: 'Bienestar' },
 
     // Entorno y Ocio
-    'Clima', 'Hogar', 'Noticias', 'Hobbies', 'Música',
+    { name: 'Clima', icon: '🌦️', category: 'Entorno y Ocio' },
+    { name: 'Hogar', icon: '🏠', category: 'Entorno y Ocio' },
+    { name: 'Hobbies', icon: '🎨', category: 'Entorno y Ocio' },
+    { name: 'Música', icon: '🎵', category: 'Entorno y Ocio' },
 
     // Interno
-    'Espiritualidad', 'Identidad', 'Reflexión', 'Apariencia', 'Creatividad'
+    { name: 'Espiritualidad', icon: '🙏', category: 'Interno' },
+    { name: 'Reflexión', icon: '🤔', category: 'Interno' },
 ];
 
-export const moods = [
-  { level: 1, emoji: '😞', label: 'Muy mal' },
-  { level: 2, emoji: '🙁', label: 'Mal' },
-  { level: 3, emoji: '😐', label: 'Neutral' },
-  { level: 4, emoji: '🙂', label: 'Bien' },
-  { level: 5, emoji: '😄', label: 'Muy bien' },
-];
+export const feelings = defaultFeelings.map(f => f.name);
+export const influences = defaultInfluences.map(i => i.name);

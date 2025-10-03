@@ -412,6 +412,36 @@
         "emoji"
       ]
     },
+    "Feeling": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Feeling",
+      "type": "object",
+      "description": "Represents a user-defined feeling for mood tracking.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["Positivo Alta Energía", "Positivo Baja Energía", "Negativo Alta Energía", "Negativo Baja Energía"] },
+        "icon": { "type": "string" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["id", "userId", "name", "type", "icon", "isActive"]
+    },
+    "Influence": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Influence",
+      "type": "object",
+      "description": "Represents a user-defined influence for mood tracking.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string", "enum": ["Relaciones", "Trabajo y Crecimiento", "Bienestar", "Entorno y Ocio", "Interno"] },
+        "icon": { "type": "string" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["id", "userId", "name", "category", "icon", "isActive"]
+    },
     "Transaction": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Transaction",
@@ -794,6 +824,22 @@
           "entityName": "Mood",
           "schema": { "$ref": "#/backend/entities/Mood" },
           "description": "A single mood entry owned by a user. To access a single document, the client MUST use a direct reference."
+        }
+      },
+      {
+        "path": "/users/{userId}/feelings/{feelingId}",
+        "definition": {
+          "entityName": "Feeling",
+          "schema": { "$ref": "#/backend/entities/Feeling" },
+          "description": "A user-defined feeling for mood tracking."
+        }
+      },
+      {
+        "path": "/users/{userId}/influences/{influenceId}",
+        "definition": {
+          "entityName": "Influence",
+          "schema": { "$ref": "#/backend/entities/Influence" },
+          "description": "A user-defined influence for mood tracking."
         }
       },
       {

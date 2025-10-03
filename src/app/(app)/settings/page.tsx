@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import PageHeader from '@/components/page-header';
@@ -15,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { Upload, RotateCcw, TimerOff, Trash2, Library, Repeat, ShoppingCart, ChevronRight, User as UserIcon, Lock, Palette, Bell, SquareCheckBig } from 'lucide-react';
+import { Upload, RotateCcw, TimerOff, Trash2, Library, Repeat, ShoppingCart, ChevronRight, User as UserIcon, Lock, Palette, Bell, SquareCheckBig, Smile } from 'lucide-react';
 import { useFirebase, useUser, updateDocumentNonBlocking } from '@/firebase';
 import { useState, useEffect } from 'react';
 import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
@@ -112,6 +113,12 @@ export default function SettingsPage() {
         icon: ShoppingCart, 
         title: 'Categorías de Compras', 
         description: 'Gestiona qué categorías aparecen como listas de compra.' 
+    },
+    { 
+        href: '/settings/mood', 
+        icon: Smile, 
+        title: 'Personalizar Ánimo', 
+        description: 'Gestiona tus sentimientos e influencias.' 
     },
   ];
 
