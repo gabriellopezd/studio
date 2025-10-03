@@ -777,6 +777,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const completedWithDueDate = tasks.filter(t => t.isCompleted && t.dueDate && t.completionDate);
         const onTime = completedWithDueDate.filter(t => t.completionDate.toDate() <= t.dueDate.toDate()).length;
         const onTimeRate = completedWithDueDate.length > 0 ? (onTime / completedWithDueDate.length) * 100 : 0;
+        
+        const completedByCategory = taskCategories.map(category => {
+            const count = tasks.filter(t => t.isCompleted && t.category === category).length;
+            return { name: category, tareas: count };
+        }).filter(c => c.tareas > 0);
 
         const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
         const dailyStats = weekDays.map((name, i) => {
@@ -793,11 +798,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return { name, completadas: completedOnDay, pendientes: pendingOnDay };
         });
         
-        const completedByCategory = taskCategories.map(category => {
-            const count = tasks.filter(t => t.isCompleted && t.category === category).length;
-            return { name: category, tareas: count };
-        }).filter(c => c.tareas > 0);
-
         const taskLogs = (timeLogs || []).filter((log: any) => log.referenceType === 'task');
         const categoryTimeTotals: Record<string, number> = {};
         taskLogs.forEach((log: any) => {
