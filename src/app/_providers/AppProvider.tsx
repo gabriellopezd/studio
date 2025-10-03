@@ -745,7 +745,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const nextSevenDays = new Date();
         nextSevenDays.setDate(today.getDate() + 7);
 
-        const upcoming = recurringExpenses?.filter(e => {
+        const upcoming = (recurringExpenses || []).filter(e => {
             if (e.lastInstanceCreated === monthYear) return false; // Already paid this month
             const dayOfMonth = e.dayOfMonth;
             if (dayOfMonth < today.getDate()) return false; // Past due date for this month
@@ -753,10 +753,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return dueDate >= today && dueDate <= nextSevenDays;
         }) ?? [];
 
-        const pendingRE = recurringExpenses?.filter(e => e.lastInstanceCreated !== monthYear) ?? [];
-        const paidRE = recurringExpenses?.filter(e => e.lastInstanceCreated === monthYear) ?? [];
-        const pendingRI = recurringIncomes?.filter(i => i.lastInstanceCreated !== monthYear) ?? [];
-        const receivedRI = recurringIncomes?.filter(i => i.lastInstanceCreated === monthYear) ?? [];
+        const pendingRE = (recurringExpenses || []).filter(e => e.lastInstanceCreated !== monthYear) ?? [];
+        const paidRE = (recurringExpenses || []).filter(e => e.lastInstanceCreated === monthYear) ?? [];
+        const pendingRI = (recurringIncomes || []).filter(i => i.lastInstanceCreated !== monthYear) ?? [];
+        const receivedRI = (recurringIncomes || []).filter(i => i.lastInstanceCreated === monthYear) ?? [];
         
         const pendingRecurringTotal = (recurringExpenses || []).filter(e => e.lastInstanceCreated !== monthYear).reduce((s, e) => s + e.amount, 0);
         const pendingShoppingTotal = (shoppingLists || []).filter(l => l.isActive).reduce((total, list) => 
