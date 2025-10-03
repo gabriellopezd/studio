@@ -954,7 +954,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return acc;
         }, {'Necesidades':0, 'Deseos':0, 'Ahorros y Deudas':0}) ?? {}) as [string, number][]).map(([name, value]) => ({name, value})).filter(d => d.value > 0);
         
-        let upcomingPayments = allRecurringExpensesData.filter((e: any) => {
+        const upcomingPayments = allRecurringExpensesData.filter((e: any) => {
             const dayOfMonth = e.dayOfMonth;
             const today = new Date();
             const currentDay = today.getDate();
@@ -1052,6 +1052,3 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
-
-
-    
