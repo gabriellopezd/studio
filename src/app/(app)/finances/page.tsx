@@ -3,7 +3,6 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import PageHeader from '@/components/page-header';
-import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -21,54 +20,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
-  ArrowDownCircle,
-  ArrowUpCircle,
-  PlusCircle,
-  MoreHorizontal,
-  Pencil,
-  Trash2,
   Landmark,
   PiggyBank,
   Heart,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-} from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppContext } from '@/app/_providers/AppProvider';
-import { ResponsiveCalendar } from '../tasks/_components/ResponsiveCalendar';
-import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, Legend, XAxis, YAxis } from 'recharts';
 import { TooltipProvider, Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const motivationalQuotes = [
@@ -79,40 +38,21 @@ const motivationalQuotes = [
     "Invierte en tu futuro financiero. Empieza hoy."
 ];
 
-const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
-const months = Array.from({ length: 12 }, (_, i) => ({ value: i, label: new Date(0, i).toLocaleString('es-ES', { month: 'long' }) }));
-
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8442ff', '#ff42f5'];
 
 export default function FinancesPage() {
   const {
     currentMonth,
-    setCurrentMonth,
-    transactions,
-    transactionsLoading,
-    budgets,
-    budgetsLoading,
     monthlyIncome,
     monthlyExpenses,
     balance,
     budget503020,
     pendingExpensesTotal,
     pendingIncomesTotal,
-    expenseCategories,
-    incomeCategories,
-    categoriesWithoutBudget,
     annualFlowData,
     annualCategorySpending,
     monthlySummaryData,
     annualTransactionsLoading,
-    handleSaveTransaction,
-    handleDeleteTransaction,
-    handleSaveBudget,
-    modalState,
-    handleOpenModal,
-    handleCloseModal,
-    formState,
-    setFormState,
   } = useAppContext();
   
   const [motivation, setMotivation] = useState('');
@@ -129,30 +69,7 @@ export default function FinancesPage() {
           description="Controla tus ingresos, gastos y presupuestos."
           motivation={motivation}
           imageId="finances-header"
-        >
-            <div className='flex items-center gap-2'>
-                <Select value={String(currentMonth.getFullYear())} onValueChange={(value) => setCurrentMonth(new Date(Number(value), currentMonth.getMonth()))}>
-                    <SelectTrigger className="w-[120px]">
-                        <SelectValue placeholder="Año" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {years.map(year => <SelectItem key={year} value={String(year)}>{year}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-                <Select value={String(currentMonth.getMonth())} onValueChange={(value) => setCurrentMonth(new Date(currentMonth.getFullYear(), Number(value)))}>
-                    <SelectTrigger className="w-[150px]">
-                        <SelectValue placeholder="Mes" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {months.map(month => <SelectItem key={month.value} value={String(month.value)}>{month.label}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-                 <Button onClick={() => handleOpenModal('transaction')}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Añadir Transacción
-                </Button>
-            </div>
-        </PageHeader>
+        />
         
         <Tabs defaultValue="monthly">
           <TabsList className="grid w-full grid-cols-2">
@@ -253,125 +170,6 @@ export default function FinancesPage() {
                 </Card>
             )}
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-2">
-                    <CardHeader>
-                    <CardTitle>Transacciones del Mes</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                    {transactionsLoading && <p>Cargando transacciones...</p>}
-                    <div className="overflow-x-auto">
-                        <Table>
-                        <TableHeader>
-                            <TableRow>
-                            <TableHead>Descripción</TableHead>
-                            <TableHead className="hidden sm:table-cell">Categoría</TableHead>
-                            <TableHead className="hidden md:table-cell">Fecha</TableHead>
-                            <TableHead className="text-right">Monto</TableHead>
-                            <TableHead className="w-[50px] text-right">Acciones</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {transactions?.map((t) => (
-                            <TableRow key={t.id}>
-                                <TableCell className="flex items-center gap-2 font-medium">
-                                {t.type === 'income' ? (
-                                    <ArrowUpCircle className="size-5 shrink-0 text-emerald-500" />
-                                ) : (
-                                    <ArrowDownCircle className="size-5 shrink-0 text-red-500" />
-                                )}
-                                <span className="truncate">{t.description}</span>
-                                </TableCell>
-                                <TableCell className="hidden sm:table-cell">{t.category}</TableCell>
-                                <TableCell className="hidden md:table-cell">
-                                {new Date(t.date).toLocaleString('es-ES', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                })}
-                                </TableCell>
-                                <TableCell
-                                className={`text-right font-semibold ${
-                                    t.type === 'income'
-                                    ? 'text-emerald-500'
-                                    : 'text-red-500'
-                                }`}
-                                >
-                                {t.type === 'income' ? '+' : '-'}
-                                {formatCurrency(t.amount)}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                                          <MoreHorizontal className="h-4 w-4" />
-                                      </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent>
-                                      <DropdownMenuItem onClick={() => handleOpenModal('transaction', t)}>
-                                          <Pencil className="mr-2 h-4 w-4" />
-                                          Editar
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                          onSelect={(e) => e.preventDefault()}
-                                          onClick={() => handleOpenModal('deleteTransaction', t)}
-                                          className="text-red-500 focus:text-red-500"
-                                          >
-                                          <Trash2 className="mr-2 h-4 w-4" />
-                                          Eliminar
-                                          </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </TableCell>
-                            </TableRow>
-                            ))}
-                        </TableBody>
-                        </Table>
-                    </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle>Presupuestos</CardTitle>
-                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal('budget')}>
-                            <PlusCircle className="h-4 w-4" />
-                        </Button>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {budgetsLoading && <p>Cargando presupuestos...</p>}
-                            {budgets?.map((b) => {
-                                const currentSpend = b.currentSpend || 0;
-                                const progress = (currentSpend / b.monthlyLimit) * 100;
-
-                                return (
-                                <div key={b.id}>
-                                    <div className="flex justify-between items-center mb-1">
-                                    <span className="text-sm font-medium">
-                                        {b.categoryName}
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm text-muted-foreground">
-                                        {formatCurrency(currentSpend)} /{' '}
-                                        {formatCurrency(b.monthlyLimit)}
-                                        </span>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenModal('budget', b)}>
-                                        <Pencil className="h-3 w-3" />
-                                        </Button>
-                                    </div>
-                                    </div>
-                                    <Progress value={progress} className="h-2"/>
-                                </div>
-                                );
-                            })}
-                            {budgets?.length === 0 && !budgetsLoading && (
-                                <p className="text-sm text-center text-muted-foreground pt-4">
-                                    No has creado ningún presupuesto.
-                                </p>
-                                )}
-                        </div>
-                    </CardContent>
-                </Card>
-                </div>
           </TabsContent>
 
            <TabsContent value="annual" className="mt-6 space-y-6">
@@ -463,148 +261,6 @@ export default function FinancesPage() {
           </TabsContent>
         </Tabs>
       </div>
-
-    {/* Transaction Dialog */}
-    <Dialog open={modalState.type === 'transaction'} onOpenChange={() => handleCloseModal('transaction')}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{formState.id ? 'Editar' : 'Añadir'} Transacción</DialogTitle>
-          </DialogHeader>
-            <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="type">Tipo</Label>
-                    <Select value={formState.type || 'expense'} onValueChange={(value) => setFormState(prev => ({...prev, type: value as 'income' | 'expense'}))}>
-                      <SelectTrigger><SelectValue/></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="expense">Gasto</SelectItem>
-                        <SelectItem value="income">Ingreso</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                     <Label htmlFor="amount">Monto</Label>
-                     <Input id="amount" type="number" value={formState.amount as string || ''} onChange={(e) => setFormState(prev => ({...prev, amount: e.target.value}))}/>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="description">Descripción</Label>
-                    <Input id="description" value={formState.description || ''} onChange={(e) => setFormState(prev => ({...prev, description: e.target.value}))} />
-                </div>
-              <div className="space-y-2">
-                <Label htmlFor="category">Categoría</Label>
-                <Select value={formState.category || ''} onValueChange={(value) => setFormState(prev => ({...prev, category: value}))}>
-                  <SelectTrigger><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
-                  <SelectContent>
-                      {(formState.type === 'expense' ? expenseCategories : incomeCategories).map((cat) => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-               <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="date">Fecha</Label>
-                    <ResponsiveCalendar
-                      id="date"
-                      value={formState.date ? new Date(formState.date) : new Date()}
-                      onSelect={(date) =>
-                        setFormState(prev => ({...prev, date: date?.toISOString()}))
-                      }
-                    />
-                  </div>
-                  {formState.type === 'expense' && (
-                    <div className="space-y-2">
-                      <Label htmlFor="budget-focus">Enfoque Presupuesto</Label>
-                      <Select value={formState.budgetFocus || ''} onValueChange={(value) => setFormState(prev => ({...prev, budgetFocus: value}))}>
-                        <SelectTrigger id="budget-focus"><SelectValue placeholder="Selecciona" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Necesidades">Necesidades</SelectItem>
-                          <SelectItem value="Deseos">Deseos</SelectItem>
-                          <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                </div>
-            </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => handleCloseModal('transaction')}>Cancelar</Button>
-            <Button type="submit" onClick={handleSaveTransaction}>Guardar Cambios</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Transaction Confirmation */}
-      <AlertDialog open={modalState.type === 'deleteTransaction'} onOpenChange={() => handleCloseModal('deleteTransaction')}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-            <AlertDialogDescription>
-                Esta acción no se puede deshacer. Esto eliminará permanentemente
-                la transacción.
-            </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => handleCloseModal('deleteTransaction')}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-                onClick={handleDeleteTransaction}
-                className="bg-destructive hover:bg-destructive/90"
-            >
-                Eliminar
-            </AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Budget Dialog */}
-       <Dialog open={modalState.type === 'budget'} onOpenChange={() => handleCloseModal('budget')}>
-            <DialogContent>
-            <DialogHeader>
-                <DialogTitle>{formState.id ? 'Editar Presupuesto' : 'Añadir Presupuesto'}</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                <Label htmlFor="budget-category">Categoría</Label>
-                <Select
-                    value={formState.categoryName || ''}
-                    onValueChange={(value) => setFormState(prev => ({ ...prev, categoryName: value }))}
-                    disabled={!!formState.id}
-                >
-                    <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una categoría" />
-                    </SelectTrigger>
-                    <SelectContent>
-                    {formState.id ? (
-                        <SelectItem value={formState.categoryName}>{formState.categoryName}</SelectItem>
-                    ) : categoriesWithoutBudget.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                        {cat}
-                        </SelectItem>
-                    ))}
-                    </SelectContent>
-                </Select>
-                </div>
-                <div className="space-y-2">
-                <Label htmlFor="budget-limit">Límite Mensual</Label>
-                <Input
-                    id="budget-limit"
-                    type="number"
-                    value={formState.monthlyLimit || ''}
-                    onChange={(e) => setFormState(prev => ({ ...prev, monthlyLimit: e.target.value }))}
-                />
-                </div>
-            </div>
-            <DialogFooter>
-                <DialogClose asChild>
-                <Button type="button" variant="outline" onClick={() => handleCloseModal('budget')}>Cancelar</Button>
-                </DialogClose>
-                <Button type="submit" onClick={handleSaveBudget}>
-                {formState.id ? 'Guardar Cambios' : 'Guardar Presupuesto'}
-                </Button>
-            </DialogFooter>
-            </DialogContent>
-      </Dialog>
     </>
   );
 }

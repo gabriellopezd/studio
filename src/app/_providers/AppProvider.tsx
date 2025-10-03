@@ -182,13 +182,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const budgetsQuery = useMemo(() => {
         if (!user || !firestore) return null;
-        const year = state.currentMonth.getFullYear();
-        const month = state.currentMonth.getMonth() + 1;
-        return query(
-            collection(firestore, 'users', user.uid, 'budgets'),
-            where('year', '==', year),
-            where('month', '==', month)
-        );
+        return query(collection(firestore, 'users', user.uid, 'budgets'));
     }, [user, firestore, state.currentMonth]);
     const { data: budgets, isLoading: budgetsLoading } = useCollection(budgetsQuery);
 
