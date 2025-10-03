@@ -887,23 +887,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const limit = parseFloat(monthlyLimit);
         if (isNaN(limit)) return;
       
-        if (!id) {
-          const categoryExists = budgets?.some(b => b.categoryName.toLowerCase() === categoryName.toLowerCase());
-          if (categoryExists) {
-            toast({ variant: "destructive", title: "Categoría Duplicada", description: `El presupuesto para "${categoryName}" ya existe.` });
-            return;
-          }
-        }
-      
         const year = state.currentMonth.getFullYear();
         const month = state.currentMonth.getMonth() + 1;
       
-        if (id) {
+        if (id) { // Editing existing budget
           const budgetRef = doc(firestore, 'users', user.uid, 'budgets', id);
           await updateDocumentNonBlocking(budgetRef, { monthlyLimit: limit });
-        } else {
-          const newBudget = { categoryName, monthlyLimit: limit, currentSpend: 0, year, month, userId: user.uid };
-          await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'budgets'), newBudget);
+        } else { // Creating new budget
+            // Check if a budget for this category already exists for the selected month and year
+            const q = query(
+                collection(firestore, 'users', user.uid, 'budgets'),
+                where('categoryName', '==', categoryName),
+                where('year', '==', year),
+                where('month', '==', month)
+            );
+            const existingBudgetSnap = await getDocs(q);
+
+            if (!existingBudgetSnap.empty) {
+                toast({ variant: "destructive", title: "Categoría Duplicada", description: `El presupuesto para "${categoryName}" ya existe en este mes.` });
+                return;
+            }
+
+            const newBudget = { categoryName, monthlyLimit: limit, currentSpend: 0, year, month, userId: user.uid };
+            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'budgets'), newBudget);
         }
       
         handleCloseModal('budget');
@@ -1432,3 +1438,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
+
+
+      
