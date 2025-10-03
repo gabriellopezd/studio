@@ -17,7 +17,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
@@ -128,75 +127,24 @@ export default function HabitsPage() {
     monthlyCompletionData,
     analyticsLoading,
     handleToggleHabit,
-    handleCreateOrUpdateHabit,
+    handleSaveHabit,
     handleDeleteHabit,
-    handleResetAllStreaks,
+    handleResetHabitStreak,
     activeSession, 
     startSession, 
-    stopSession
+    stopSession,
+    modalState,
+    handleOpenModal,
+    handleCloseModal,
+    formState,
+    setFormState,
   } = useAppContext();
   
-  const [isDialogOpen, setDialogOpen] = useState(false);
-  const [habitToEdit, setHabitToEdit] = useState<any>(null);
-  const [habitToDelete, setHabitToDelete] = useState<any>(null);
-  const [habitToReset, setHabitToReset] = useState<any>(null);
   const [motivation, setMotivation] = useState('');
-
-  const [newHabitName, setNewHabitName] = useState('');
-  const [newHabitIcon, setNewHabitIcon] = useState('');
-  const [newHabitFrequency, setNewHabitFrequency] = useState('Diario');
-  const [newHabitCategory, setNewHabitCategory] = useState('');
 
   useEffect(() => {
     setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, []);
-  
-  const resetForm = () => {
-    setNewHabitName('');
-    setNewHabitIcon('');
-    setNewHabitFrequency('Diario');
-    setNewHabitCategory('');
-    setHabitToEdit(null);
-  };
-  
-  const onSave = () => {
-    handleCreateOrUpdateHabit({
-      id: habitToEdit?.id,
-      name: newHabitName,
-      icon: newHabitIcon,
-      frequency: newHabitFrequency,
-      category: newHabitCategory,
-    });
-    setDialogOpen(false);
-    resetForm();
-  }
-
-  const onDelete = () => {
-    if (habitToDelete) {
-      handleDeleteHabit(habitToDelete.id);
-      setHabitToDelete(null);
-    }
-  }
-
-  const onReset = () => {
-    if (habitToReset) {
-      handleResetAllStreaks();
-      setHabitToReset(null);
-    }
-  }
-
-  const handleOpenDialog = (habit?: any) => {
-    if (habit) {
-      setHabitToEdit(habit);
-      setNewHabitName(habit.name);
-      setNewHabitIcon(habit.icon);
-      setNewHabitFrequency(habit.frequency);
-      setNewHabitCategory(habit.category);
-    } else {
-      resetForm();
-    }
-    setDialogOpen(true);
-  };
   
   const sortedCategories = Object.keys(groupedHabits).sort((a, b) => {
     const orderA = habitCategories.indexOf(a);
@@ -222,7 +170,7 @@ export default function HabitsPage() {
                     Configurar Hábitos
                     </Link>
                 </Button>
-                <Button onClick={() => handleOpenDialog()}>
+                <Button onClick={() => handleOpenModal('habit')}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Crear Hábito
                 </Button>
@@ -288,17 +236,17 @@ export default function HabitsPage() {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleOpenDialog(habit)}>
+                                    <DropdownMenuItem onClick={() => handleOpenModal('habit', habit)}>
                                     <Pencil className="mr-2 h-4 w-4" />
                                     Editar
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setHabitToReset(habit)}>
+                                    <DropdownMenuItem onClick={() => handleOpenModal('resetHabit', habit)}>
                                         <RotateCcw className="mr-2 h-4 w-4" />
                                         Reiniciar Racha
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
-                                    onClick={() => setHabitToDelete(habit)}
+                                    onClick={() => handleOpenModal('deleteHabit', habit)}
                                     className="text-red-500"
                                     >
                                     <Trash2 className="mr-2 h-4 w-4" />
@@ -430,23 +378,18 @@ export default function HabitsPage() {
       </div>
       
       {/* Create/Edit Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={(open) => {
-          if (!open) {
-            resetForm();
-          }
-          setDialogOpen(open);
-        }}>
+      <Dialog open={modalState.type === 'habit'} onOpenChange={() => handleCloseModal('habit')}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{habitToEdit ? 'Editar Hábito': 'Crear Nuevo Hábito'}</DialogTitle>
+            <DialogTitle>{formState.id ? 'Editar Hábito': 'Crear Nuevo Hábito'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="habit-name">Nombre</Label>
               <Input
                 id="habit-name"
-                value={newHabitName}
-                onChange={(e) => setNewHabitName(e.target.value)}
+                value={formState.name || ''}
+                onChange={(e) => setFormState(p => ({...p, name: e.target.value}))}
                 placeholder="Ej: Leer 30 minutos"
               />
             </div>
@@ -454,16 +397,16 @@ export default function HabitsPage() {
               <Label htmlFor="habit-icon">Ícono</Label>
               <Input
                 id="habit-icon"
-                value={newHabitIcon}
-                onChange={(e) => setNewHabitIcon(e.target.value)}
+                value={formState.icon || ''}
+                onChange={(e) => setFormState(p => ({...p, icon: e.target.value}))}
                 placeholder="Ej: 📚"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="habit-frequency">Frecuencia</Label>
               <Select
-                value={newHabitFrequency}
-                onValueChange={setNewHabitFrequency}
+                value={formState.frequency || 'Diario'}
+                onValueChange={(v) => setFormState(p => ({...p, frequency: v}))}
               >
                 <SelectTrigger id="habit-frequency">
                   <SelectValue placeholder="Selecciona una frecuencia" />
@@ -475,9 +418,10 @@ export default function HabitsPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="habit-category">Categoría</Label>              <Select
-                value={newHabitCategory}
-                onValueChange={setNewHabitCategory}
+              <Label htmlFor="habit-category">Categoría</Label>
+              <Select
+                value={formState.category || ''}
+                onValueChange={(v) => setFormState(p => ({...p, category: v}))}
               >
                 <SelectTrigger id="habit-category">
                   <SelectValue placeholder="Selecciona una categoría" />
@@ -494,25 +438,25 @@ export default function HabitsPage() {
             <DialogClose asChild>
                 <Button type="button" variant="outline">Cancelar</Button>
             </DialogClose>
-            <Button type="submit" onClick={onSave}>
-              {habitToEdit ? 'Guardar Cambios' : 'Guardar Hábito'}
+            <Button type="submit" onClick={handleSaveHabit}>
+              {formState.id ? 'Guardar Cambios' : 'Guardar Hábito'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
       
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!habitToDelete} onOpenChange={(open) => !open && setHabitToDelete(null)}>
+      <AlertDialog open={modalState.type === 'deleteHabit'} onOpenChange={() => handleCloseModal('deleteHabit')}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará el hábito "{habitToDelete?.name}" permanentemente.
+              Esta acción no se puede deshacer. Se eliminará el hábito "{formState?.name}" permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={onDelete} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogCancel onClick={() => handleCloseModal('deleteHabit')}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteHabit} className="bg-destructive hover:bg-destructive/90">
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -520,17 +464,17 @@ export default function HabitsPage() {
       </AlertDialog>
 
        {/* Reset Streak Confirmation Dialog */}
-      <AlertDialog open={!!habitToReset} onOpenChange={(open) => !open && setHabitToReset(null)}>
+      <AlertDialog open={modalState.type === 'resetHabit'} onOpenChange={() => handleCloseModal('resetHabit')}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Reiniciar racha?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se reiniciará la racha y el récord del hábito "{habitToReset?.name}" a cero.
+              Esta acción no se puede deshacer. Se reiniciará la racha y el récord del hábito "{formState?.name}" a cero.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={onReset} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogCancel onClick={() => handleCloseModal('resetHabit')}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetHabitStreak} className="bg-destructive hover:bg-destructive/90">
               Sí, reiniciar
             </AlertDialogAction>
           </AlertDialogFooter>

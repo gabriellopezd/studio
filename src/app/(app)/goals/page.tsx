@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -25,19 +24,12 @@ import {
   PiggyBank,
   CalendarClock,
 } from 'lucide-react';
-import {
-  useCollection,
-  addDocumentNonBlocking,
-  updateDocumentNonBlocking,
-  deleteDocumentNonBlocking,
-} from '@/firebase';
-import { collection, doc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { Timestamp } from 'firebase/firestore';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
@@ -80,24 +72,19 @@ const motivationalQuotes = [
 ];
 
 export default function GoalsPage() {
-  const { firestore, user, goals, goalsLoading } = useAppContext();
+  const { 
+    goals, 
+    goalsLoading, 
+    handleSaveGoal, 
+    handleDeleteGoal, 
+    handleUpdateGoalProgress,
+    modalState,
+    handleOpenModal,
+    handleCloseModal,
+    formState,
+    setFormState,
+  } = useAppContext();
 
-  const [isDialogOpen, setDialogOpen] = useState(false);
-  const [isProgressDialogOpen, setProgressDialogOpen] = useState(false);
-  
-  const [goalToEdit, setGoalToEdit] = useState<any | null>(null);
-  const [goalToDelete, setGoalToDelete] = useState<any | null>(null);
-  const [goalToUpdateProgress, setGoalToUpdateProgress] = useState<any | null>(null);
-
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [targetValue, setTargetValue] = useState('');
-  const [currentValue, setCurrentValue] = useState('');
-  const [unit, setUnit] = useState('');
-  const [dueDate, setDueDate] = useState('');
-  const [newProgress, setNewProgress] = useState('');
-  const [type, setType] = useState('generic');
-  const [monthlyContribution, setMonthlyContribution] = useState('');
   const [motivation, setMotivation] = useState('');
 
   useEffect(() => {
@@ -112,99 +99,6 @@ export default function GoalsPage() {
     }
   }, [goals]);
 
-
-  const resetForm = () => {
-    setName('');
-    setDescription('');
-    setTargetValue('');
-    setCurrentValue('0');
-    setUnit('');
-    setDueDate('');
-    setGoalToEdit(null);
-    setType('generic');
-    setMonthlyContribution('');
-  };
-
-  const handleOpenDialog = (goal?: any) => {
-    if (goal) {
-      setGoalToEdit(goal);
-      setName(goal.name);
-      setDescription(goal.description || '');
-      setTargetValue(goal.targetValue.toString());
-      setCurrentValue(goal.currentValue.toString());
-      setUnit(goal.unit || '');
-      setDueDate(goal.dueDate?.toDate ? goal.dueDate.toDate().toISOString().split('T')[0] : '');
-      setType(goal.type || 'generic');
-      setMonthlyContribution(goal.monthlyContribution?.toString() || '');
-    } else {
-      resetForm();
-    }
-    setDialogOpen(true);
-  };
-  
-  const handleOpenProgressDialog = (goal: any) => {
-    setGoalToUpdateProgress(goal);
-    setNewProgress(goal.currentValue.toString());
-    setProgressDialogOpen(true);
-  };
-
-  const handleSaveGoal = async () => {
-    if (!user || !name || !targetValue || !firestore) return;
-
-    const goalData = {
-      name,
-      description,
-      targetValue: parseFloat(targetValue),
-      currentValue: parseFloat(currentValue || '0'),
-      unit: type === 'generic' ? unit : 'COP',
-      dueDate: dueDate ? Timestamp.fromDate(new Date(dueDate + 'T00:00:00')) : null,
-      type,
-      monthlyContribution: type !== 'generic' ? parseFloat(monthlyContribution || '0') : null,
-      userId: user.uid,
-    };
-
-    if (goalToEdit) {
-      const goalRef = doc(firestore, 'users', user.uid, 'goals', goalToEdit.id);
-      await updateDocumentNonBlocking(goalRef, goalData);
-    } else {
-      const goalsColRef = collection(firestore, 'users', user.uid, 'goals');
-      await addDocumentNonBlocking(goalsColRef, {
-        ...goalData,
-        isCompleted: false,
-        createdAt: serverTimestamp(),
-      });
-    }
-    setDialogOpen(false);
-    resetForm();
-  };
-  
-  const handleUpdateProgress = async () => {
-    if (!user || !goalToUpdateProgress || newProgress === '' || !firestore) return;
-
-    const progressValue = parseFloat(newProgress);
-    if (isNaN(progressValue)) return;
-    
-    const goalRef = doc(firestore, 'users', user.uid, 'goals', goalToUpdateProgress.id);
-    
-    const isCompleted = progressValue >= goalToUpdateProgress.targetValue;
-    
-    await updateDocumentNonBlocking(goalRef, { 
-      currentValue: progressValue,
-      isCompleted: isCompleted,
-    });
-    
-    setProgressDialogOpen(false);
-    setGoalToUpdateProgress(null);
-    setNewProgress('');
-  };
-
-  const handleDeleteGoal = async () => {
-    if (!user || !goalToDelete || !firestore) return;
-    const goalRef = doc(firestore, 'users', user.uid, 'goals', goalToDelete.id);
-    await deleteDocumentNonBlocking(goalRef);
-    setGoalToDelete(null);
-  };
-  
   const calculateProjectedDate = (goal: any) => {
     if (goal.isCompleted || !goal.monthlyContribution || goal.monthlyContribution <= 0) {
         return null;
@@ -255,11 +149,11 @@ export default function GoalsPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleOpenDialog(goal)}>
+                    <DropdownMenuItem onClick={() => handleOpenModal('goal', goal)}>
                       <Pencil className="mr-2 h-4 w-4" />
                       Editar
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setGoalToDelete(goal)} className="text-red-500">
+                    <DropdownMenuItem onClick={() => handleOpenModal('deleteGoal', goal)} className="text-red-500">
                       <Trash2 className="mr-2 h-4 w-4" />
                       Eliminar
                     </DropdownMenuItem>
@@ -300,7 +194,7 @@ export default function GoalsPage() {
                     Vencimiento: {formatDate(goal.dueDate)}
                 </p>
             )}
-            <Button variant="outline" className="w-full" onClick={() => handleOpenProgressDialog(goal)}>
+            <Button variant="outline" className="w-full" onClick={() => handleOpenModal('progressGoal', goal)}>
               <TrendingUp className="mr-2 h-4 w-4" />
               Actualizar Progreso
             </Button>
@@ -318,7 +212,7 @@ export default function GoalsPage() {
           motivation={motivation}
           imageId="dashboard-header"
         >
-          <Button onClick={() => handleOpenDialog()}>
+          <Button onClick={() => handleOpenModal('goal')}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Crear Meta
           </Button>
@@ -378,15 +272,15 @@ export default function GoalsPage() {
       </div>
       
       {/* Create/Edit Goal Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={modalState.type === 'goal'} onOpenChange={() => handleCloseModal('goal')}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{goalToEdit ? 'Editar Meta' : 'Crear Nueva Meta'}</DialogTitle>
+            <DialogTitle>{formState.id ? 'Editar Meta' : 'Crear Nueva Meta'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
                 <Label htmlFor="goal-type">Tipo de Meta</Label>
-                <Select value={type} onValueChange={setType}>
+                <Select value={formState.type || 'generic'} onValueChange={(v) => setFormState(p => ({...p, type: v}))}>
                     <SelectTrigger id="goal-type">
                         <SelectValue placeholder="Selecciona un tipo" />
                     </SelectTrigger>
@@ -399,76 +293,76 @@ export default function GoalsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="goal-name">Nombre</Label>
-              <Input id="goal-name" value={name} onChange={(e) => setName(e.target.value)} />
+              <Input id="goal-name" value={formState.name || ''} onChange={(e) => setFormState(p => ({...p, name: e.target.value}))} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="goal-desc">Descripción</Label>
-              <Textarea id="goal-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
+              <Textarea id="goal-desc" value={formState.description || ''} onChange={(e) => setFormState(p => ({...p, description: e.target.value}))} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="goal-target">Valor Objetivo</Label>
-                <Input id="goal-target" type="number" value={targetValue} onChange={(e) => setTargetValue(e.target.value)} />
+                <Input id="goal-target" type="number" value={formState.targetValue || ''} onChange={(e) => setFormState(p => ({...p, targetValue: e.target.value}))} />
               </div>
                <div className="space-y-2">
                 <Label htmlFor="goal-current">Valor Inicial</Label>
-                <Input id="goal-current" type="number" value={currentValue} onChange={(e) => setCurrentValue(e.target.value)} disabled={!!goalToEdit}/>
+                <Input id="goal-current" type="number" value={formState.currentValue || '0'} onChange={(e) => setFormState(p => ({...p, currentValue: e.target.value}))} disabled={!!formState.id}/>
               </div>
             </div>
 
-            {type !== 'generic' && (
+            {formState.type !== 'generic' && (
                  <div className="space-y-2">
                     <Label htmlFor="goal-contribution">Aportación Mensual</Label>
-                    <Input id="goal-contribution" type="number" value={monthlyContribution} onChange={(e) => setMonthlyContribution(e.target.value)} placeholder="Ej: 50000"/>
+                    <Input id="goal-contribution" type="number" value={formState.monthlyContribution || ''} onChange={(e) => setFormState(p => ({...p, monthlyContribution: e.target.value}))} placeholder="Ej: 50000"/>
                 </div>
             )}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="goal-unit">Unidad</Label>
-                <Input id="goal-unit" value={type === 'generic' ? unit : 'COP'} onChange={(e) => setUnit(e.target.value)} placeholder={type === 'generic' ? "Ej: Kms, Libros" : 'COP'} disabled={type !== 'generic'}/>
+                <Input id="goal-unit" value={formState.type === 'generic' ? (formState.unit || '') : 'COP'} onChange={(e) => setFormState(p => ({...p, unit: e.target.value}))} placeholder={formState.type === 'generic' ? "Ej: Kms, Libros" : 'COP'} disabled={formState.type !== 'generic'}/>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="goal-due-date">Fecha de Vencimiento</Label>
-                <Input id="goal-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} disabled={type !== 'generic'} />
+                <Input id="goal-due-date" type="date" value={formState.dueDate || ''} onChange={(e) => setFormState(p => ({...p, dueDate: e.target.value}))} disabled={formState.type !== 'generic'} />
               </div>
             </div>
           </div>
           <DialogFooter>
             <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-            <Button onClick={handleSaveGoal}>{goalToEdit ? 'Guardar Cambios' : 'Crear Meta'}</Button>
+            <Button onClick={handleSaveGoal}>{formState.id ? 'Guardar Cambios' : 'Crear Meta'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
       
        {/* Update Progress Dialog */}
-      <Dialog open={isProgressDialogOpen} onOpenChange={setProgressDialogOpen}>
+      <Dialog open={modalState.type === 'progressGoal'} onOpenChange={() => handleCloseModal('progressGoal')}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Actualizar Progreso de "{goalToUpdateProgress?.name}"</DialogTitle>
+            <DialogTitle>Actualizar Progreso de "{formState?.name}"</DialogTitle>
           </DialogHeader>
            <div className="space-y-2 py-4">
               <Label htmlFor="goal-progress">Nuevo Valor Actual</Label>
-              <Input id="goal-progress" type="number" value={newProgress} onChange={(e) => setNewProgress(e.target.value)} />
+              <Input id="goal-progress" type="number" value={formState.progressValue || ''} onChange={(e) => setFormState(p => ({...p, progressValue: e.target.value}))} />
             </div>
           <DialogFooter>
              <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-            <Button onClick={handleUpdateProgress}>Actualizar</Button>
+            <Button onClick={handleUpdateGoalProgress}>Actualizar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation */}
-      <AlertDialog open={!!goalToDelete} onOpenChange={(open) => !open && setGoalToDelete(null)}>
+      <AlertDialog open={modalState.type === 'deleteGoal'} onOpenChange={() => handleCloseModal('deleteGoal')}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará la meta "{goalToDelete?.name}" permanentemente.
+              Esta acción no se puede deshacer. Se eliminará la meta "{formState?.name}" permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => handleCloseModal('deleteGoal')}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteGoal} className="bg-destructive hover:bg-destructive/90">
               Eliminar
             </AlertDialogAction>

@@ -22,17 +22,10 @@ import {
   Square,
 } from 'lucide-react';
 import {
-  updateDocumentNonBlocking,
-  addDocumentNonBlocking,
-  deleteDocumentNonBlocking,
-} from '@/firebase';
-import { doc, serverTimestamp, Timestamp, writeBatch, collection } from 'firebase/firestore';
-import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
@@ -57,7 +50,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
-import { calculateStreak, isHabitCompletedToday } from '@/lib/habits';
+import { isHabitCompletedToday } from '@/lib/habits';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppContext } from '@/app/_providers/AppProvider';
@@ -74,8 +67,6 @@ const motivationalQuotes = [
 
 export default function RoutinesPage() {
   const { 
-    firestore, 
-    user,
     routines,
     routinesLoading,
     allHabits,
@@ -86,14 +77,16 @@ export default function RoutinesPage() {
     activeSession,
     startSession, 
     stopSession,
+    handleSaveRoutine,
+    handleDeleteRoutine,
+    handleCompleteRoutine,
+    modalState,
+    handleOpenModal,
+    handleCloseModal,
+    formState,
+    setFormState,
   } = useAppContext();
 
-  const [isDialogOpen, setDialogOpen] = useState(false);
-  const [routineToEdit, setRoutineToEdit] = useState<any | null>(null);
-  const [routineToDelete, setRoutineToDelete] = useState<any | null>(null);
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [selectedHabitIds, setSelectedHabitIds] = useState<string[]>([]);
   const [motivation, setMotivation] = useState('');
 
   const activeHabits = useMemo(() => allHabits?.filter(h => h.isActive) || [], [allHabits]);
@@ -102,82 +95,6 @@ export default function RoutinesPage() {
   useEffect(() => {
     setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, []);
-  
-  const resetForm = () => {
-    setName('');
-    setDescription('');
-    setSelectedHabitIds([]);
-    setRoutineToEdit(null);
-  };
-
-  const handleOpenDialog = (routine?: any) => {
-    if (routine) {
-      setRoutineToEdit(routine);
-setName(routine.name);
-      setDescription(routine.description || '');
-      setSelectedHabitIds(routine.habitIds || []);
-    } else {
-      resetForm();
-    }
-    setDialogOpen(true);
-  };
-
-  const handleSaveRoutine = async () => {
-    if (!user || !name || !firestore) return;
-
-    const routineData = {
-      name,
-      description,
-      habitIds: selectedHabitIds,
-      userId: user.uid,
-    };
-
-    if (routineToEdit) {
-      const routineRef = doc(firestore, 'users', user.uid, 'routines', routineToEdit.id);
-      await updateDocumentNonBlocking(routineRef, routineData);
-    } else {
-      const routinesColRef = collection(firestore, 'users', user.uid, 'routines');
-      await addDocumentNonBlocking(routinesColRef, {
-        ...routineData,
-        createdAt: serverTimestamp(),
-      });
-    }
-    setDialogOpen(false);
-    resetForm();
-  };
-
-  const handleDeleteRoutine = async () => {
-    if (!user || !routineToDelete || !firestore) return;
-    const routineRef = doc(firestore, 'users', user.uid, 'routines', routineToDelete.id);
-    await deleteDocumentNonBlocking(routineRef);
-    setRoutineToDelete(null);
-  };
-
-  
-  const handleCompleteRoutine = async (routine: any) => {
-    if (!user || !activeHabits || !firestore) return;
-
-    const routineHabits = activeHabits.filter(h => routine.habitIds.includes(h.id));
-    const habitsToComplete = routineHabits.filter(h => !isHabitCompletedToday(h));
-
-    if (habitsToComplete.length === 0) return;
-    
-    const batch = writeBatch(firestore);
-
-    habitsToComplete.forEach(habit => {
-      const habitRef = doc(firestore, "users", user.uid, "habits", habit.id);
-      const streakData = calculateStreak(habit);
-      
-      batch.update(habitRef, {
-        lastCompletedAt: Timestamp.now(),
-        ...streakData,
-        previousStreak: habit.currentStreak || 0,
-        previousLastCompletedAt: habit.lastCompletedAt,
-      });
-    });
-    
-    await batch.commit();
-  };
 
   return (
     <>
@@ -188,7 +105,7 @@ setName(routine.name);
             motivation={motivation}
             imageId="routines-header"
         >
-            <Button onClick={() => handleOpenDialog()}>
+            <Button onClick={() => handleOpenModal('routine')}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Crear Rutina
             </Button>
@@ -224,11 +141,11 @@ setName(routine.name);
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleOpenDialog(routine)}>
+                            <DropdownMenuItem onClick={() => handleOpenModal('routine', routine)}>
                               <Pencil className="mr-2 h-4 w-4" />
                               Editar
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setRoutineToDelete(routine)} className="text-red-500">
+                            <DropdownMenuItem onClick={() => handleOpenModal('deleteRoutine', routine)} className="text-red-500">
                               <Trash2 className="mr-2 h-4 w-4" />
                               Eliminar
                             </DropdownMenuItem>
@@ -345,19 +262,19 @@ setName(routine.name);
         </Tabs>
       </div>
       
-      <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={modalState.type === 'routine'} onOpenChange={() => handleCloseModal('routine')}>
         <DialogContent className="max-h-[80vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>{routineToEdit ? 'Editar Rutina' : 'Crear Nueva Rutina'}</DialogTitle>
+            <DialogTitle>{formState.id ? 'Editar Rutina' : 'Crear Nueva Rutina'}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4 overflow-y-auto px-1">
             <div className="space-y-2">
               <Label htmlFor="routine-name">Nombre</Label>
-              <Input id="routine-name" value={name} onChange={(e) => setName(e.target.value)} />
+              <Input id="routine-name" value={formState.name || ''} onChange={(e) => setFormState(p => ({...p, name: e.target.value}))} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="routine-desc">Descripción</Label>
-              <Textarea id="routine-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
+              <Textarea id="routine-desc" value={formState.description || ''} onChange={(e) => setFormState(p => ({...p, description: e.target.value}))} />
             </div>
             <div className="space-y-2">
               <Label>Hábitos</Label>
@@ -366,9 +283,11 @@ setName(routine.name);
                    <div key={habit.id} className="flex items-center gap-2">
                       <Checkbox 
                         id={`habit-${habit.id}`}
-                        checked={selectedHabitIds.includes(habit.id)}
+                        checked={(formState.habitIds || []).includes(habit.id)}
                         onCheckedChange={(checked) => {
-                          setSelectedHabitIds(prev => checked ? [...prev, habit.id] : prev.filter(id => id !== habit.id));
+                          const currentIds = formState.habitIds || [];
+                          const newIds = checked ? [...currentIds, habit.id] : currentIds.filter((id: string) => id !== habit.id);
+                          setFormState(p => ({...p, habitIds: newIds}));
                         }}
                       />
                       <Label htmlFor={`habit-${habit.id}`} className="flex items-center gap-2 font-normal cursor-pointer">
@@ -381,22 +300,22 @@ setName(routine.name);
             </div>
           </div>
           <DialogFooter>
-            <DialogClose asChild><Button variant="outline" onClick={resetForm}>Cancelar</Button></DialogClose>
-            <Button onClick={handleSaveRoutine}>{routineToEdit ? 'Guardar Cambios' : 'Crear Rutina'}</Button>
+            <DialogClose asChild><Button variant="outline" onClick={() => handleCloseModal('routine')}>Cancelar</Button></DialogClose>
+            <Button onClick={handleSaveRoutine}>{formState.id ? 'Guardar Cambios' : 'Crear Rutina'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
       
-       <AlertDialog open={!!routineToDelete} onOpenChange={(open) => !open && setRoutineToDelete(null)}>
+       <AlertDialog open={modalState.type === 'deleteRoutine'} onOpenChange={() => handleCloseModal('deleteRoutine')}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará la rutina "{routineToDelete?.name}" permanentemente.
+              Esta acción no se puede deshacer. Se eliminará la rutina "{formState?.name}" permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => handleCloseModal('deleteRoutine')}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteRoutine} className="bg-destructive hover:bg-destructive/90">
               Eliminar
             </AlertDialogAction>

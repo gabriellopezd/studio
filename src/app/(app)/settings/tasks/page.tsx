@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useMemo } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,10 +13,9 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useAppContext } from '@/app/_providers/AppProvider';
 import {
-  addDocumentNonBlocking,
   updateDocumentNonBlocking,
 } from '@/firebase';
-import { collection, doc, writeBatch, query, where, getDocs } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import Link from 'next/link';
 import { ArrowLeft, PlusCircle, Trash2, Pencil } from 'lucide-react';
 import {
@@ -24,7 +23,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
@@ -37,33 +35,24 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
 
 export default function TaskSettingsPage() {
-  const { firestore, user, taskCategories, taskCategoriesLoading, handleDeleteTaskCategory } = useAppContext();
-  const { toast } = useToast();
-
-  const [isDialogOpen, setDialogOpen] = useState(false);
-  const [categoryToEdit, setCategoryToEdit] = useState<any | null>(null);
-
-  const [categoryName, setCategoryName] = useState('');
-
-  useEffect(() => {
-    if (categoryToEdit) {
-      setCategoryName(categoryToEdit.name);
-    } else {
-      setCategoryName('');
-    }
-  }, [categoryToEdit]);
-
-  const handleOpenDialog = (category?: any) => {
-    setCategoryToEdit(category || null);
-    setDialogOpen(true);
-  };
+  const { 
+    firestore, 
+    user, 
+    taskCategories, 
+    taskCategoriesLoading, 
+    handleDeleteTaskCategory,
+    handleSaveTaskCategory,
+    modalState,
+    handleOpenModal,
+    handleCloseModal,
+    formState,
+    setFormState,
+  } = useAppContext();
 
   const handleToggleCategory = async (
     categoryId: string,
@@ -79,87 +68,6 @@ export default function TaskSettingsPage() {
     );
     await updateDocumentNonBlocking(categoryRef, { isActive: !currentStatus });
   };
-  
-  const handleSaveCategory = async () => {
-    if (categoryToEdit) {
-        await handleUpdateCategory();
-    } else {
-        await handleCreateCategory();
-    }
-    setDialogOpen(false);
-  }
-
-  const handleCreateCategory = async () => {
-    if (!user || !firestore || !categoryName.trim()) return;
-
-    const trimmedName = categoryName.trim();
-    const categoryExists = taskCategories?.some(
-      (c) => c.name.toLowerCase() === trimmedName.toLowerCase()
-    );
-
-    if (categoryExists) {
-      toast({
-        variant: 'destructive',
-        title: 'Categoría Duplicada',
-        description: `La categoría "${trimmedName}" ya existe.`,
-      });
-      return;
-    }
-
-    const categoriesColRef = collection(
-      firestore,
-      'users',
-      user.uid,
-      'taskCategories'
-    );
-    await addDocumentNonBlocking(categoriesColRef, {
-      name: trimmedName,
-      isActive: true,
-      userId: user.uid,
-    });
-  };
-
-  const handleUpdateCategory = async () => {
-    if (!user || !firestore || !categoryToEdit || !categoryName.trim()) return;
-    
-    const trimmedName = categoryName.trim();
-    const originalName = categoryToEdit.name;
-
-    // Check if new name already exists (and it's not the same category)
-    if (originalName.toLowerCase() !== trimmedName.toLowerCase()) {
-        const categoryExists = taskCategories?.some(
-            (c) => c.name.toLowerCase() === trimmedName.toLowerCase()
-        );
-        if (categoryExists) {
-            toast({ variant: 'destructive', title: 'Categoría Duplicada', description: `La categoría "${trimmedName}" ya existe.`});
-            return;
-        }
-    }
-
-    const batch = writeBatch(firestore);
-    const categoryRef = doc(firestore, 'users', user.uid, 'taskCategories', categoryToEdit.id);
-    
-    batch.update(categoryRef, { name: trimmedName });
-
-    // If name changed, update all tasks with the old category name
-    if (originalName !== trimmedName) {
-        const tasksQuery = query(collection(firestore, 'users', user.uid, 'tasks'), where('category', '==', originalName));
-        const tasksSnapshot = await getDocs(tasksQuery);
-        tasksSnapshot.forEach(taskDoc => {
-            const taskRef = doc(firestore, 'users', user.uid, 'tasks', taskDoc.id);
-            batch.update(taskRef, { category: trimmedName });
-        });
-    }
-
-    try {
-        await batch.commit();
-        toast({ title: "Categoría actualizada", description: `La categoría se ha guardado correctamente.` });
-    } catch(error) {
-        console.error("Error updating category:", error);
-        toast({ variant: 'destructive', title: 'Error', description: "No se pudo actualizar la categoría." });
-    }
-  }
-
 
   const sortedCategories = useMemo(() => {
     if (!taskCategories) return [];
@@ -174,7 +82,7 @@ export default function TaskSettingsPage() {
         imageId="settings-sub-header"
       >
         <div className="flex items-center gap-2">
-            <Button onClick={() => handleOpenDialog()}>
+            <Button onClick={() => handleOpenModal('taskCategory')}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Crear Categoría
             </Button>
@@ -215,12 +123,12 @@ export default function TaskSettingsPage() {
                 />
                  {cat.name !== 'Otro' && (
                   <>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleOpenDialog(cat)}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleOpenModal('taskCategory', cat)}>
                         <Pencil className="h-4 w-4" />
                     </Button>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleOpenModal('deleteTaskCategory', cat)}>
                             <Trash2 className="h-4 w-4" />
                         </Button>
                         </AlertDialogTrigger>
@@ -228,13 +136,13 @@ export default function TaskSettingsPage() {
                         <AlertDialogHeader>
                             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Esta acción no se puede deshacer. Se eliminará la categoría "{cat.name}" y todas las tareas existentes se moverán a la categoría "Otro".
+                                Esta acción no se puede deshacer. Se eliminará la categoría "{formState.name}" y todas las tareas existentes se moverán a la categoría "Otro".
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
                             <AlertDialogAction
-                            onClick={() => handleDeleteTaskCategory(cat.id, cat.name)}
+                            onClick={() => handleDeleteTaskCategory(formState.id, formState.name)}
                             className="bg-destructive hover:bg-destructive/90"
                             >
                             Eliminar
@@ -250,18 +158,18 @@ export default function TaskSettingsPage() {
         ))}
       </div>
       
-       <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
+       <Dialog open={modalState.type === 'taskCategory'} onOpenChange={() => handleCloseModal('taskCategory')}>
             <DialogContent>
                 <DialogHeader>
-                <DialogTitle>{categoryToEdit ? 'Editar Categoría' : 'Crear Nueva Categoría'}</DialogTitle>
+                <DialogTitle>{formState.id ? 'Editar Categoría' : 'Crear Nueva Categoría'}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="categoryName">Nombre de la categoría</Label>
                         <Input
                         id="categoryName"
-                        value={categoryName}
-                        onChange={(e) => setCategoryName(e.target.value)}
+                        value={formState.name || ''}
+                        onChange={(e) => setFormState(p => ({...p, name: e.target.value}))}
                         placeholder="Ej: Universidad, Trabajo Secundario..."
                         />
                     </div>
@@ -270,10 +178,10 @@ export default function TaskSettingsPage() {
                  <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
                     <Button
                     type="button"
-                    onClick={handleSaveCategory}
-                    disabled={!categoryName.trim()}
+                    onClick={handleSaveTaskCategory}
+                    disabled={!formState.name || !formState.name.trim()}
                     >
-                    {categoryToEdit ? 'Guardar Cambios' : 'Crear Categoría'}
+                    {formState.id ? 'Guardar Cambios' : 'Crear Categoría'}
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -282,4 +190,3 @@ export default function TaskSettingsPage() {
     </div>
   );
 }
-    

@@ -1,7 +1,7 @@
 
 export const PRESET_TASK_CATEGORIES = [
-    "MinJusticia",
-    "CNMH",
+    "Trabajo",
+    "Estudio",
     "Proyectos Personales",
     "Otro",
 ];

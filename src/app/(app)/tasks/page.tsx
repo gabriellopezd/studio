@@ -1,15 +1,12 @@
 
-
 'use client';
 
-import { useState, useMemo, useEffect, createContext, useContext } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, MoreHorizontal, Pencil, Trash2, Timer, Check, Play, Square, Percent, Settings } from 'lucide-react';
-import { addDocumentNonBlocking } from '@/firebase';
-import { collection, doc, query, Timestamp, serverTimestamp, where } from 'firebase/firestore';
+import { PlusCircle, MoreHorizontal, Pencil, Trash2, Play, Square, Percent, Settings } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -88,12 +85,13 @@ export default function TasksPage() {
     handleDeleteTask,
     activeSession, 
     startSession, 
-    stopSession
+    stopSession,
+    modalState,
+    handleOpenModal,
+    handleCloseModal,
+    formState,
+    setFormState,
   } = useAppContext();
-
-  const [isDialogOpen, setDialogOpen] = useState(false);
-  const [taskToEdit, setTaskToEdit] = useState<any | null>(null);
-  const [taskToDelete, setTaskToDelete] = useState<any | null>(null);
   
   useEffect(() => {
     setIsClient(true);
@@ -150,38 +148,6 @@ export default function TasksPage() {
     return { byCategory, all: tasksToShow };
 
   }, [tasks, activeTaskListTab]);
-
-  const resetAndCloseForm = () => {
-    setTaskToEdit(null);
-    setDialogOpen(false);
-  };
-
-  const handleOpenDialog = (task?: any) => {
-    if (task) {
-      setTaskToEdit({ ...task, dueDate: task.dueDate?.toDate() });
-    } else {
-      setTaskToEdit({
-        name: '',
-        dueDate: undefined,
-        priority: 'medium',
-        category: 'Otro'
-      });
-    }
-    setDialogOpen(true);
-  };
-  
-  const onSaveTask = async () => {
-    if (!taskToEdit) return;
-    await handleSaveTask(taskToEdit);
-    resetAndCloseForm();
-  };
-  
-  const onDeleteTask = async () => {
-    if (!taskToDelete) return;
-    await handleDeleteTask(taskToDelete.id);
-    setTaskToDelete(null);
-  };
-
 
   const getTaskDueDate = (task: any) => {
     if (task.dueDate && task.dueDate.toDate) {
@@ -283,11 +249,11 @@ export default function TasksPage() {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleOpenDialog(task)}>
+                                    <DropdownMenuItem onClick={() => handleOpenModal('task', task)}>
                                     <Pencil className="mr-2 h-4 w-4" />
                                     Editar
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setTaskToDelete(task)} className="text-red-500">
+                                    <DropdownMenuItem onClick={() => handleOpenModal('deleteTask', task)} className="text-red-500">
                                     <Trash2 className="mr-2 h-4 w-4" />
                                     Eliminar
                                     </DropdownMenuItem>
@@ -319,7 +285,7 @@ export default function TasksPage() {
                         Configurar Categorías
                     </Link>
                 </Button>
-                <Button onClick={() => handleOpenDialog()}>
+                <Button onClick={() => handleOpenModal('task')}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Crear Tarea
                 </Button>
@@ -459,21 +425,20 @@ export default function TasksPage() {
       </div>
       
        {/* Create/Edit Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={(open) => { if(!open) resetAndCloseForm(); else setDialogOpen(open);}}>
+      <Dialog open={modalState.type === 'task'} onOpenChange={() => handleCloseModal('task')}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{taskToEdit?.id ? 'Editar Tarea' : 'Crear Nueva Tarea'}</DialogTitle>
+            <DialogTitle>{formState.id ? 'Editar Tarea' : 'Crear Nueva Tarea'}</DialogTitle>
           </DialogHeader>
-          {taskToEdit && (
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="task-name">Nombre</Label>
-                <Input id="task-name" value={taskToEdit.name} onChange={(e) => setTaskToEdit({ ...taskToEdit, name: e.target.value })} />
+                <Input id="task-name" value={formState.name || ''} onChange={(e) => setFormState(p => ({ ...p, name: e.target.value }))} />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="task-category">Categoría</Label>
-                    <Select value={taskToEdit.category} onValueChange={(value) => setTaskToEdit({ ...taskToEdit, category: value })}>
+                    <Select value={formState.category || 'Otro'} onValueChange={(value) => setFormState(p => ({ ...p, category: value }))}>
                       <SelectTrigger id="task-category">
                         <SelectValue placeholder="Selecciona categoría" />
                       </SelectTrigger>
@@ -486,7 +451,7 @@ export default function TasksPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="task-priority">Prioridad</Label>
-                    <Select value={taskToEdit.priority} onValueChange={(value) => setTaskToEdit({ ...taskToEdit, priority: value })}>
+                    <Select value={formState.priority || 'medium'} onValueChange={(value) => setFormState(p => ({ ...p, priority: value }))}>
                       <SelectTrigger id="task-priority">
                         <SelectValue placeholder="Selecciona prioridad" />
                       </SelectTrigger>
@@ -502,33 +467,32 @@ export default function TasksPage() {
                 <Label htmlFor="task-due-date">Fecha de Vencimiento</Label>
                 <ResponsiveCalendar
                   id="task-due-date"
-                  value={taskToEdit.dueDate}
+                  value={formState.dueDate ? new Date(formState.dueDate) : undefined}
                   onSelect={(date) =>
-                    setTaskToEdit({ ...taskToEdit, dueDate: date })
+                    setFormState(p => ({ ...p, dueDate: date }))
                   }
                 />
               </div>
             </div>
-          )}
           <DialogFooter>
-            <Button variant="outline" onClick={resetAndCloseForm}>Cancelar</Button>
-            <Button onClick={onSaveTask}>{taskToEdit?.id ? 'Guardar Cambios' : 'Crear Tarea'}</Button>
+            <Button variant="outline" onClick={() => handleCloseModal('task')}>Cancelar</Button>
+            <Button onClick={handleSaveTask}>{formState.id ? 'Guardar Cambios' : 'Crear Tarea'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
       
        {/* Delete Confirmation */}
-      <AlertDialog open={!!taskToDelete} onOpenChange={(open) => !open && setTaskToDelete(null)}>
+      <AlertDialog open={modalState.type === 'deleteTask'} onOpenChange={() => handleCloseModal('deleteTask')}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará la tarea "{taskToDelete?.name}" permanentemente.
+              Esta acción no se puede deshacer. Se eliminará la tarea "{formState?.name}" permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={onDeleteTask} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogCancel onClick={() => handleCloseModal('deleteTask')}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteTask} className="bg-destructive hover:bg-destructive/90">
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
