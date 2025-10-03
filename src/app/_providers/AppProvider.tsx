@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { PresetHabits } from '@/lib/preset-habits';
 import { PRESET_TASK_CATEGORIES } from '@/lib/task-categories';
 import { defaultFeelings, defaultInfluences } from '@/lib/moods';
+import { PRESET_EXPENSE_CATEGORIES } from '@/lib/transaction-categories';
 
 // --- Context Definition ---
 export const AppContext = createContext<AppState | undefined>(undefined);
@@ -953,6 +954,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return acc;
         }, {'Necesidades':0, 'Deseos':0, 'Ahorros y Deudas':0}) ?? {}) as [string, number][]).map(([name, value]) => ({name, value})).filter(d => d.value > 0);
         
+        let upcomingPayments = allRecurringExpensesData.filter((e: any) => {
+            const dayOfMonth = e.dayOfMonth;
+            const today = new Date();
+            const currentDay = today.getDate();
+            const nextSevenDays = new Date();
+            nextSevenDays.setDate(today.getDate() + 7);
+
+            if (today.getMonth() === state.currentMonth.getMonth() && today.getFullYear() === state.currentMonth.getFullYear()) {
+                if (nextSevenDays.getMonth() !== today.getMonth()) {
+                    return (dayOfMonth >= currentDay) || (dayOfMonth <= nextSevenDays.getDate());
+                } else {
+                    return dayOfMonth >= currentDay && dayOfMonth <= nextSevenDays.getDate();
+                }
+            }
+            return false;
+        });
+        
         return {
             analyticsLoading,
             groupedHabits, dailyHabits, weeklyHabits, completedDaily, completedWeekly, longestStreak, topLongestStreakHabits, longestCurrentStreak, topCurrentStreakHabits, habitCategoryData, dailyProductivityData, topHabitsByStreak, topHabitsByTime, monthlyCompletionData,
@@ -1034,3 +1052,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
+
+
+    
