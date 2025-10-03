@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, createContext, useContext } from 'react';
@@ -205,7 +206,11 @@ export default function TasksPage() {
 
   const renderTaskList = (groupedTasks: Record<string, any[]>, allTasksInView: any[]) => {
     const sortedCategories = Object.keys(groupedTasks).sort((a, b) => {
-        return categoryOrder.indexOf(a) - categoryOrder.indexOf(b);
+        const orderA = categoryOrder.indexOf(a);
+        const orderB = categoryOrder.indexOf(b);
+        if (orderA === -1) return 1;
+        if (orderB === -1) return -1;
+        return orderA - orderB;
     });
 
     return (

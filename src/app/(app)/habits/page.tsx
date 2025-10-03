@@ -198,6 +198,14 @@ export default function HabitsPage() {
     }
     setDialogOpen(true);
   };
+  
+  const sortedCategories = Object.keys(groupedHabits).sort((a, b) => {
+    const orderA = habitCategories.indexOf(a);
+    const orderB = habitCategories.indexOf(b);
+    if (orderA === -1) return 1;
+    if (orderB === -1) return -1;
+    return orderA - orderB;
+  });
 
   return (
     <>
@@ -239,7 +247,7 @@ export default function HabitsPage() {
                         </CardDescription>
                     </CardHeader>
                 </Card>
-              ) : habitCategories.map((category) => (
+              ) : sortedCategories.map((category) => (
                 groupedHabits[category] && groupedHabits[category].length > 0 && (
                   <div key={category}>
                     <h2 className="text-xl font-bold tracking-tight mb-4">
