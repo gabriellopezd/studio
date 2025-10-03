@@ -1,11 +1,11 @@
 
 'use client';
 
-import React, { createContext, useReducer, useEffect, useMemo, useState, useContext } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc, limit } from 'firebase/firestore';
 import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking, type FirebaseServicesAndUser } from '@/firebase';
 import { AppState, Habit, Task, Mood, ActiveSession } from './types';
-import { isHabitCompletedToday, calculateStreak, checkHabitStreak } from '@/lib/habits';
+import { isHabitCompletedToday, calculateStreak, checkHabitStreak, resetStreak } from '@/lib/habits';
 import { Button } from '@/components/ui/button';
 import { Timer, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -33,7 +33,7 @@ type Action =
     | { type: 'SET_ACTIVE_SESSION'; payload: ActiveSession | null }
     | { type: 'SET_ELAPSED_TIME'; payload: number };
 
-const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask'| 'handleDeleteTaskCategory' | 'handleSaveMood' | 'handlePayRecurringItem' | 'handleRevertRecurringItem' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'routineCompletionAnalytics' |'totalStats' | 'categoryStats' | 'taskTimeAnalytics' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'tasksForTomorrow' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress' | 'onTimeCompletionRate' | 'dailyCompletionStats' | 'completedTasksByCategory'> = {
+const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleSaveHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetHabitStreak'| 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveTaskCategory'| 'handleDeleteTaskCategory' | 'handleSaveMood' | 'handlePayRecurringItem' | 'handleRevertRecurringItem' | 'handleSaveBudget'| 'handleSaveRecurringItem'| 'handleDeleteRecurringItem' | 'handleSaveGoal' | 'handleDeleteGoal'| 'handleUpdateGoalProgress'| 'handleCompleteRoutine'| 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics'| 'routineCompletionAnalytics' | 'totalStats' | 'categoryStats' | 'taskTimeAnalytics' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress' | 'onTimeCompletionRate' | 'dailyCompletionStats' | 'completedTasksByCategory' | 'modalState' | 'formState' | 'handleOpenModal' | 'handleCloseModal' | 'setFormState'> = {
     allHabits: null,
     routines: null,
     tasks: null,
@@ -135,6 +135,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [state, dispatch] = useReducer(appReducer, initialState);
     const [streaksChecked, setStreaksChecked] = useState(false);
     const { toast } = useToast();
+
+    const [modalState, setModalState] = useState<{ type: string | null; data?: any }>({ type: null });
+    const [formState, setFormState] = useState<any>({});
     
     // --- Data Fetching using useCollection ---
     const allHabitsQuery = useMemo(() => {
@@ -293,6 +296,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // --- Actions ---
 
+    const handleOpenModal = (type: string, data?: any) => {
+        const initialFormState = data 
+          ? {
+              ...data,
+              // Convert Firestore Timestamps to JS Dates for form inputs
+              dueDate: data.dueDate?.toDate ? data.dueDate.toDate() : (data.dueDate || ''),
+            } 
+          : {};
+        
+        setFormState(initialFormState);
+        setModalState({ type, data });
+    };
+    
+    const handleCloseModal = (type: string) => {
+        // Ensure we only close the modal if it's the one we expect
+        if (modalState.type === type) {
+            setModalState({ type: null });
+            setFormState({}); // Clear form state on close
+        }
+    };
+
+
     const handleToggleHabit = (habitId: string) => {
         if (!user || !allHabits || !firestore) return;
         const habit = allHabits.find((h) => h.id === habitId);
@@ -326,39 +351,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
     };
 
-    const handleCreateOrUpdateHabit = async (habitData: Habit) => {
-        if (!habitData.name.trim() || !habitData.icon.trim() || !user || !habitData.category || !firestore) return;
+    const handleSaveHabit = async () => {
+        if (!formState.name?.trim() || !formState.icon?.trim() || !user || !formState.category || !firestore) return;
+        
+        const { id, ...data } = formState;
 
-        const { id, ...data } = habitData;
         if (id) {
             await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'habits', id), data);
         } else {
-            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'habits'), { ...data, currentStreak: 0, longestStreak: 0, createdAt: serverTimestamp(), lastCompletedAt: null, userId: user.uid, isActive: true });
+            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'habits'), { 
+                ...data, 
+                currentStreak: 0, 
+                longestStreak: 0, 
+                createdAt: serverTimestamp(), 
+                lastCompletedAt: null, 
+                userId: user.uid, 
+                isActive: true 
+            });
         }
+        handleCloseModal('habit');
     };
 
-    const handleDeleteHabit = async (habitId: string) => {
-        if (!user || !firestore) return;
-        await deleteDocumentNonBlocking(doc(firestore, 'users', user.uid, 'habits', habitId));
+    const handleDeleteHabit = async () => {
+        if (!formState?.id || !user || !firestore) return;
+        await deleteDocumentNonBlocking(doc(firestore, 'users', user.uid, 'habits', formState.id));
+        handleCloseModal('deleteHabit');
     };
+    
+    const handleResetHabitStreak = async () => {
+        if (!formState?.id || !user || !firestore) return;
+        const habitRef = doc(firestore, 'users', user.uid, 'habits', formState.id);
+        await updateDocumentNonBlocking(habitRef, resetStreak());
+        handleCloseModal('resetHabit');
+    };
+
 
     const handleResetAllStreaks = async () => {
-        if (!user || !firestore) return;
+        if (!user || !firestore || !allHabits) return;
 
         try {
             const batch = writeBatch(firestore);
-            const habitsQuery = collection(firestore, 'users', user.uid, 'habits');
-            const querySnapshot = await getDocs(habitsQuery);
-            
-            querySnapshot.forEach((document) => {
-                const habitRef = doc(firestore, 'users', user.uid, 'habits', document.id);
-                batch.update(habitRef, {
-                    currentStreak: 0,
-                    longestStreak: 0,
-                    lastCompletedAt: null,
-                    previousStreak: null,
-                    previousLastCompletedAt: null,
-                });
+            allHabits.forEach((habit) => {
+                const habitRef = doc(firestore, 'users', user.uid, 'habits', habit.id);
+                batch.update(habitRef, resetStreak());
             });
             
             await batch.commit();
@@ -370,13 +405,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     const handleResetTimeLogs = async () => {
-        if (!user || !firestore) return;
+        if (!user || !firestore || !timeLogs) return;
         try {
             const batch = writeBatch(firestore);
-            const timeLogsRef = collection(firestore, 'users', user.uid, 'timeLogs');
-            const querySnapshot = await getDocs(timeLogsRef);
-            querySnapshot.forEach((doc) => {
-                batch.delete(doc.ref);
+            timeLogs.forEach((log) => {
+                batch.delete(doc(firestore, 'users', user.uid, 'timeLogs', log.id));
             });
             await batch.commit();
             toast({ title: 'Tiempo de enfoque reiniciado', description: 'Se han eliminado todos los registros de tiempo.' });
@@ -387,13 +420,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     const handleResetMoods = async () => {
-        if (!user || !firestore) return;
+        if (!user || !firestore || !moods) return;
         try {
             const batch = writeBatch(firestore);
-            const moodsRef = collection(firestore, 'users', user.uid, 'moods');
-            const querySnapshot = await getDocs(moodsRef);
-            querySnapshot.forEach((doc) => {
-                batch.delete(doc.ref);
+            moods.forEach((mood) => {
+                batch.delete(doc(firestore, 'users', user.uid, 'moods', mood.id));
             });
             await batch.commit();
             toast({ title: 'Historial de ánimo reiniciado', description: 'Se han eliminado todos los registros de ánimo.' });
@@ -408,21 +439,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         try {
             const batch = writeBatch(firestore);
 
-            // Delete all existing shopping lists
-            const listsSnapshot = await getDocs(collection(firestore, 'users', user.uid, 'shoppingLists'));
-            listsSnapshot.forEach(doc => batch.delete(doc.ref));
+            // Delete all existing shopping lists, budgets, and non-default task categories
+            const collectionsToDelete = ['shoppingLists', 'budgets', 'taskCategories'];
+            for (const col of collectionsToDelete) {
+                const snapshot = await getDocs(collection(firestore, 'users', user.uid, col));
+                snapshot.forEach(doc => batch.delete(doc.ref));
+            }
 
-            // Delete all existing budgets
-            const budgetsSnapshot = await getDocs(collection(firestore, 'users', user.uid, 'budgets'));
-            budgetsSnapshot.forEach(doc => batch.delete(doc.ref));
-            
-            // Delete all user created task categories
-            const tasksCatSnapshot = await getDocs(query(collection(firestore, 'users', user.uid, 'taskCategories'), where('name', '!=', 'Otro')));
-            tasksCatSnapshot.forEach(doc => batch.delete(doc.ref));
-
+            // Re-initialize defaults
+            const newBatch = writeBatch(firestore);
+            await initializeDefaultTaskCategories(user, firestore, newBatch);
+            await initializeDefaultBudgets(user, firestore, newBatch);
 
             await batch.commit();
-            toast({ title: 'Categorías Restauradas', description: 'Las listas de compras y presupuestos se han restaurado a los valores predefinidos.' });
+            await newBatch.commit();
+            
+            toast({ title: 'Categorías Restauradas', description: 'Las categorías financieras y de tareas se han restaurado a los valores predefinidos.' });
         } catch (error) {
             console.error("Error resetting categories:", error);
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron restaurar las categorías.' });
@@ -438,47 +470,68 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
     };
 
-    const handleSaveTask = async (taskData: Task) => {
-        if (!user || !taskData.name || !firestore) return;
-        const { id, ...data } = taskData;
-        const serializableData:any = { ...data, dueDate: data.dueDate ? Timestamp.fromDate(data.dueDate) : null, userId: user.uid };
+    const handleSaveTask = async () => {
+        if (!user || !formState.name || !firestore) return;
+        const { id, ...data } = formState;
+
+        const date = data.dueDate instanceof Date ? data.dueDate : (data.dueDate ? new Date(data.dueDate) : null);
         
-        // Ensure completionDate is handled correctly
-        if ('completionDate' in data && data.completionDate) {
-            serializableData.completionDate = Timestamp.fromDate(data.completionDate as any);
-        }
+        const serializableData:any = { 
+            ...data, 
+            dueDate: date ? Timestamp.fromDate(date) : null, 
+            userId: user.uid 
+        };
 
         if (id) {
             await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'tasks', id), serializableData);
         } else {
             await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'tasks'), { ...serializableData, isCompleted: false, createdAt: serverTimestamp(), completionDate: null });
         }
+        handleCloseModal('task');
     };
 
-    const handleDeleteTask = async (taskId: string) => {
-        if (!user || !firestore) return;
-        await deleteDocumentNonBlocking(doc(firestore, 'users', user.uid, 'tasks', taskId));
+    const handleDeleteTask = async () => {
+        if (!formState?.id || !user || !firestore) return;
+        await deleteDocumentNonBlocking(doc(firestore, 'users', user.uid, 'tasks', formState.id));
+        handleCloseModal('deleteTask');
+    };
+    
+    const handleSaveTaskCategory = async () => {
+        if (!user || !firestore || !formState.name?.trim()) return;
+
+        const { id, name } = formState;
+        
+        // Prevent creating duplicate categories
+        if (!id) {
+            const categoryExists = taskCategories?.some(c => c.name.toLowerCase() === name.toLowerCase());
+            if (categoryExists) {
+                toast({ variant: 'destructive', title: 'Categoría duplicada', description: `La categoría "${name}" ya existe.`});
+                return;
+            }
+        }
+        
+        if (id) {
+            const categoryRef = doc(firestore, 'users', user.uid, 'taskCategories', id);
+            await updateDocumentNonBlocking(categoryRef, { name });
+        } else {
+            const categoriesColRef = collection(firestore, 'users', user.uid, 'taskCategories');
+            await addDocumentNonBlocking(categoriesColRef, { name, isActive: true, userId: user.uid });
+        }
+        handleCloseModal('taskCategory');
     };
 
     const handleDeleteTaskCategory = async (categoryId: string, categoryName: string) => {
-        if (!user || !firestore) return;
+        if (!user || !firestore || !tasks) return;
     
         const batch = writeBatch(firestore);
     
-        // 1. Get all tasks with the category to be deleted
-        const tasksToUpdateQuery = query(
-          collection(firestore, 'users', user.uid, 'tasks'),
-          where('category', '==', categoryName)
-        );
-        const tasksSnapshot = await getDocs(tasksToUpdateQuery);
-    
-        // 2. Update their category to "Otro"
-        tasksSnapshot.forEach(taskDoc => {
+        // Update tasks with the deleted category to "Otro"
+        tasks.filter(t => t.category === categoryName).forEach(taskDoc => {
           const taskRef = doc(firestore, 'users', user.uid, 'tasks', taskDoc.id);
           batch.update(taskRef, { category: 'Otro' });
         });
     
-        // 3. Delete the category itself
+        // Delete the category itself
         const categoryRef = doc(firestore, 'users', user.uid, 'taskCategories', categoryId);
         batch.delete(categoryRef);
     
@@ -496,8 +549,103 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             description: 'No se pudo eliminar la categoría.',
           });
         }
+        handleCloseModal('deleteTaskCategory');
       };
       
+    const handleSaveRoutine = async () => {
+        if (!user || !firestore || !formState.name) return;
+
+        const { id, ...data } = formState;
+
+        if (id) {
+            const routineRef = doc(firestore, 'users', user.uid, 'routines', id);
+            await updateDocumentNonBlocking(routineRef, data);
+        } else {
+            const routinesColRef = collection(firestore, 'users', user.uid, 'routines');
+            await addDocumentNonBlocking(routinesColRef, { ...data, userId: user.uid, createdAt: serverTimestamp() });
+        }
+        handleCloseModal('routine');
+    };
+
+    const handleDeleteRoutine = async () => {
+        if (!user || !firestore || !formState.id) return;
+        const routineRef = doc(firestore, 'users', user.uid, 'routines', formState.id);
+        await deleteDocumentNonBlocking(routineRef);
+        handleCloseModal('deleteRoutine');
+    };
+
+    const handleCompleteRoutine = async (routine: any) => {
+        if (!user || !firestore || !allHabits) return;
+        const habitsToComplete = allHabits.filter(h => routine.habitIds.includes(h.id) && !isHabitCompletedToday(h));
+        
+        if (habitsToComplete.length === 0) return;
+
+        const batch = writeBatch(firestore);
+        habitsToComplete.forEach(habit => {
+            const habitRef = doc(firestore, 'users', user.uid, 'habits', habit.id);
+            const streakData = calculateStreak(habit);
+            batch.update(habitRef, {
+                lastCompletedAt: Timestamp.now(),
+                ...streakData,
+                previousStreak: habit.currentStreak || 0,
+                previousLongestStreak: habit.longestStreak || 0,
+                previousLastCompletedAt: habit.lastCompletedAt ?? null,
+            });
+        });
+        await batch.commit();
+        toast({ title: 'Rutina completada', description: `Se marcaron ${habitsToComplete.length} hábitos como completados.`})
+    };
+
+
+    const handleSaveGoal = async () => {
+        if (!user || !firestore || !formState.name || !formState.targetValue) return;
+
+        const { id, dueDate, ...data } = formState;
+        
+        const serializableData: any = { 
+            ...data,
+            targetValue: parseFloat(data.targetValue),
+            currentValue: data.currentValue ? parseFloat(data.currentValue) : 0,
+            monthlyContribution: data.monthlyContribution ? parseFloat(data.monthlyContribution) : null,
+            dueDate: dueDate ? new Date(dueDate).toISOString() : null,
+            userId: user.uid
+        };
+        
+        if (id) {
+            const goalRef = doc(firestore, 'users', user.uid, 'goals', id);
+            await updateDocumentNonBlocking(goalRef, serializableData);
+        } else {
+            const goalsColRef = collection(firestore, 'users', user.uid, 'goals');
+            await addDocumentNonBlocking(goalsColRef, { ...serializableData, isCompleted: false, createdAt: serverTimestamp() });
+        }
+        handleCloseModal('goal');
+    };
+
+    const handleDeleteGoal = async () => {
+        if (!user || !firestore || !formState.id) return;
+        await deleteDocumentNonBlocking(doc(firestore, 'users', user.uid, 'goals', formState.id));
+        handleCloseModal('deleteGoal');
+    };
+
+    const handleUpdateGoalProgress = async () => {
+        if (!user || !firestore || !formState.id || !formState.progressValue) return;
+
+        const newValue = parseFloat(formState.progressValue);
+        if (isNaN(newValue)) return;
+
+        const goalRef = doc(firestore, 'users', user.uid, 'goals', formState.id);
+        
+        const goalData = goals?.find(g => g.id === formState.id);
+        const isCompleted = goalData && newValue >= goalData.targetValue;
+        
+        await updateDocumentNonBlocking(goalRef, { currentValue: newValue, isCompleted });
+        
+        handleCloseModal('progressGoal');
+        if (isCompleted) {
+            toast({ title: '¡Meta Alcanzada!', description: `Felicidades por completar tu meta "${goalData.name}".`});
+        }
+    };
+
 
     const handleSaveMood = async (moodData: Mood) => {
         if (!user || !firestore) return;
@@ -613,6 +761,161 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             toast({ variant: "destructive", title: "Error", description: "No se pudo completar la reversión." });
         }
     };
+    
+    const handleSaveTransaction = async () => {
+        if (!user || !firestore || !formState.description || !formState.amount || !formState.category || !formState.date) return;
+        
+        const { id, ...data } = formState;
+        const amount = parseFloat(data.amount);
+        if (isNaN(amount)) return;
+        
+        const batch = writeBatch(firestore);
+        
+        const serializableData = {
+            ...data,
+            amount,
+            date: new Date(data.date).toISOString(),
+            budgetFocus: data.type === 'expense' ? data.budgetFocus : null,
+            userId: user.uid,
+        };
+
+        if (id) {
+            const originalTransaction = transactions?.find(t => t.id === id);
+            if (!originalTransaction) return;
+
+            const transactionRef = doc(firestore, 'users', user.uid, 'transactions', id);
+            batch.update(transactionRef, serializableData);
+
+            const amountDifference = amount - originalTransaction.amount;
+            if (originalTransaction.type === 'expense' && serializableData.type === 'expense') {
+                 if (originalTransaction.category === serializableData.category) {
+                    const budget = budgets?.find(b => b.categoryName === serializableData.category);
+                    if (budget) batch.update(doc(firestore, 'users', user.uid, 'budgets', budget.id), { currentSpend: increment(amountDifference) });
+                 } else {
+                    const oldBudget = budgets?.find(b => b.categoryName === originalTransaction.category);
+                    if (oldBudget) batch.update(doc(firestore, 'users', user.uid, 'budgets', oldBudget.id), { currentSpend: increment(-originalTransaction.amount) });
+                    const newBudget = budgets?.find(b => b.categoryName === serializableData.category);
+                    if (newBudget) batch.update(doc(firestore, 'users', user.uid, 'budgets', newBudget.id), { currentSpend: increment(amount) });
+                 }
+            } else if (originalTransaction.type === 'expense' && serializableData.type === 'income') {
+                const oldBudget = budgets?.find(b => b.categoryName === originalTransaction.category);
+                if (oldBudget) batch.update(doc(firestore, 'users', user.uid, 'budgets', oldBudget.id), { currentSpend: increment(-originalTransaction.amount) });
+            } else if (originalTransaction.type === 'income' && serializableData.type === 'expense') {
+                const newBudget = budgets?.find(b => b.categoryName === serializableData.category);
+                if (newBudget) batch.update(doc(firestore, 'users', user.uid, 'budgets', newBudget.id), { currentSpend: increment(amount) });
+            }
+        } else {
+            const newTransactionRef = doc(collection(firestore, 'users', user.uid, 'transactions'));
+            batch.set(newTransactionRef, { ...serializableData, createdAt: serverTimestamp() });
+            
+            if (serializableData.type === 'expense') {
+                const budget = budgets?.find(b => b.categoryName === serializableData.category);
+                if (budget) {
+                    batch.update(doc(firestore, 'users', user.uid, 'budgets', budget.id), { currentSpend: increment(amount) });
+                }
+            }
+        }
+
+        await batch.commit();
+        handleCloseModal('transaction');
+    };
+
+    const handleDeleteTransaction = async () => {
+        if (!formState?.id || !user || !firestore) return;
+      
+        const batch = writeBatch(firestore);
+        const transactionToDelete = transactions?.find(t => t.id === formState.id);
+        if (!transactionToDelete) return;
+      
+        // Delete the transaction
+        batch.delete(doc(firestore, 'users', user.uid, 'transactions', transactionToDelete.id));
+      
+        if (transactionToDelete.type === 'expense') {
+          // Revert budget spend
+          const budget = budgets?.find(b => b.categoryName === transactionToDelete.category);
+          if (budget) batch.update(doc(firestore, 'users', user.uid, 'budgets', budget.id), { currentSpend: increment(-transactionToDelete.amount) });
+      
+          // Revert shopping list item if linked
+          const listWithItem = shoppingLists?.find(list => list.items.some((item: any) => item.transactionId === transactionToDelete.id));
+          if (listWithItem) {
+            const updatedItems = listWithItem.items.map((item: any) =>
+              item.transactionId === transactionToDelete.id ? { ...item, isPurchased: false, price: null, transactionId: null } : item
+            );
+            batch.update(doc(firestore, 'users', user.uid, 'shoppingLists', listWithItem.id), { items: updatedItems });
+          }
+      
+          // Revert recurring expense if linked
+          const recurringExpense = recurringExpenses?.find(re => re.lastTransactionId === transactionToDelete.id);
+          if (recurringExpense) batch.update(doc(firestore, 'users', user.uid, 'recurringExpenses', recurringExpense.id), { lastInstanceCreated: null, lastTransactionId: null });
+        
+        } else { // type is 'income'
+          // Revert recurring income if linked
+          const recurringIncome = recurringIncomes?.find(ri => ri.lastTransactionId === transactionToDelete.id);
+          if (recurringIncome) batch.update(doc(firestore, 'users', user.uid, 'recurringIncomes', recurringIncome.id), { lastInstanceCreated: null, lastTransactionId: null });
+        }
+      
+        await batch.commit();
+        toast({ title: 'Transacción eliminada' });
+        handleCloseModal('deleteTransaction');
+    };
+
+    const handleSaveBudget = async () => {
+        if (!user || !firestore || !formState.categoryName || !formState.monthlyLimit) return;
+      
+        const { id, categoryName, monthlyLimit } = formState;
+        const limit = parseFloat(monthlyLimit);
+        if (isNaN(limit)) return;
+      
+        if (!id) {
+          const categoryExists = budgets?.some(b => b.categoryName.toLowerCase() === categoryName.toLowerCase());
+          if (categoryExists) {
+            toast({ variant: "destructive", title: "Categoría Duplicada", description: `El presupuesto para "${categoryName}" ya existe.` });
+            return;
+          }
+        }
+      
+        const year = state.currentMonth.getFullYear();
+        const month = state.currentMonth.getMonth() + 1;
+      
+        if (id) {
+          const budgetRef = doc(firestore, 'users', user.uid, 'budgets', id);
+          await updateDocumentNonBlocking(budgetRef, { monthlyLimit: limit });
+        } else {
+          const newBudget = { categoryName, monthlyLimit: limit, currentSpend: 0, year, month, userId: user.uid };
+          await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'budgets'), newBudget);
+        }
+      
+        handleCloseModal('budget');
+      };
+      
+      const handleSaveRecurringItem = async (type: 'income' | 'expense') => {
+        if (!user || !firestore || !formState.name || !formState.amount || !formState.category || !formState.dayOfMonth) return;
+        
+        const { id, ...data } = formState;
+        const amount = parseFloat(data.amount);
+        const dayOfMonth = parseInt(data.dayOfMonth, 10);
+        if (isNaN(amount) || isNaN(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) {
+            toast({ variant: "destructive", title: "Datos inválidos" });
+            return;
+        }
+        
+        const collectionName = type === 'income' ? 'recurringIncomes' : 'recurringExpenses';
+        const serializableData: any = { ...data, amount, dayOfMonth, userId: user.uid };
+        
+        if (id) {
+            await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, collectionName, id), serializableData);
+        } else {
+            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, collectionName), serializableData);
+        }
+        handleCloseModal(`recurring${type.charAt(0).toUpperCase() + type.slice(1)}`);
+      };
+
+    const handleDeleteRecurringItem = async () => {
+        if (!formState.id || !user || !firestore) return;
+        const collectionName = formState.type === 'income' ? 'recurringIncomes' : 'recurringExpenses';
+        await deleteDocumentNonBlocking(doc(firestore, 'users', user.uid, collectionName, formState.id));
+        handleCloseModal('deleteRecurring');
+    };
 
 
     const setCurrentMonth = (date: Date | ((prev: Date) => Date)) => {
@@ -647,9 +950,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (!state.activeSession || !user || !firestore) return;
 
         const durationSeconds = Math.floor((Date.now() - state.activeSession.startTime) / 1000);
+        if (durationSeconds < 1) { // Ignore sessions less than a second
+            dispatch({ type: 'SET_ACTIVE_SESSION', payload: null });
+            return;
+        }
 
         const timeLogsColRef = collection(firestore, 'users', user.uid, 'timeLogs');
-        const timeLogRef = await addDocumentNonBlocking(timeLogsColRef, {
+        const timeLogRef = doc(timeLogsColRef);
+        
+        const batch = writeBatch(firestore);
+        batch.set(timeLogRef, {
             referenceId: state.activeSession.id,
             referenceType: state.activeSession.type,
             startTime: Timestamp.fromMillis(state.activeSession.startTime),
@@ -664,7 +974,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const habit = allHabits?.find(h => h.id === state.activeSession!.id);
             if (habit) {
                  const streakData = calculateStreak(habit);
-                 updateDocumentNonBlocking(habitRef, { 
+                 batch.update(habitRef, { 
                     lastCompletedAt: Timestamp.now(),
                     ...streakData,
                     previousStreak: habit.currentStreak || 0,
@@ -675,12 +985,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
         } else { // It's a task
              const taskRef = doc(firestore, 'users', user.uid, 'tasks', state.activeSession.id);
-             updateDocumentNonBlocking(taskRef, { 
+             batch.update(taskRef, { 
                 isCompleted: true,
                 totalTimeSpent: increment(durationSeconds),
                 completionDate: Timestamp.now(),
              });
         }
+        
+        await batch.commit();
 
         dispatch({ type: 'SET_ACTIVE_SESSION', payload: null });
         dispatch({ type: 'SET_ELAPSED_TIME', payload: 0 });
@@ -836,7 +1148,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         
         const overdueTasks = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() < startOfDay);
         const todayTasks = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= startOfDay && t.dueDate.toDate() < tomorrow);
-        const tasksForTomorrow = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= tomorrow && t.dueDate.toDate() < endOfTomorrow);
         const upcomingTasks = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= tomorrow && t.dueDate.toDate() <= endOfWeek);
 
         const dailyTs = allTasksData.filter((t: any) => {
@@ -941,7 +1252,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         
         const upcomingPayments = allRecurringExpensesData.filter((e: any) => {
             const dayOfMonth = e.dayOfMonth;
-            const today = new Date();
             const currentDay = today.getDate();
             const nextSevenDays = new Date();
             nextSevenDays.setDate(today.getDate() + 7);
@@ -975,7 +1285,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             analyticsLoading,
             groupedHabits, dailyHabits, weeklyHabits, completedDaily, completedWeekly, longestStreak, topLongestStreakHabits, longestCurrentStreak, topCurrentStreakHabits, habitCategoryData, dailyProductivityData, topHabitsByStreak, topHabitsByTime, monthlyCompletionData,
             routineTimeAnalytics, routineCompletionAnalytics,
-            totalStats, categoryStats: catStats, taskTimeAnalytics, overdueTasks, todayTasks, tasksForTomorrow, upcomingTasks, completedWeeklyTasks, totalWeeklyTasks, weeklyTasksProgress, completedDailyTasks, totalDailyTasks, dailyTasksProgress, onTimeCompletionRate, dailyCompletionStats, completedTasksByCategory,
+            totalStats, categoryStats: catStats, taskTimeAnalytics, overdueTasks, todayTasks, upcomingTasks, completedWeeklyTasks, totalWeeklyTasks, weeklyTasksProgress, completedDailyTasks, totalDailyTasks, dailyTasksProgress, onTimeCompletionRate, dailyCompletionStats, completedTasksByCategory,
             feelingStats: (Object.entries(feelingsCount) as [string, any][]).sort((a, b) => b[1] - a[1]).slice(0, 5),
             influenceStats: (Object.entries(influencesCount) as [string, any][]).sort((a, b) => b[1] - a[1]).slice(0, 5),
             todayMood: todayMoodDataResult,
@@ -1022,20 +1332,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         user,
         presetHabits: PresetHabits,
         presetHabitsLoading: false,
+        modalState,
+        formState,
+        handleOpenModal,
+        handleCloseModal,
+        setFormState,
         handleToggleHabit,
-        handleCreateOrUpdateHabit,
+        handleSaveHabit,
         handleDeleteHabit,
         handleResetAllStreaks,
+        handleResetHabitStreak,
         handleResetTimeLogs,
         handleResetMoods,
         handleResetCategories,
         handleToggleTask,
         handleSaveTask,
         handleDeleteTask,
+        handleSaveTaskCategory,
         handleDeleteTaskCategory,
+        handleSaveRoutine,
+        handleDeleteRoutine,
+        handleCompleteRoutine,
+        handleSaveGoal,
+        handleDeleteGoal,
+        handleUpdateGoalProgress,
         handleSaveMood,
         handlePayRecurringItem,
         handleRevertRecurringItem,
+        handleSaveTransaction,
+        handleDeleteTransaction,
+        handleSaveBudget,
+        handleSaveRecurringItem,
+        handleDeleteRecurringItem,
         setCurrentMonth,
         startSession,
         stopSession,
