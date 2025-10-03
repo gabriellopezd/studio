@@ -229,6 +229,33 @@ export default function TodayPage() {
            <TodaysMoodCard />
             <Card>
                 <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <CreditCard className="size-5"/>
+                        Pagos Recurrentes Pendientes
+                    </CardTitle>
+                    <CardDescription>Gastos fijos de este mes que aún no has registrado.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {tasksLoading && <p>Cargando pagos...</p>}
+                    {!tasksLoading && pendingRecurringExpenses.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">No tienes pagos fijos pendientes este mes.</p>
+                    ) : (
+                        <ul className="space-y-3">
+                        {pendingRecurringExpenses.map(payment => (
+                            <li key={payment.id} className="flex justify-between items-center rounded-lg border p-3">
+                                <div>
+                                    <p className="font-medium">{payment.name}</p>
+                                    <p className="text-sm text-muted-foreground">{formatCurrency(payment.amount)}</p>
+                                </div>
+                                <Button size="sm" onClick={() => handlePayRecurringItem(payment, 'expense')}><CheckCircle className="mr-2 h-4 w-4"/>Pagar</Button>
+                            </li>
+                        ))}
+                        </ul>
+                    )}
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <ListTodo className="size-5" />
                     <span>Foco en Tareas</span>
@@ -260,33 +287,6 @@ export default function TodayPage() {
                             </div>
                         )}
                     </div>
-                </CardContent>
-            </Card>
-           <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <CreditCard className="size-5"/>
-                        Pagos Recurrentes Pendientes
-                    </CardTitle>
-                    <CardDescription>Gastos fijos de este mes que aún no has registrado.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {tasksLoading && <p>Cargando pagos...</p>}
-                    {!tasksLoading && pendingRecurringExpenses.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-4">No tienes pagos fijos pendientes este mes.</p>
-                    ) : (
-                        <ul className="space-y-3">
-                        {pendingRecurringExpenses.map(payment => (
-                            <li key={payment.id} className="flex justify-between items-center rounded-lg border p-3">
-                                <div>
-                                    <p className="font-medium">{payment.name}</p>
-                                    <p className="text-sm text-muted-foreground">{formatCurrency(payment.amount)}</p>
-                                </div>
-                                <Button size="sm" onClick={() => handlePayRecurringItem(payment, 'expense')}><CheckCircle className="mr-2 h-4 w-4"/>Pagar</Button>
-                            </li>
-                        ))}
-                        </ul>
-                    )}
                 </CardContent>
             </Card>
         </div>
