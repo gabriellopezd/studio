@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useReducer, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useReducer, useEffect, useMemo, useState, useContext } from 'react';
 import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc, limit } from 'firebase/firestore';
 import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking, type FirebaseServicesAndUser } from '@/firebase';
 import { AppState, Habit, Task, Mood, ActiveSession } from './types';
@@ -552,7 +552,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
     
         const collectionName = type === 'income' ? 'recurringIncomes' : 'recurringExpenses';
-        const itemRef = doc(firestore, 'users', user.uid, collectionName, item.id);
+        const itemRef = doc(firestore, 'users', user.uid, 'collectionName', item.id);
         batch.update(itemRef, {
           lastInstanceCreated: `${state.currentMonth.getFullYear()}-${state.currentMonth.getMonth()}`,
           lastTransactionId: newTransactionRef.id,
@@ -638,8 +638,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const derivedState = useMemo(() => {
         const analyticsLoading = habitsLoading || timeLogsLoading || tasksLoading || routinesLoading || taskCategoriesLoading;
 
+        const allHabitsData = allHabits || [];
+        const allTasksData = tasks || [];
+        const allTimeLogsData = timeLogs || [];
+        const allRoutinesData = routines || [];
+        const allTaskCategoriesData = taskCategories || [];
+        const allMoodsData = moods || [];
+        const allTransactionsData = transactions || [];
+        const allBudgetsData = budgets || [];
+        const allShoppingListsData = shoppingLists || [];
+        const allRecurringExpensesData = recurringExpenses || [];
+        const allRecurringIncomesData = recurringIncomes || [];
+        const todayMoodDataResult = todayMoodData?.[0] || null;
+
         // Habit Selectors
-        const activeHabits = (allHabits || []).filter((h: any) => h.isActive);
+        const activeHabits = allHabitsData.filter((h: any) => h.isActive);
         const groupedHabits = activeHabits.reduce((acc: any, habit: any) => {
             const category = habit.category || 'Sin Categoría';
             if (!acc[category]) acc[category] = [];
@@ -658,7 +671,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const longestCurrentStreak = activeHabits.reduce((max: number, h: any) => Math.max(max, h.currentStreak || 0), 0);
         const topCurrentStreakHabits = longestCurrentStreak > 0 ? activeHabits.filter((h: any) => (h.currentStreak || 0) === longestCurrentStreak).map((h: any) => h.name) : [];
 
-        const habitLogs = (timeLogs || []).filter((log: any) => log.referenceType === 'habit');
+        const habitLogs = allTimeLogsData.filter((log: any) => log.referenceType === 'habit');
         const habitCategoryTotals: Record<string, number> = {};
         habitLogs.forEach((log: any) => {
             const habit = activeHabits.find((h: any) => h.id === log.referenceId);
@@ -671,7 +684,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
         const dailyProductivityTotals = Array(7).fill(0).map((_, i) => ({ name: daysOfWeek[i], value: 0}));
-        (timeLogs || []).forEach((log: any) => {
+        allTimeLogsData.forEach((log: any) => {
             const date = log.startTime.toDate();
             const dayIndex = date.getDay();
             dailyProductivityTotals[dayIndex].value += log.durationSeconds;
@@ -713,12 +726,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         // Routines Selectors
         const habitTimeMap: Record<string, number> = {};
-        (timeLogs || []).filter((log: any) => log.referenceType === 'habit').forEach((log: any) => {
+        allTimeLogsData.filter((log: any) => log.referenceType === 'habit').forEach((log: any) => {
             habitTimeMap[log.referenceId] = (habitTimeMap[log.referenceId] || 0) + log.durationSeconds;
         });
     
         const routineTimeTotals: Record<string, number> = {};
-        (routines || []).forEach((routine: any) => {
+        allRoutinesData.forEach((routine: any) => {
             routine.habitIds.forEach((habitId: string) => {
                 if (habitTimeMap[habitId]) {
                     routineTimeTotals[routine.name] = (routineTimeTotals[routine.name] || 0) + habitTimeMap[habitId];
@@ -731,7 +744,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const routineCompletionAnalytics = (routines || []).map((routine: any) => {
+        const routineCompletionAnalytics = allRoutinesData.map((routine: any) => {
             const routineHabits = activeHabits.filter((h: any) => routine.habitIds.includes(h.id));
             if (routineHabits.length === 0) return { name: routine.name, completionRate: 0 };
             
@@ -748,11 +761,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     totalPossibleCompletions += Math.floor(daysSinceCreation / 7);
                 }
                 
-                // This part is tricky without querying all completions.
-                // We'll estimate based on streaks, which is not perfect.
-                // A better approach would be a `completions` subcollection.
-                // For now, let's use a simplified proxy.
-                const completionsInPeriod = (timeLogs || []).filter(l => l.referenceId === habit.id && l.startTime.toDate() > thirtyDaysAgo).length;
+                const completionsInPeriod = allTimeLogsData.filter(l => l.referenceId === habit.id && l.startTime.toDate() > thirtyDaysAgo).length;
                 actualCompletions += completionsInPeriod;
 
             });
@@ -772,13 +781,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const startOfWeek = getStartOfWeek(today);
         const endOfWeek = getEndOfWeek(today);
         
-        const allTasks = tasks || [];
-        const overdueTasks = allTasks.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() < startOfDay);
-        const todayTasks = allTasks.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= startOfDay && t.dueDate.toDate() < tomorrow);
-        const tasksForTomorrow = allTasks.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= tomorrow && t.dueDate.toDate() < endOfTomorrow);
-        const upcomingTasks = allTasks.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= tomorrow && t.dueDate.toDate() <= endOfWeek);
+        const overdueTasks = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() < startOfDay);
+        const todayTasks = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= startOfDay && t.dueDate.toDate() < tomorrow);
+        const tasksForTomorrow = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= tomorrow && t.dueDate.toDate() < endOfTomorrow);
+        const upcomingTasks = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= tomorrow && t.dueDate.toDate() <= endOfWeek);
 
-        const dailyTs = allTasks.filter((t: any) => {
+        const dailyTs = allTasksData.filter((t: any) => {
             if (!t.dueDate) return false;
             const dueDate = t.dueDate.toDate();
             return dueDate >= startOfDay && dueDate < tomorrow;
@@ -787,17 +795,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const totalDailyTasks = dailyTs.length;
         const dailyTasksProgress = totalDailyTasks > 0 ? (completedDailyTasks / totalDailyTasks) * 100 : 0;
         
-        const weeklyTasks = allTasks.filter((t: any) => t.dueDate && t.dueDate.toDate() >= startOfWeek && t.dueDate.toDate() <= endOfWeek);
+        const weeklyTasks = allTasksData.filter((t: any) => t.dueDate && t.dueDate.toDate() >= startOfWeek && t.dueDate.toDate() <= endOfWeek);
         const completedWeeklyTasks = weeklyTasks.filter((t: any) => t.isCompleted).length;
         const totalWeeklyTasks = weeklyTasks.length;
         const weeklyTasksProgress = totalWeeklyTasks > 0 ? (completedWeeklyTasks / totalWeeklyTasks) * 100 : 0;
         
-        const completed = allTasks.filter((t: any) => t.isCompleted).length;
-        const total = allTasks.length;
+        const completed = allTasksData.filter((t: any) => t.isCompleted).length;
+        const total = allTasksData.length;
         const totalStats = { completed, total, completionRate: total > 0 ? (completed / total) * 100 : 0 };
-        
-        const catStats = (taskCategories || []).reduce((acc: any, category: any) => {
-            const tasksInCategory = allTasks.filter((t: any) => t.category === category.name);
+
+        const catStats = (allTaskCategoriesData || []).reduce((acc: any, category: any) => {
+            const tasksInCategory = allTasksData.filter((t: any) => t.category === category.name);
             if (tasksInCategory.length > 0) {
                 const completed = tasksInCategory.filter((t: any) => t.isCompleted).length;
                 acc[category.name] = { completed, total: tasksInCategory.length, completionRate: (completed / tasksInCategory.length) * 100 };
@@ -805,7 +813,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return acc;
         }, {} as Record<string, any>);
         
-        const completedWithDueDate = allTasks.filter((t: any) => t.isCompleted && t.dueDate && t.completionDate);
+        const completedWithDueDate = allTasksData.filter((t: any) => t.isCompleted && t.dueDate && t.completionDate);
         const onTime = completedWithDueDate.filter((t: any) => {
             const completion = t.completionDate.toDate();
             const due = t.dueDate.toDate();
@@ -815,9 +823,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }).length;
         const onTimeCompletionRate = completedWithDueDate.length > 0 ? (onTime / completedWithDueDate.length) * 100 : 0;
         
-        const completedTasksByCategory = (taskCategories || []).map((category: any) => ({
+        const completedTasksByCategory = (allTaskCategoriesData || []).map((category: any) => ({
             name: category.name,
-            tareas: allTasks.filter((t: any) => t.isCompleted && t.category === category.name).length
+            tareas: allTasksData.filter((t: any) => t.isCompleted && t.category === category.name).length
         })).filter((c: any) => c.tareas > 0);
 
         const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -828,17 +836,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const dayEnd = new Date(day);
             dayEnd.setHours(23, 59, 59, 999);
 
-            const dueTasks = allTasks.filter((t: any) => t.dueDate && t.dueDate.toDate() >= dayStart && t.dueDate.toDate() <= dayEnd);
-            const completedOnDay = allTasks.filter((t: any) => t.isCompleted && t.completionDate && t.completionDate.toDate() >= dayStart && t.completionDate.toDate() <= dayEnd).length;
+            const dueTasks = allTasksData.filter((t: any) => t.dueDate && t.dueDate.toDate() >= dayStart && t.dueDate.toDate() <= dayEnd);
+            const completedOnDay = allTasksData.filter((t: any) => t.isCompleted && t.completionDate && t.completionDate.toDate() >= dayStart && t.completionDate.toDate() <= dayEnd).length;
             const pendingOnDay = dueTasks.filter((t: any) => !t.isCompleted).length;
 
             return { name, completadas: completedOnDay, pendientes: pendingOnDay };
         });
         
-        const taskLogs = (timeLogs || []).filter((log: any) => log.referenceType === 'task');
+        const taskLogs = allTimeLogsData.filter((log: any) => log.referenceType === 'task');
         const categoryTimeTotals: Record<string, number> = {};
         taskLogs.forEach((log: any) => {
-            const task = allTasks.find((t: any) => t.id === log.referenceId);
+            const task = allTasksData.find((t: any) => t.id === log.referenceId);
             if (task) {
                 const category = task.category || 'Sin Categoría';
                 categoryTimeTotals[category] = (categoryTimeTotals[category] || 0) + log.durationSeconds;
@@ -847,25 +855,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const taskTimeAnalytics = Object.entries(categoryTimeTotals).map(([name, value]) => ({ name, minutos: Math.round(value / 60) })).filter(item => item.minutos > 0);
         
         // Mood Selectors
-        const moodSource = moods ?? [];
-        const feelingsCount = moodSource.flatMap((m: any) => m.feelings).reduce((acc: any, f: any) => { acc[f] = (acc[f] || 0) + 1; return acc; }, {} as Record<string, number>);
-        const influencesCount = moodSource.flatMap((m: any) => m.influences).reduce((acc: any, i: any) => { acc[i] = (acc[i] || 0) + 1; return acc; }, {} as Record<string, number>);
-        const todayMood = todayMoodData?.[0] || null;
+        const feelingsCount = allMoodsData.flatMap((m: any) => m.feelings).reduce((acc: any, f: any) => { acc[f] = (acc[f] || 0) + 1; return acc; }, {} as Record<string, number>);
+        const influencesCount = allMoodsData.flatMap((m: any) => m.influences).reduce((acc: any, i: any) => { acc[i] = (acc[i] || 0) + 1; return acc; }, {} as Record<string, number>);
         
         // Finance Selectors
         const now = state.currentMonth;
         const currentMonthName = now.toLocaleDateString('es-ES', { month: 'long' });
         const currentMonthYear = `${now.getFullYear()}-${now.getMonth()}`;
 
-        const transactionsForMonth = transactions || [];
-        const monthlyIncome = transactionsForMonth.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + t.amount, 0);
-        const monthlyExpenses = transactionsForMonth.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + t.amount, 0);
+        const monthlyIncome = allTransactionsData.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + t.amount, 0);
+        const monthlyExpenses = allTransactionsData.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + t.amount, 0);
         const balance = monthlyIncome - monthlyExpenses;
         
         let budget503020 = null;
-        const needsSpend = transactionsForMonth.filter((t: any) => t.type === 'expense' && t.budgetFocus === 'Necesidades').reduce((s: number, t: any) => s + t.amount, 0);
-        const wantsSpend = transactionsForMonth.filter((t: any) => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((s: number, t: any) => s + t.amount, 0);
-        const savingsSpend = transactionsForMonth.filter((t: any) => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((s: number, t: any) => s + t.amount, 0);
+        const needsSpend = allTransactionsData.filter((t: any) => t.type === 'expense' && t.budgetFocus === 'Necesidades').reduce((s: number, t: any) => s + t.amount, 0);
+        const wantsSpend = allTransactionsData.filter((t: any) => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((s: number, t: any) => s + t.amount, 0);
+        const savingsSpend = allTransactionsData.filter((t: any) => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((s: number, t: any) => s + t.amount, 0);
         
         if (monthlyIncome > 0) {
             budget503020 = {
@@ -875,24 +880,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             };
         }
 
-        const upcomingPayments = (recurringExpenses || []).filter((e: any) => {
+        const upcomingPayments = allRecurringExpensesData.filter((e: any) => {
             if (e.lastInstanceCreated === currentMonthYear) return false;
             const dayOfMonth = e.dayOfMonth;
             const todayDay = today.getDate();
             return dayOfMonth >= todayDay && dayOfMonth <= todayDay + 7;
         });
 
-        const pendingRecurringExpenses = (recurringExpenses || []).filter((e: any) => e.lastInstanceCreated !== currentMonthYear);
-        const paidRecurringExpenses = (recurringExpenses || []).filter((e: any) => e.lastInstanceCreated === currentMonthYear);
-        const pendingRecurringIncomes = (recurringIncomes || []).filter((i: any) => i.lastInstanceCreated !== currentMonthYear);
-        const receivedRecurringIncomes = (recurringIncomes || []).filter((i: any) => i.lastInstanceCreated === currentMonthYear);
+        const pendingRecurringExpenses = allRecurringExpensesData.filter((e: any) => e.lastInstanceCreated !== currentMonthYear);
+        const paidRecurringExpenses = allRecurringExpensesData.filter((e: any) => e.lastInstanceCreated === currentMonthYear);
+        const pendingRecurringIncomes = allRecurringIncomesData.filter((i: any) => i.lastInstanceCreated !== currentMonthYear);
+        const receivedRecurringIncomes = allRecurringIncomesData.filter((i: any) => i.lastInstanceCreated === currentMonthYear);
         const pendingExpensesTotal = pendingRecurringExpenses.reduce((s: number, e: any) => s + e.amount, 0);
 
-        const allExpenseCategoryNames = [...new Set([...(budgets || []).map((b: any) => b.categoryName), ...(shoppingLists || []).map((l: any) => l.name), ...(transactionsForMonth.filter((t: any) => t.type === 'expense').map((t: any) => t.category))])].filter(Boolean);
-        const incomeCategories = [...new Set(["Salario", "Bonificación", "Otro", ...(transactionsForMonth.filter((t: any) => t.type === 'income').map((t: any) => t.category))])].filter(Boolean);
-        const categoriesWithoutBudget = allExpenseCategoryNames.filter(cat => !(budgets || []).some((b: any) => b.categoryName === cat));
+        const allExpenseCategoryNames = [...new Set([...allBudgetsData.map((b: any) => b.categoryName), ...allShoppingListsData.map((l: any) => l.name), ...allTransactionsData.filter((t: any) => t.type === 'expense').map((t: any) => t.category)])].filter(Boolean);
+        const incomeCategories = [...new Set(["Salario", "Bonificación", "Otro", ...allTransactionsData.filter((t: any) => t.type === 'income').map((t: any) => t.category)])].filter(Boolean);
+        const categoriesWithoutBudget = allExpenseCategoryNames.filter(cat => !allBudgetsData.some((b: any) => b.categoryName === cat));
 
-        const activeShoppingLists = (shoppingLists || []).filter((l: any) => l.isActive);
+        const activeShoppingLists = allShoppingListsData.filter((l: any) => l.isActive);
         const sortedLists = [...activeShoppingLists].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
         const spendingByCategory = activeShoppingLists.map((l: any) => ({ name: l.name, gasto: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.gasto > 0);
@@ -903,15 +908,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return acc;
         }, {'Necesidades':0, 'Deseos':0, 'Ahorros y Deudas':0}) ?? {}) as [string, number][]).map(([name, value]) => ({name, value})).filter(d => d.value > 0);
         
-        const catStats = (taskCategories || []).reduce((acc: any, category: any) => {
-            const tasksInCategory = allTasks.filter((t: any) => t.category === category.name);
-            if (tasksInCategory.length > 0) {
-                const completed = tasksInCategory.filter((t: any) => t.isCompleted).length;
-                acc[category.name] = { completed, total: tasksInCategory.length, completionRate: (completed / tasksInCategory.length) * 100 };
-            }
-            return acc;
-        }, {} as Record<string, any>);
-
 
         return {
             analyticsLoading,
@@ -920,11 +916,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             totalStats, categoryStats: catStats, taskTimeAnalytics, overdueTasks, todayTasks, tasksForTomorrow, upcomingTasks, completedWeeklyTasks, totalWeeklyTasks, weeklyTasksProgress, completedDailyTasks, totalDailyTasks, dailyTasksProgress, onTimeCompletionRate, dailyCompletionStats, completedTasksByCategory,
             feelingStats: (Object.entries(feelingsCount) as [string, any][]).sort((a, b) => b[1] - a[1]).slice(0, 5),
             influenceStats: (Object.entries(influencesCount) as [string, any][]).sort((a, b) => b[1] - a[1]).slice(0, 5),
-            todayMood,
-            currentMonthName, currentMonthYear, monthlyIncome, monthlyExpenses, balance, budget503020, upcomingPayments, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, expenseCategories: allExpenseCategoryNames, incomeCategories, categoriesWithoutBudget, sortedLists, spendingByCategory, budgetAccuracy, spendingByFocus,
+            todayMood: todayMoodDataResult,
+            currentMonthName: currentMonthName.charAt(0).toUpperCase() + currentMonthName.slice(1), 
+            currentMonthYear, 
+            monthlyIncome, 
+            monthlyExpenses, 
+            balance, 
+            budget503020, 
+            upcomingPayments, 
+            pendingRecurringExpenses, 
+            paidRecurringExpenses, 
+            pendingRecurringIncomes, 
+            receivedRecurringIncomes, 
+            pendingExpensesTotal, 
+            expenseCategories: allExpenseCategoryNames, 
+            incomeCategories, 
+            categoriesWithoutBudget, 
+            sortedLists, 
+            spendingByCategory, 
+            budgetAccuracy, 
+            spendingByFocus,
             urgentTasks: urgentTasks ?? [],
         };
-    }, [allHabits, routines, tasks, taskCategories, goals, moods, feelings, influences, timeLogs, transactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, todayMoodData, habitsLoading, routinesLoading, tasksLoading, taskCategoriesLoading, goalsLoading, moodsLoading, feelingsLoading, influencesLoading, timeLogsLoading, transactionsLoading, budgetsLoading, shoppingListsLoading, recurringExpensesLoading, recurringIncomesLoading, state.currentMonth]);
+    }, [
+        allHabits, routines, tasks, taskCategories, goals, moods, feelings, influences, timeLogs, transactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, todayMoodData, 
+        habitsLoading, routinesLoading, tasksLoading, taskCategoriesLoading, goalsLoading, moodsLoading, feelingsLoading, influencesLoading, timeLogsLoading, transactionsLoading, budgetsLoading, shoppingListsLoading, recurringExpensesLoading, recurringIncomesLoading, 
+        state.currentMonth
+    ]);
     
     useEffect(() => {
         const rawData = { allHabits, routines, tasks, taskCategories, goals, moods, feelings, influences, transactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, timeLogs, urgentTasks };
@@ -971,3 +989,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
+
+
+    
