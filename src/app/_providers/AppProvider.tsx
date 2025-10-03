@@ -14,6 +14,8 @@ import { PresetHabits } from '@/lib/preset-habits';
 import { PRESET_TASK_CATEGORIES } from '@/lib/task-categories';
 import { defaultFeelings, defaultInfluences } from '@/lib/moods';
 import { PRESET_EXPENSE_CATEGORIES } from '@/lib/transaction-categories';
+import { handleUserLogin, initializeDefaultBudgets, initializeDefaultTaskCategories } from '@/firebase/user-management';
+
 
 // --- Context Definition ---
 export const AppContext = createContext<AppState | undefined>(undefined);
@@ -30,10 +32,12 @@ export const useAppContext = () => {
 type Action =
     | { type: 'SET_DATA'; payload: { key: string; data: any; loading: boolean } }
     | { type: 'SET_CURRENT_MONTH'; payload: Date }
+    | { type: 'SET_MODAL_STATE'; payload: { type: string | null; data?: any } }
+    | { type: 'SET_FORM_STATE'; payload: any }
     | { type: 'SET_ACTIVE_SESSION'; payload: ActiveSession | null }
     | { type: 'SET_ELAPSED_TIME'; payload: number };
 
-const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleSaveHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetHabitStreak'| 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveTaskCategory'| 'handleDeleteTaskCategory' | 'handleSaveMood' | 'handlePayRecurringItem' | 'handleRevertRecurringItem' | 'handleSaveBudget'| 'handleSaveRecurringItem'| 'handleDeleteRecurringItem' | 'handleSaveGoal' | 'handleDeleteGoal'| 'handleUpdateGoalProgress'| 'handleCompleteRoutine'| 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics'| 'routineCompletionAnalytics' | 'totalStats' | 'categoryStats' | 'taskTimeAnalytics' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress' | 'onTimeCompletionRate' | 'dailyCompletionStats' | 'completedTasksByCategory' | 'modalState' | 'formState' | 'handleOpenModal' | 'handleCloseModal' | 'setFormState'> = {
+const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleSaveHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetHabitStreak'| 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveTaskCategory'| 'handleDeleteTaskCategory' | 'handleSaveMood'| 'handleSaveRoutine'| 'handleDeleteRoutine'| 'handleCompleteRoutine' | 'handleSaveGoal' | 'handleDeleteGoal' | 'handleUpdateGoalProgress'| 'handlePayRecurringItem' | 'handleRevertRecurringItem' | 'handleSaveBudget'| 'handleSaveRecurringItem'| 'handleDeleteRecurringItem' | 'handleSaveTransaction' | 'handleDeleteTransaction' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics'| 'routineCompletionAnalytics' | 'totalStats' | 'categoryStats' | 'taskTimeAnalytics' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress' | 'onTimeCompletionRate' | 'dailyCompletionStats' | 'completedTasksByCategory' | 'modalState' | 'formState' | 'handleOpenModal' | 'handleCloseModal' | 'setFormState'> = {
     allHabits: null,
     routines: null,
     tasks: null,
@@ -77,6 +81,10 @@ function appReducer(state: typeof initialState, action: Action) {
             };
         case 'SET_CURRENT_MONTH':
             return { ...state, currentMonth: action.payload };
+        case 'SET_MODAL_STATE':
+            return { ...state, modalState: action.payload };
+        case 'SET_FORM_STATE':
+            return { ...state, formState: action.payload };
         case 'SET_ACTIVE_SESSION':
             return { ...state, activeSession: action.payload };
         case 'SET_ELAPSED_TIME':
@@ -85,7 +93,6 @@ function appReducer(state: typeof initialState, action: Action) {
             return state;
     }
 }
-
 
 function TimerDisplay({ activeSession, elapsedTime, stopSession }: { activeSession: ActiveSession | null, elapsedTime: number, stopSession: () => void }) {
     const formatTime = (totalSeconds: number) => {
@@ -134,10 +141,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { firestore, user } = useFirebase();
     const [state, dispatch] = useReducer(appReducer, initialState);
     const [streaksChecked, setStreaksChecked] = useState(false);
-    const { toast } = useToast();
-
     const [modalState, setModalState] = useState<{ type: string | null; data?: any }>({ type: null });
     const [formState, setFormState] = useState<any>({});
+    const { toast } = useToast();
     
     // --- Data Fetching using useCollection ---
     const allHabitsQuery = useMemo(() => {
@@ -1140,8 +1146,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         
         const tomorrow = new Date(startOfDay);
         tomorrow.setDate(startOfDay.getDate() + 1);
-        const endOfTomorrow = new Date(tomorrow);
-        endOfTomorrow.setDate(tomorrow.getDate() + 1);
 
         const startOfWeek = getStartOfWeek(today);
         const endOfWeek = getEndOfWeek(today);
@@ -1380,3 +1384,5 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
+
+    
