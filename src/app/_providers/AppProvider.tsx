@@ -32,8 +32,6 @@ export const useAppContext = () => {
 type Action =
     | { type: 'SET_DATA'; payload: { key: string; data: any; loading: boolean } }
     | { type: 'SET_CURRENT_MONTH'; payload: Date }
-    | { type: 'SET_MODAL_STATE'; payload: { type: string | null; data?: any } }
-    | { type: 'SET_FORM_STATE'; payload: any }
     | { type: 'SET_ACTIVE_SESSION'; payload: ActiveSession | null }
     | { type: 'SET_ELAPSED_TIME'; payload: number };
 
@@ -83,10 +81,6 @@ function appReducer(state: typeof initialState, action: Action) {
             };
         case 'SET_CURRENT_MONTH':
             return { ...state, currentMonth: action.payload };
-        case 'SET_MODAL_STATE':
-            return { ...state, modalState: action.payload };
-        case 'SET_FORM_STATE':
-            return { ...state, formState: action.payload };
         case 'SET_ACTIVE_SESSION':
             return { ...state, activeSession: action.payload };
         case 'SET_ELAPSED_TIME':
