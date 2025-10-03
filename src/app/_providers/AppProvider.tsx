@@ -37,7 +37,7 @@ type Action =
     | { type: 'SET_ACTIVE_SESSION'; payload: ActiveSession | null }
     | { type: 'SET_ELAPSED_TIME'; payload: number };
 
-const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleSaveHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetHabitStreak'| 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveTaskCategory'| 'handleDeleteTaskCategory' | 'handleSaveMood'| 'handleSaveRoutine'| 'handleDeleteRoutine'| 'handleCompleteRoutine' | 'handleSaveGoal' | 'handleDeleteGoal' | 'handleUpdateGoalProgress'| 'handlePayRecurringItem' | 'handleRevertRecurringItem' | 'handleSaveBudget'| 'handleSaveRecurringItem'| 'handleDeleteRecurringItem' | 'handleSaveTransaction' | 'handleDeleteTransaction' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics'| 'routineCompletionAnalytics' | 'totalStats' | 'categoryStats' | 'taskTimeAnalytics' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress' | 'onTimeCompletionRate' | 'dailyCompletionStats' | 'completedTasksByCategory' | 'modalState' | 'formState' | 'handleOpenModal' | 'handleCloseModal' | 'setFormState'> = {
+const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleSaveHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetHabitStreak'| 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveTaskCategory'| 'handleDeleteTaskCategory' | 'handleSaveMood'| 'handleSaveRoutine'| 'handleDeleteRoutine'| 'handleCompleteRoutine' | 'handleSaveGoal' | 'handleDeleteGoal' | 'handleUpdateGoalProgress'| 'handlePayRecurringItem' | 'handleRevertRecurringItem' | 'handleSaveBudget'| 'handleSaveRecurringItem'| 'handleDeleteRecurringItem' | 'handleSaveTransaction' | 'handleDeleteTransaction' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics'| 'routineCompletionAnalytics' | 'totalStats' | 'categoryStats' | 'taskTimeAnalytics' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress' | 'onTimeCompletionRate' | 'dailyCompletionStats' | 'completedTasksByCategory' | 'modalState' | 'formState' | 'handleOpenModal' | 'handleCloseModal' | 'setFormState' | 'annualTransactions' | 'annualTransactionsLoading' | 'annualFlowData' | 'annualCategorySpending' | 'monthlySummaryData'> = {
     allHabits: null,
     routines: null,
     tasks: null,
@@ -47,6 +47,7 @@ const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggle
     feelings: null,
     influences: null,
     transactions: null,
+    annualTransactions: null,
     budgets: null,
     shoppingLists: null,
     recurringExpenses: null,
@@ -61,6 +62,7 @@ const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggle
     feelingsLoading: true,
     influencesLoading: true,
     transactionsLoading: true,
+    annualTransactionsLoading: true,
     budgetsLoading: true,
     shoppingListsLoading: true,
     recurringExpensesLoading: true,
@@ -249,6 +251,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         );
     }, [user, firestore, state.currentMonth]);
     const { data: transactions, isLoading: transactionsLoading } = useCollection(transactionsQuery);
+
+    const annualTransactionsQuery = useMemo(() => {
+        if (!user || !firestore) return null;
+        const year = state.currentMonth.getFullYear();
+        const startOfYear = new Date(year, 0, 1);
+        const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
+        return query(
+            collection(firestore, 'users', user.uid, 'transactions'),
+            where('date', '>=', startOfYear.toISOString()),
+            where('date', '<=', endOfYear.toISOString()),
+        );
+    }, [user, firestore, state.currentMonth]);
+    const { data: annualTransactions, isLoading: annualTransactionsLoading } = useCollection(annualTransactionsQuery);
 
     const moodsQuery = useMemo(() => {
         if (!user || !firestore) return null;
@@ -1014,6 +1029,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const allTaskCategoriesData = taskCategories || [];
         const allMoodsData = moods || [];
         const allTransactionsData = transactions || [];
+        const allAnnualTransactionsData = annualTransactions || [];
         const allBudgetsData = budgets || [];
         const allShoppingListsData = shoppingLists || [];
         const allRecurringExpensesData = recurringExpenses || [];
@@ -1226,7 +1242,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const feelingsCount = allMoodsData.flatMap((m: any) => m.feelings).reduce((acc: any, f: any) => { acc[f] = (acc[f] || 0) + 1; return acc; }, {} as Record<string, number>);
         const influencesCount = allMoodsData.flatMap((m: any) => m.influences).reduce((acc: any, i: any) => { acc[i] = (acc[i] || 0) + 1; return acc; }, {} as Record<string, number>);
         
-        // Finance Selectors
+        // Finance Selectors (Monthly)
         const now = state.currentMonth;
         const currentMonthName = now.toLocaleDateString('es-ES', { month: 'long' });
         const currentMonthYear = `${now.getFullYear()}-${now.getMonth() + 1}`;
@@ -1284,6 +1300,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if(l.budgetFocus && acc.hasOwnProperty(l.budgetFocus)) acc[l.budgetFocus] += total;
             return acc;
         }, {'Necesidades':0, 'Deseos':0, 'Ahorros y Deudas':0}) ?? {}) as [string, number][]).map(([name, value]) => ({name, value})).filter(d => d.value > 0);
+
+        // Finance Selectors (Annual)
+        const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        const annualFlowData = Array.from({length: 12}, (_, i) => ({ name: monthNames[i], ingresos: 0, gastos: 0 }));
+        allAnnualTransactionsData.forEach((t: any) => {
+            const monthIndex = new Date(t.date).getMonth();
+            if (t.type === 'income') {
+                annualFlowData[monthIndex].ingresos += t.amount;
+            } else {
+                annualFlowData[monthIndex].gastos += t.amount;
+            }
+        });
+
+        const annualCategorySpendingMap = allAnnualTransactionsData.filter((t: any) => t.type === 'expense').reduce((acc: any, t: any) => {
+            acc[t.category] = (acc[t.category] || 0) + t.amount;
+            return acc;
+        }, {});
+        const annualCategorySpending = Object.entries(annualCategorySpendingMap).map(([name, value]) => ({ name, value }));
+
+        const monthlySummaryData = monthNames.map((name, i) => {
+            const ingresos = annualFlowData[i].ingresos;
+            const gastos = annualFlowData[i].gastos;
+            return {
+                month: name,
+                ingresos,
+                gastos,
+                balance: ingresos - gastos,
+            };
+        });
         
         return {
             analyticsLoading,
@@ -1313,21 +1358,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             budgetAccuracy, 
             spendingByFocus,
             urgentTasks: urgentTasks ?? [],
+            annualFlowData,
+            annualCategorySpending,
+            monthlySummaryData,
         };
     }, [
-        allHabits, routines, tasks, taskCategories, goals, moods, feelings, influences, timeLogs, transactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, todayMoodData, urgentTasks,
-        habitsLoading, routinesLoading, tasksLoading, taskCategoriesLoading, goalsLoading, moodsLoading, feelingsLoading, influencesLoading, timeLogsLoading, transactionsLoading, budgetsLoading, shoppingListsLoading, recurringExpensesLoading, recurringIncomesLoading, 
+        allHabits, routines, tasks, taskCategories, goals, moods, feelings, influences, timeLogs, transactions, annualTransactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, todayMoodData, urgentTasks,
+        habitsLoading, routinesLoading, tasksLoading, taskCategoriesLoading, goalsLoading, moodsLoading, feelingsLoading, influencesLoading, timeLogsLoading, transactionsLoading, annualTransactionsLoading, budgetsLoading, shoppingListsLoading, recurringExpensesLoading, recurringIncomesLoading, 
         state.currentMonth
     ]);
     
     useEffect(() => {
-        const rawData: { [key: string]: any } = { allHabits, routines, tasks, taskCategories, goals, moods, feelings, influences, transactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, timeLogs, urgentTasks };
-        const loadingFlags: Record<string, boolean> = { habitsLoading, routinesLoading, tasksLoading, taskCategoriesLoading, goalsLoading, moodsLoading, feelingsLoading, influencesLoading, transactionsLoading, budgetsLoading, shoppingListsLoading, recurringExpensesLoading, recurringIncomesLoading, timeLogsLoading, urgentTasksLoading };
+        const rawData: { [key: string]: any } = { allHabits, routines, tasks, taskCategories, goals, moods, feelings, influences, transactions, annualTransactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, timeLogs, urgentTasks };
+        const loadingFlags: Record<string, boolean> = { habitsLoading, routinesLoading, tasksLoading, taskCategoriesLoading, goalsLoading, moodsLoading, feelingsLoading, influencesLoading, transactionsLoading, annualTransactionsLoading, budgetsLoading, shoppingListsLoading, recurringExpensesLoading, recurringIncomesLoading, timeLogsLoading, urgentTasksLoading };
         
         Object.entries(rawData).forEach(([key, data]) => {
             dispatch({ type: 'SET_DATA', payload: { key, data, loading: loadingFlags[`${key}Loading`] } });
         });
-    }, [allHabits, routines, tasks, taskCategories, goals, moods, feelings, influences, transactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, timeLogs, urgentTasks, habitsLoading, routinesLoading, tasksLoading, taskCategoriesLoading, goalsLoading, moodsLoading, feelingsLoading, influencesLoading, transactionsLoading, budgetsLoading, shoppingListsLoading, recurringExpensesLoading, recurringIncomesLoading, timeLogsLoading, urgentTasksLoading]);
+    }, [allHabits, routines, tasks, taskCategories, goals, moods, feelings, influences, transactions, annualTransactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, timeLogs, urgentTasks, habitsLoading, routinesLoading, tasksLoading, taskCategoriesLoading, goalsLoading, moodsLoading, feelingsLoading, influencesLoading, transactionsLoading, annualTransactionsLoading, budgetsLoading, shoppingListsLoading, recurringExpensesLoading, recurringIncomesLoading, timeLogsLoading, urgentTasksLoading]);
 
     const value: AppState = {
         ...state,
@@ -1384,5 +1432,3 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
-
-    

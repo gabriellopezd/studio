@@ -71,6 +71,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppContext } from '@/app/_providers/AppProvider';
 import { ResponsiveCalendar } from '../tasks/_components/ResponsiveCalendar';
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 const motivationalQuotes = [
     "Tus finanzas son el reflejo de tus hábitos. ¡Constrúyelos sabiamente!",
@@ -82,6 +83,8 @@ const motivationalQuotes = [
 
 const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 const months = Array.from({ length: 12 }, (_, i) => ({ value: i, label: new Date(0, i).toLocaleString('es-ES', { month: 'long' }) }));
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8442ff', '#ff42f5'];
 
 export default function FinancesPage() {
   const {
@@ -107,6 +110,10 @@ export default function FinancesPage() {
     expenseCategories,
     incomeCategories,
     categoriesWithoutBudget,
+    annualFlowData,
+    annualCategorySpending,
+    monthlySummaryData,
+    annualTransactionsLoading,
     handlePayRecurringItem,
     handleRevertRecurringItem,
     handleSaveTransaction,
@@ -497,18 +504,92 @@ export default function FinancesPage() {
 
             </div>
           </TabsContent>
-           <TabsContent value="annual" className="mt-6">
-                <Card className="flex flex-col items-center justify-center p-10 text-center min-h-[400px]">
-                    <CardHeader>
-                    <AreaChart className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <CardTitle className="mt-4">
-                        Análisis Anual Próximamente
-                    </CardTitle>
-                    <CardDescription>
-                        Estamos trabajando en vistas anuales, gráficos de tendencias y herramientas de planificación para darte una visión completa de tu salud financiera a lo largo del tiempo.
-                    </CardDescription>
-                    </CardHeader>
-                </Card>
+           <TabsContent value="annual" className="mt-6 space-y-6">
+                {annualTransactionsLoading ? (
+                    <p>Cargando análisis anual...</p>
+                ) : (
+                    <>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Flujo de Caja Anual ({currentMonth.getFullYear()})</CardTitle>
+                                <CardDescription>Comparación de ingresos y gastos totales por mes.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={annualFlowData}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" />
+                                    <YAxis tickFormatter={(value) => formatCurrency(value as number)} />
+                                    <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                                    <Legend />
+                                    <Bar dataKey="ingresos" fill="hsl(var(--chart-2))" name="Ingresos" />
+                                    <Bar dataKey="gastos" fill="hsl(var(--chart-5))" name="Gastos" />
+                                </BarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                        
+                        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                            <Card className="lg:col-span-2">
+                                <CardHeader>
+                                    <CardTitle>Desglose de Gastos Anuales</CardTitle>
+                                    <CardDescription>Distribución de tus gastos por categoría durante el año.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                     <ResponsiveContainer width="100%" height={300}>
+                                        <PieChart>
+                                        <Pie
+                                            data={annualCategorySpending}
+                                            cx="50%"
+                                            cy="50%"
+                                            labelLine={false}
+                                            outerRadius={80}
+                                            fill="#8884d8"
+                                            dataKey="value"
+                                            nameKey="name"
+                                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                        >
+                                            {annualCategorySpending.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                                        <Legend />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+                             <Card className="lg:col-span-3">
+                                <CardHeader>
+                                    <CardTitle>Resumen Mensual del Año</CardTitle>
+                                    <CardDescription>Tabla resumen de tu rendimiento financiero cada mes.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                     <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Mes</TableHead>
+                                                <TableHead className="text-right">Ingresos</TableHead>
+                                                <TableHead className="text-right">Gastos</TableHead>
+                                                <TableHead className="text-right">Balance</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {monthlySummaryData.map((row) => (
+                                                <TableRow key={row.month}>
+                                                    <TableCell className="font-medium">{row.month}</TableCell>
+                                                    <TableCell className="text-right text-green-600">{formatCurrency(row.ingresos)}</TableCell>
+                                                    <TableCell className="text-right text-red-600">{formatCurrency(row.gastos)}</TableCell>
+                                                    <TableCell className={`text-right font-semibold ${row.balance >= 0 ? 'text-foreground' : 'text-destructive'}`}>{formatCurrency(row.balance)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                             </Card>
+                        </div>
+                    </>
+                )}
           </TabsContent>
         </Tabs>
       </div>

@@ -52,6 +52,7 @@ export interface AppState {
     feelings: any[] | null;
     influences: any[] | null;
     transactions: any[] | null;
+    annualTransactions: any[] | null;
     budgets: any[] | null;
     shoppingLists: any[] | null;
     recurringExpenses: any[] | null;
@@ -69,6 +70,7 @@ export interface AppState {
     feelingsLoading: boolean;
     influencesLoading: boolean;
     transactionsLoading: boolean;
+    annualTransactionsLoading: boolean;
     budgetsLoading: boolean;
     shoppingListsLoading: boolean;
     recurringExpensesLoading: boolean;
@@ -81,6 +83,8 @@ export interface AppState {
     currentMonth: Date;
     activeSession: ActiveSession | null;
     elapsedTime: number;
+    modalState: { type: string | null; data?: any };
+    formState: any;
 
     // Derived Data / Selectors
     groupedHabits: { [key: string]: any[] };
@@ -105,11 +109,9 @@ export interface AppState {
     categoryStats: Record<string, { completed: number; total: number; completionRate: number; }>;
     taskTimeAnalytics: { name: string; minutos: number; }[];
     
-    // Task-related selectors for dashboard
     overdueTasks: any[];
     todayTasks: any[];
     upcomingTasks: any[];
-    tasksForTomorrow: any[];
 
     completedWeeklyTasks: number;
     totalWeeklyTasks: number;
@@ -135,6 +137,11 @@ export interface AppState {
         savings: { budget: number; spend: number; progress: number; };
     } | null;
     
+    // Annual Finance Data
+    annualFlowData: { name: string, ingresos: number, gastos: number }[];
+    annualCategorySpending: { name: string, value: number }[];
+    monthlySummaryData: { month: string, ingresos: number, gastos: number, balance: number }[];
+
     upcomingPayments: any[];
     pendingRecurringExpenses: any[];
     paidRecurringExpenses: any[];
@@ -152,20 +159,36 @@ export interface AppState {
 
     // Actions
     handleToggleHabit: (habitId: string) => void;
-    handleCreateOrUpdateHabit: (habitData: Habit) => Promise<void>;
-    handleDeleteHabit: (habitId: string) => Promise<void>;
+    handleSaveHabit: () => Promise<void>;
+    handleDeleteHabit: () => Promise<void>;
     handleResetAllStreaks: () => Promise<void>;
+    handleResetHabitStreak: () => Promise<void>;
     handleResetTimeLogs: () => Promise<void>;
     handleResetMoods: () => Promise<void>;
     handleResetCategories: () => Promise<void>;
     handleToggleTask: (taskId: string, currentStatus: boolean) => void;
-    handleSaveTask: (taskData: Task) => Promise<void>;
-    handleDeleteTask: (taskId: string) => Promise<void>;
+    handleSaveTask: () => Promise<void>;
+    handleDeleteTask: () => Promise<void>;
+    handleSaveTaskCategory: () => Promise<void>;
     handleDeleteTaskCategory: (categoryId: string, categoryName: string) => Promise<void>;
+    handleSaveRoutine: () => Promise<void>;
+    handleDeleteRoutine: () => Promise<void>;
+    handleCompleteRoutine: (routine: any) => Promise<void>;
+    handleSaveGoal: () => Promise<void>;
+    handleDeleteGoal: () => Promise<void>;
+    handleUpdateGoalProgress: () => Promise<void>;
     handleSaveMood: (moodData: Mood) => Promise<void>;
     handlePayRecurringItem: (item: any, type: 'income' | 'expense') => Promise<void>;
     handleRevertRecurringItem: (item: any, type: 'income' | 'expense') => Promise<void>;
+    handleSaveTransaction: () => Promise<void>;
+    handleDeleteTransaction: () => Promise<void>;
+    handleSaveBudget: () => Promise<void>;
+    handleSaveRecurringItem: (type: 'income' | 'expense') => Promise<void>;
+    handleDeleteRecurringItem: () => Promise<void>;
     setCurrentMonth: (date: Date | ((prev: Date) => Date)) => void;
     startSession: (id: string, name: string, type: 'habit' | 'task') => void;
     stopSession: () => void;
+    handleOpenModal: (type: string, data?: any) => void;
+    handleCloseModal: (type: string) => void;
+    setFormState: React.Dispatch<any>;
 }
