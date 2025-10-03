@@ -29,7 +29,6 @@ import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useAppContext } from '@/app/_providers/AppProvider';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -208,18 +207,16 @@ export default function DashboardPage() {
                             Racha Actual
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <p className="text-3xl font-bold cursor-default">{longestCurrentStreak} días</p>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {topCurrentStreakHabits.length > 0 ? topCurrentStreakHabits.join(', ') : 'Completa un hábito por 2 días seguidos'}
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                    <CardContent className="space-y-3">
+                        <p className="text-3xl font-bold">{longestCurrentStreak} días</p>
                         <p className="text-sm text-muted-foreground truncate">Tu mejor racha activa.</p>
+                        <div className="flex flex-wrap gap-1">
+                            {topCurrentStreakHabits.length > 0 ? (
+                                topCurrentStreakHabits.map(habit => <Badge key={habit} variant="secondary">{habit}</Badge>)
+                            ) : (
+                                <p className="text-xs text-muted-foreground">Completa un hábito por 2 días seguidos.</p>
+                            )}
+                        </div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -229,18 +226,16 @@ export default function DashboardPage() {
                             Racha Récord
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <p className="text-3xl font-bold cursor-default">{longestStreak} días</p>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                     {topLongestStreakHabits.length > 0 ? topLongestStreakHabits.join(', ') : 'Aún no tienes un récord'}
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                    <CardContent className="space-y-3">
+                        <p className="text-3xl font-bold">{longestStreak} días</p>
                         <p className="text-sm text-muted-foreground">Tu récord histórico.</p>
+                        <div className="flex flex-wrap gap-1">
+                             {topLongestStreakHabits.length > 0 ? (
+                                topLongestStreakHabits.map(habit => <Badge key={habit} variant="secondary">{habit}</Badge>)
+                            ) : (
+                                <p className="text-xs text-muted-foreground">Aún no tienes un récord.</p>
+                            )}
+                        </div>
                     </CardContent>
                 </Card>
            </div>
