@@ -80,8 +80,6 @@ const months = Array.from({ length: 12 }, (_, i) => ({ value: i, label: new Date
 
 export default function FinancesPage() {
   const {
-    firestore, 
-    user,
     currentMonth,
     setCurrentMonth,
     transactions,
@@ -478,7 +476,7 @@ export default function FinancesPage() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="amount">Monto</Label>
-                        <Input id="amount" type="number" value={formState.amount as string || ''} onChange={(e) => setFormState(prev => ({...prev, amount: e.target.value}))}/>
+                        <Input id="amount" type="number" value={formState.amount || ''} onChange={(e) => setFormState(prev => ({...prev, amount: e.target.value}))}/>
                     </div>
                     </div>
                     <div className="space-y-2">
@@ -503,7 +501,7 @@ export default function FinancesPage() {
                         id="date"
                         value={formState.date ? new Date(formState.date) : new Date()}
                         onSelect={(date) =>
-                            setFormState(prev => ({...prev, date: date?.toISOString()}))
+                            setFormState(prev => ({...prev, date: date}))
                         }
                         />
                     </div>
