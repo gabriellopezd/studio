@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,7 +17,7 @@ import {
 } from '@/firebase';
 import { collection, doc, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import Link from 'next/link';
-import { ArrowLeft, PlusCircle, Trash2 } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Trash2, Pencil } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -51,9 +51,28 @@ import {
 
 export default function TaskSettingsPage() {
   const { firestore, user, taskCategories, taskCategoriesLoading } = useAppContext();
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [newCategoryFocus, setNewCategoryFocus] = useState('Deseos');
   const { toast } = useToast();
+
+  const [isDialogOpen, setDialogOpen] = useState(false);
+  const [categoryToEdit, setCategoryToEdit] = useState<any | null>(null);
+
+  const [categoryName, setCategoryName] = useState('');
+  const [budgetFocus, setBudgetFocus] = useState('Deseos');
+
+  useEffect(() => {
+    if (categoryToEdit) {
+      setCategoryName(categoryToEdit.name);
+      setBudgetFocus(categoryToEdit.budgetFocus || 'Deseos');
+    } else {
+      setCategoryName('');
+      setBudgetFocus('Deseos');
+    }
+  }, [categoryToEdit]);
+
+  const handleOpenDialog = (category?: any) => {
+    setCategoryToEdit(category || null);
+    setDialogOpen(true);
+  };
 
   const handleToggleCategory = async (
     categoryId: string,
@@ -69,20 +88,29 @@ export default function TaskSettingsPage() {
     );
     await updateDocumentNonBlocking(categoryRef, { isActive: !currentStatus });
   };
+  
+  const handleSaveCategory = async () => {
+    if (categoryToEdit) {
+        await handleUpdateCategory();
+    } else {
+        await handleCreateCategory();
+    }
+    setDialogOpen(false);
+  }
 
   const handleCreateCategory = async () => {
-    if (!user || !firestore || !newCategoryName.trim()) return;
+    if (!user || !firestore || !categoryName.trim()) return;
 
-    const categoryName = newCategoryName.trim();
+    const trimmedName = categoryName.trim();
     const categoryExists = taskCategories?.some(
-      (c) => c.name.toLowerCase() === categoryName.toLowerCase()
+      (c) => c.name.toLowerCase() === trimmedName.toLowerCase()
     );
 
     if (categoryExists) {
       toast({
         variant: 'destructive',
         title: 'Categoría Duplicada',
-        description: `La categoría "${categoryName}" ya existe.`,
+        description: `La categoría "${trimmedName}" ya existe.`,
       });
       return;
     }
@@ -94,14 +122,54 @@ export default function TaskSettingsPage() {
       'taskCategories'
     );
     await addDocumentNonBlocking(categoriesColRef, {
-      name: categoryName,
+      name: trimmedName,
       isActive: true,
       userId: user.uid,
-      budgetFocus: newCategoryFocus,
+      budgetFocus: budgetFocus,
     });
-    setNewCategoryName('');
-    setNewCategoryFocus('Deseos');
   };
+
+  const handleUpdateCategory = async () => {
+    if (!user || !firestore || !categoryToEdit || !categoryName.trim()) return;
+    
+    const trimmedName = categoryName.trim();
+    const originalName = categoryToEdit.name;
+
+    // Check if new name already exists (and it's not the same category)
+    if (originalName.toLowerCase() !== trimmedName.toLowerCase()) {
+        const categoryExists = taskCategories?.some(
+            (c) => c.name.toLowerCase() === trimmedName.toLowerCase()
+        );
+        if (categoryExists) {
+            toast({ variant: 'destructive', title: 'Categoría Duplicada', description: `La categoría "${trimmedName}" ya existe.`});
+            return;
+        }
+    }
+
+    const batch = writeBatch(firestore);
+    const categoryRef = doc(firestore, 'users', user.uid, 'taskCategories', categoryToEdit.id);
+    
+    batch.update(categoryRef, { name: trimmedName, budgetFocus });
+
+    // If name changed, update all tasks with the old category name
+    if (originalName !== trimmedName) {
+        const tasksQuery = query(collection(firestore, 'users', user.uid, 'tasks'), where('category', '==', originalName));
+        const tasksSnapshot = await getDocs(tasksQuery);
+        tasksSnapshot.forEach(taskDoc => {
+            const taskRef = doc(firestore, 'users', user.uid, 'tasks', taskDoc.id);
+            batch.update(taskRef, { category: trimmedName });
+        });
+    }
+
+    try {
+        await batch.commit();
+        toast({ title: "Categoría actualizada", description: `La categoría se ha guardado correctamente.` });
+    } catch(error) {
+        console.error("Error updating category:", error);
+        toast({ variant: 'destructive', title: 'Error', description: "No se pudo actualizar la categoría." });
+    }
+  }
+
 
   const handleDeleteCategory = async (categoryId: string, categoryName: string) => {
     if (!user || !firestore) return;
@@ -145,55 +213,10 @@ export default function TaskSettingsPage() {
         imageId="settings-sub-header"
       >
         <div className="flex items-center gap-2">
-            <Dialog>
-            <DialogTrigger asChild>
-                <Button>
+            <Button onClick={() => handleOpenDialog()}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Crear Categoría
-                </Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                <DialogTitle>Crear Nueva Categoría</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="categoryName">Nombre de la categoría</Label>
-                        <Input
-                        id="categoryName"
-                        value={newCategoryName}
-                        onChange={(e) => setNewCategoryName(e.target.value)}
-                        placeholder="Ej: Universidad, Trabajo Secundario..."
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="budgetFocus">Enfoque Presupuesto</Label>
-                        <Select value={newCategoryFocus} onValueChange={setNewCategoryFocus}>
-                            <SelectTrigger id="budgetFocus">
-                                <SelectValue placeholder="Selecciona un enfoque" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Necesidades">Necesidades</SelectItem>
-                                <SelectItem value="Deseos">Deseos</SelectItem>
-                                <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-                <DialogFooter>
-                <DialogClose asChild>
-                    <Button
-                    type="button"
-                    onClick={handleCreateCategory}
-                    disabled={!newCategoryName.trim()}
-                    >
-                    Crear Categoría
-                    </Button>
-                </DialogClose>
-                </DialogFooter>
-            </DialogContent>
-            </Dialog>
-
+            </Button>
             <Button variant="outline" asChild>
             <Link href="/settings">
                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -218,37 +241,86 @@ export default function TaskSettingsPage() {
                   }
                   aria-label={`Activar categoría ${cat.name}`}
                 />
-                 {cat.name !== 'Otro' && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Esta acción no se puede deshacer. Se eliminará la categoría "{cat.name}" y todas las tareas existentes se moverán a la categoría "Otro".
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDeleteCategory(cat.id, cat.name)}
-                          className="bg-destructive hover:bg-destructive/90"
-                        >
-                          Eliminar
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                 {cat.name !== 'Otro' && cat.name !== 'MinJusticia' && cat.name !== 'CNMH' && (
+                  <>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleOpenDialog(cat)}>
+                        <Pencil className="h-4 w-4" />
+                    </Button>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Esta acción no se puede deshacer. Se eliminará la categoría "{cat.name}" y todas las tareas existentes se moverán a la categoría "Otro".
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                            onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                            className="bg-destructive hover:bg-destructive/90"
+                            >
+                            Eliminar
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                  </>
                 )}
               </div>
             </CardHeader>
           </Card>
         ))}
       </div>
+      
+       <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                <DialogTitle>{categoryToEdit ? 'Editar Categoría' : 'Crear Nueva Categoría'}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="categoryName">Nombre de la categoría</Label>
+                        <Input
+                        id="categoryName"
+                        value={categoryName}
+                        onChange={(e) => setCategoryName(e.target.value)}
+                        placeholder="Ej: Universidad, Trabajo Secundario..."
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="budgetFocus">Enfoque Presupuesto</Label>
+                        <Select value={budgetFocus} onValueChange={setBudgetFocus}>
+                            <SelectTrigger id="budgetFocus">
+                                <SelectValue placeholder="Selecciona un enfoque" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Necesidades">Necesidades</SelectItem>
+                                <SelectItem value="Deseos">Deseos</SelectItem>
+                                <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <DialogFooter>
+                 <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                    <Button
+                    type="button"
+                    onClick={handleSaveCategory}
+                    disabled={!categoryName.trim()}
+                    >
+                    {categoryToEdit ? 'Guardar Cambios' : 'Crear Categoría'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+            </Dialog>
+
     </div>
   );
 }
+
