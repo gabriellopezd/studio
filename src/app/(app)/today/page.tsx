@@ -57,6 +57,15 @@ const motivationalQuotes = [
     "El presente es el único momento que realmente posees."
 ];
 
+function getPriorityBadgeClass(priority: string) {
+    switch (priority) {
+        case 'high': return 'bg-red-200 text-red-800 hover:bg-red-200/80';
+        case 'medium': return 'bg-yellow-200 text-yellow-800 hover:bg-yellow-200/80';
+        case 'low': return 'bg-green-200 text-green-800 hover:bg-green-200/80';
+        default: return 'bg-gray-200 text-gray-800';
+    }
+}
+
 function TaskListItem({ task, onToggle, onStartSession, onStopSession, activeSession }: any) {
   const isSessionActive = activeSession?.id === task.id;
   return (
@@ -70,9 +79,7 @@ function TaskListItem({ task, onToggle, onStartSession, onStopSession, activeSes
             <p className={cn("font-medium", task.isCompleted && 'text-muted-foreground line-through')}>{task.name}</p>
             <p className="text-sm text-muted-foreground">{task.category}</p>
         </label>
-        <Badge variant={task.priority === 'high' ? 'destructive' : task.priority === 'medium' ? 'secondary' : 'outline'} className="ml-auto">
-            {task.priority || 'normal'}
-        </Badge>
+        <Badge className={cn(getPriorityBadgeClass(task.priority), 'ml-auto')}>{task.priority || 'normal'}</Badge>
         {!task.isCompleted && (
             <Button 
                 variant="outline" 
@@ -274,7 +281,7 @@ export default function TodayPage() {
                 <CardContent>
                     {tasksLoading && <p>Cargando tareas...</p>}
                     {!tasksLoading && todayTasks.length === 0 && overdueTasks.length === 0 && (
-                        <p className="text-sm text-muted-foreground text-center py-4">No tienes tareas urgentes para hoy.</p>
+                        <p className="text-sm text-muted-foreground text-center py-4">No tienes tareas urgentes.</p>
                     )}
                     <div className="space-y-4">
                         {overdueTasks.length > 0 && (
@@ -298,3 +305,5 @@ export default function TodayPage() {
     </>
   );
 }
+
+    

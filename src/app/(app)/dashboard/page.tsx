@@ -33,6 +33,7 @@ import { Separator } from '@/components/ui/separator';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 const motivationalQuotes = [
     "El progreso de hoy es el éxito de mañana.",
@@ -42,6 +43,15 @@ const motivationalQuotes = [
     "Visualiza tu éxito y hazlo realidad."
 ];
 
+function getPriorityBadgeClass(priority: string) {
+    switch (priority) {
+        case 'high': return 'bg-red-200 text-red-800 hover:bg-red-200/80';
+        case 'medium': return 'bg-yellow-200 text-yellow-800 hover:bg-yellow-200/80';
+        case 'low': return 'bg-green-200 text-green-800 hover:bg-green-200/80';
+        default: return 'bg-gray-200 text-gray-800';
+    }
+}
+
 function TaskListItem({ task }: { task: any }) {
     return (
         <li className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-2">
@@ -49,7 +59,7 @@ function TaskListItem({ task }: { task: any }) {
                 <p className="font-medium">{task.name}</p>
                 <p className="text-sm text-muted-foreground">{task.category}</p>
             </div>
-            <Badge variant={task.priority === 'high' ? 'destructive' : task.priority === 'medium' ? 'secondary' : 'outline'} className="mt-2 sm:mt-0">{task.priority || 'normal'}</Badge>
+            <Badge className={cn(getPriorityBadgeClass(task.priority), "mt-2 sm:mt-0")}>{task.priority || 'normal'}</Badge>
         </li>
     );
 }
@@ -318,5 +328,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
 
     
