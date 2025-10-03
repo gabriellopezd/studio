@@ -207,7 +207,7 @@ export default function TasksPage() {
      }
   }
   
-  const categoryOrder = taskCategories.map(c => c.name).sort();
+  const categoryOrder = taskCategories?.map(c => c.name).sort() || [];
 
   const renderTaskList = (groupedTasks: Record<string, any[]>, allTasksInView: any[]) => {
     const sortedCategories = Object.keys(groupedTasks).sort((a, b) => {
