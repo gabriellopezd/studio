@@ -36,7 +36,8 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAppContext } from '@/app/_providers/AppProvider';
+import { useFinances } from '@/app/_providers/FinancesProvider';
+import { useUI } from '@/app/_providers/UIProvider';
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, Legend, XAxis, YAxis } from 'recharts';
 import { TooltipProvider, Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
@@ -89,6 +90,7 @@ export default function FinancesPage() {
     setCurrentMonth,
     transactions,
     transactionsLoading,
+    annualTransactionsLoading,
     budgets,
     monthlyIncome,
     monthlyExpenses,
@@ -99,7 +101,6 @@ export default function FinancesPage() {
     annualFlowData,
     annualCategorySpending,
     monthlySummaryData,
-    annualTransactionsLoading,
     expenseCategories,
     incomeCategories,
     categoriesWithoutBudget,
@@ -110,12 +111,15 @@ export default function FinancesPage() {
     handleSaveTransaction,
     handleDeleteTransaction,
     handleSaveBudget,
+  } = useFinances();
+  
+  const {
     modalState,
     handleOpenModal,
     handleCloseModal,
     formState,
     setFormState,
-  } = useAppContext();
+  } = useUI();
   
   const [motivation, setMotivation] = useState('');
   
@@ -647,3 +651,5 @@ export default function FinancesPage() {
     </>
   );
 }
+
+    
