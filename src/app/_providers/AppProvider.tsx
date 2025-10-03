@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useReducer, useEffect, useMemo, useState, useCallback, useRef } from 'react';
@@ -695,7 +696,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const overdue = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() < startOfDay);
         const forToday = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= startOfDay && t.dueDate.toDate() <= endOfDay);
         const forTomorrow = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= tomorrow && t.dueDate.toDate() <= endOfTomorrow);
-        const upcoming = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() > endOfTomorrow && t.dueDate.toDate() <= endOfWeek);
+        const upcoming = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() > endOfDay && t.dueDate.toDate() <= endOfWeek);
 
         const dailyTs = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= startOfDay && t.dueDate.toDate() <= endOfDay);
         const completedDaily = dailyTs.filter(t => t.isCompleted).length;
@@ -968,6 +969,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         balance,
         budget503020,
         upcomingPayments,
+        pendingRecurringExpenses,
         paidRecurringExpenses,
         pendingRecurringIncomes,
         receivedRecurringIncomes,
@@ -980,7 +982,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         budgetAccuracy,
         spendingByFocus,
         urgentTasks: urgentTasks ?? [],
-        pendingRecurringExpenses,
         handleToggleHabit,
         handleCreateOrUpdateHabit,
         handleDeleteHabit,

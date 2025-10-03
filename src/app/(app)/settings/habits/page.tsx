@@ -13,7 +13,7 @@ import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
-const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
+const habitCategories = ["Productividad", "Conocimiento", "Social", "Salud", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
 
 export default function HabitSettingsPage() {
   const { firestore, user, presetHabits, allHabits, habitsLoading, presetHabitsLoading } = useAppContext();
@@ -59,9 +59,9 @@ export default function HabitSettingsPage() {
     if (!user || !firestore || !allHabits) return;
   
     // Find if a habit matching the template already exists for the user
-    const existingHabit = allHabits.find(h =>
-      (h.presetHabitId && h.presetHabitId === habitTemplate.id) ||
-      (habitTemplate.isUserCreated && h.id === habitTemplate.originalId)
+    const existingHabit = allHabits.find(h => 
+        (h.presetHabitId && h.presetHabitId === habitTemplate.id) ||
+        (habitTemplate.isUserCreated && h.id === habitTemplate.originalId)
     );
   
     if (isActive) {
@@ -104,9 +104,9 @@ export default function HabitSettingsPage() {
         imageId="dashboard-header"
       >
         <Button variant="outline" asChild>
-          <Link href="/settings">
+          <Link href="/habits">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver a Configuración
+            Volver a Hábitos
           </Link>
         </Button>
       </PageHeader>

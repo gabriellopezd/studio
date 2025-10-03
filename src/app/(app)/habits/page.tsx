@@ -59,7 +59,7 @@ import { TooltipProvider, Tooltip as UITooltip, TooltipContent, TooltipTrigger }
 import Link from 'next/link';
 
 
-const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
+const habitCategories = ["Productividad", "Conocimiento", "Social", "Salud", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#d0ed57'];
 
 const motivationalQuotes = [
@@ -124,7 +124,6 @@ export default function HabitsPage() {
     groupedHabits, 
     habitsLoading,
     habitCategoryData,
-    dailyProductivityData,
     topHabitsByStreak,
     topHabitsByTime,
     monthlyCompletionData,
@@ -384,8 +383,20 @@ export default function HabitsPage() {
                   </Card>
                 )}
 
-                {habitCategoryData.length > 0 && (
-                <Card>
+                {monthlyCompletionData.length > 0 && (
+                    <Card className="lg:col-span-2">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5"/>Cumplimiento Mensual de Hábitos Diarios</CardTitle>
+                            <CardDescription>Mapa de calor de tu consistencia este mes. Cada celda representa el porcentaje de hábitos diarios completados.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <MonthlyHabitHeatmap data={monthlyCompletionData} />
+                        </CardContent>
+                    </Card>
+                )}
+
+                 {habitCategoryData.length > 0 && (
+                <Card className="lg:col-span-2">
                     <CardHeader>
                         <CardTitle>Tiempo por Categoría de Hábito</CardTitle>
                         <CardDescription>Distribución de tu tiempo de enfoque en hábitos (en minutos).</CardDescription>
@@ -406,41 +417,6 @@ export default function HabitsPage() {
                 </Card>
                 )}
 
-                {dailyProductivityData.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Productividad por Día de la Semana</CardTitle>
-                        <CardDescription>Total de minutos de enfoque (hábitos y tareas) por día.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={dailyProductivityData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" />
-                                <YAxis unit=" min" />
-                                <Tooltip formatter={(value) => `${value} min`} />
-                                <Bar dataKey="value" fill="hsl(var(--primary))" name="Minutos de Enfoque">
-                                {dailyProductivityData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-                )}
-
-                {monthlyCompletionData.length > 0 && (
-                    <Card className="lg:col-span-2">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5"/>Cumplimiento Mensual</CardTitle>
-                            <CardDescription>Mapa de calor de tu consistencia con los hábitos diarios este mes.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <MonthlyHabitHeatmap data={monthlyCompletionData} />
-                        </CardContent>
-                    </Card>
-                )}
             </div>
           </TabsContent>
         </Tabs>
