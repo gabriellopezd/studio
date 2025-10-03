@@ -180,7 +180,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const year = state.currentMonth.getFullYear();
         const month = state.currentMonth.getMonth() + 1;
         return query(
-            collection(firestore, `users/${user.uid}/budgets`),
+            collection(firestore, 'users', user.uid, 'budgets'),
             where('year', '==', year),
             where('month', '==', month)
         );
@@ -938,21 +938,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const pendingRecurringIncomes = allRecurringIncomesData.filter((i: any) => i.lastInstanceCreated !== currentMonthYear);
         const receivedRecurringIncomes = allRecurringIncomesData.filter((i: any) => i.lastInstanceCreated === currentMonthYear);
         const pendingExpensesTotal = pendingRecurringExpenses.reduce((s: number, e: any) => s + e.amount, 0);
-
-        const allExpenseCategoryNames = [...new Set([...allBudgetsData.map((b: any) => b.categoryName), ...allShoppingListsData.map((l: any) => l.name), ...allTransactionsData.filter((t: any) => t.type === 'expense').map((t: any) => t.category)])].filter(Boolean);
-        const incomeCategories = [...new Set(["Salario", "Bonificación", "Otro", ...allTransactionsData.filter((t: any) => t.type === 'income').map((t: any) => t.category)])].filter(Boolean);
-        const categoriesWithoutBudget = allExpenseCategoryNames.filter(cat => !allBudgetsData.some((b: any) => b.categoryName === cat));
-
-        const activeShoppingLists = allShoppingListsData.filter((l: any) => l.isActive);
-        const sortedLists = [...activeShoppingLists].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-
-        const spendingByCategory = activeShoppingLists.map((l: any) => ({ name: l.name, gasto: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.gasto > 0);
-        const budgetAccuracy = activeShoppingLists.map((l: any) => ({ name: l.name, estimado: l.items.filter((i:any) => i.isPurchased).reduce((s:number, i:any) => s + i.amount, 0), real: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.real > 0 || d.estimado > 0);
-        const spendingByFocus = (Object.entries(activeShoppingLists.reduce((acc: any, l: any) => {
-            const total = l.items.filter((i: any) => i.isPurchased && i.price).reduce((s: number, i: any) => s + i.price, 0);
-            if(l.budgetFocus && acc.hasOwnProperty(l.budgetFocus)) acc[l.budgetFocus] += total;
-            return acc;
-        }, {'Necesidades':0, 'Deseos':0, 'Ahorros y Deudas':0}) ?? {}) as [string, number][]).map(([name, value]) => ({name, value})).filter(d => d.value > 0);
         
         const upcomingPayments = allRecurringExpensesData.filter((e: any) => {
             const dayOfMonth = e.dayOfMonth;
@@ -970,6 +955,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
             return false;
         });
+
+        const allExpenseCategoryNames = [...new Set([...allBudgetsData.map((b: any) => b.categoryName), ...allShoppingListsData.map((l: any) => l.name), ...allTransactionsData.filter((t: any) => t.type === 'expense').map((t: any) => t.category)])].filter(Boolean);
+        const incomeCategories = [...new Set(["Salario", "Bonificación", "Otro", ...allTransactionsData.filter((t: any) => t.type === 'income').map((t: any) => t.category)])].filter(Boolean);
+        const categoriesWithoutBudget = allExpenseCategoryNames.filter(cat => !allBudgetsData.some((b: any) => b.categoryName === cat));
+
+        const activeShoppingLists = allShoppingListsData.filter((l: any) => l.isActive);
+        const sortedLists = [...activeShoppingLists].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+        const spendingByCategory = activeShoppingLists.map((l: any) => ({ name: l.name, gasto: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.gasto > 0);
+        const budgetAccuracy = activeShoppingLists.map((l: any) => ({ name: l.name, estimado: l.items.filter((i:any) => i.isPurchased).reduce((s:number, i:any) => s + i.amount, 0), real: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.real > 0 || d.estimado > 0);
+        const spendingByFocus = (Object.entries(activeShoppingLists.reduce((acc: any, l: any) => {
+            const total = l.items.filter((i: any) => i.isPurchased && i.price).reduce((s: number, i: any) => s + i.price, 0);
+            if(l.budgetFocus && acc.hasOwnProperty(l.budgetFocus)) acc[l.budgetFocus] += total;
+            return acc;
+        }, {'Necesidades':0, 'Deseos':0, 'Ahorros y Deudas':0}) ?? {}) as [string, number][]).map(([name, value]) => ({name, value})).filter(d => d.value > 0);
         
         return {
             analyticsLoading,
@@ -985,7 +985,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             monthlyExpenses, 
             balance, 
             budget503020, 
-            upcomingPayments, 
+            upcomingPayments,
             pendingRecurringExpenses, 
             paidRecurringExpenses, 
             pendingRecurringIncomes, 
