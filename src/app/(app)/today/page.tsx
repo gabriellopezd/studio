@@ -38,7 +38,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency } from '@/lib/utils';
 
-const habitCategories = ["Productividad", "Conocimiento", "Social", "Físico", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
+const orderedCategories = ["Productividad", "Conocimiento", "Social", "Salud", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
 
 interface Habit {
   id: string;
@@ -96,7 +96,6 @@ export default function TodayPage() {
     habitsLoading, 
     overdueTasks,
     todayTasks,
-    tasksForTomorrow,
     tasksLoading, 
     activeSession, 
     startSession, 
@@ -131,6 +130,16 @@ export default function TodayPage() {
     }, {} as { [key: string]: any[] });
   }, [habitsForToday]);
 
+  const sortedCategories = useMemo(() => {
+    return Object.keys(groupedHabits).sort((a, b) => {
+        const indexA = orderedCategories.indexOf(a);
+        const indexB = orderedCategories.indexOf(b);
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return indexA - indexB;
+    });
+  }, [groupedHabits]);
+
 
   const todayString = new Date().toLocaleDateString('es-ES', {
     weekday: 'long',
@@ -163,7 +172,7 @@ export default function TodayPage() {
                 <CardContent className="space-y-6">
                     {habitsLoading && <p>Cargando hábitos...</p>}
                     {habitsForToday.length > 0 ? (
-                        habitCategories.map(category => (
+                        sortedCategories.map(category => (
                             groupedHabits[category] && groupedHabits[category].length > 0 && (
                             <div key={category}>
                                 <h3 className="text-lg font-semibold tracking-tight mb-2">{category}</h3>
@@ -265,7 +274,7 @@ export default function TodayPage() {
                 <CardContent>
                     {tasksLoading && <p>Cargando tareas...</p>}
                     {!tasksLoading && todayTasks.length === 0 && overdueTasks.length === 0 && (
-                        <p className="text-sm text-muted-foreground text-center py-4">No tienes tareas urgentes.</p>
+                        <p className="text-sm text-muted-foreground text-center py-4">No tienes tareas urgentes para hoy.</p>
                     )}
                     <div className="space-y-4">
                         {overdueTasks.length > 0 && (
