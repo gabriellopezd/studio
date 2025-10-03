@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect } from 'react';
@@ -49,7 +50,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Logo } from '@/components/icons';
 import { useUser, useAuth } from '@/firebase';
-import { AppProvider, useAppContext } from '@/app/_providers/AppProvider';
+import { AppProvider } from '@/app/_providers/AppProvider';
+import { UIProvider } from '@/app/_providers/UIProvider';
+import { SessionProvider } from '@/app/_providers/SessionProvider';
+import { HabitsProvider } from '@/app/_providers/HabitsProvider';
+import { TasksProvider } from '@/app/_providers/TasksProvider';
+import { FinancesProvider } from '@/app/_providers/FinancesProvider';
+import { GoalsProvider } from '@/app/_providers/GoalsProvider';
+import { MoodProvider } from '@/app/_providers/MoodProvider';
 
 const navItems = {
   planning: [
@@ -244,8 +252,25 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
         <AppProvider>
-            <AppLayoutContent>{children}</AppLayoutContent>
+          <UIProvider>
+            <SessionProvider>
+                <HabitsProvider>
+                    <TasksProvider>
+                        <FinancesProvider>
+                            <GoalsProvider>
+                                <MoodProvider>
+                                    <AppLayoutContent>{children}</AppLayoutContent>
+                                </MoodProvider>
+                            </GoalsProvider>
+                        </FinancesProvider>
+                    </TasksProvider>
+                </HabitsProvider>
+            </SessionProvider>
+          </UIProvider>
         </AppProvider>
     )
 }
     
+
+    
+
