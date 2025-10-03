@@ -45,6 +45,29 @@ async function initializeDefaultMoodOptions(user: User, firestore: any, batch: a
     }
 }
 
+async function initializeDefaultBudgets(user: User, firestore: any, batch: any) {
+    const budgetsRef = collection(firestore, 'users', user.uid, 'budgets');
+    const budgetsSnapshot = await getDocs(query(budgetsRef, limit(1)));
+
+    // Only initialize if the collection is empty
+    if (budgetsSnapshot.empty) {
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth() + 1;
+
+        PRESET_EXPENSE_CATEGORIES.forEach(categoryName => {
+            const newBudgetRef = doc(budgetsRef);
+            batch.set(newBudgetRef, {
+                categoryName: categoryName,
+                monthlyLimit: 1000000, // Default limit
+                currentSpend: 0,
+                year: currentYear,
+                month: currentMonth,
+                userId: user.uid,
+            });
+        });
+    }
+}
+
 
 export const handleUserLogin = async (user: User, firestore: any, displayName?: string) => {
     if (!user) return;
@@ -66,12 +89,14 @@ export const handleUserLogin = async (user: User, firestore: any, displayName?: 
         // This is a new user, so initialize everything
         await initializeDefaultTaskCategories(user, firestore, batch);
         await initializeDefaultMoodOptions(user, firestore, batch);
+        await initializeDefaultBudgets(user, firestore, batch);
 
     } else {
         batch.update(userRef, { lastLoginAt: serverTimestamp() });
         // Also check for existing users who might not have the default options
         await initializeDefaultTaskCategories(user, firestore, batch);
         await initializeDefaultMoodOptions(user, firestore, batch);
+        await initializeDefaultBudgets(user, firestore, batch);
     }
 
     await batch.commit();

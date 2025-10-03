@@ -407,7 +407,7 @@
         "emoji"
       ]
     },
-     "Feeling": {
+    "Feeling": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Feeling",
       "type": "object",
@@ -491,7 +491,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Budget",
       "type": "object",
-      "description": "Represents a budget for a specific category.",
+      "description": "Represents a budget for a specific category for a given month and year.",
       "properties": {
         "id": {
           "type": "string",
@@ -512,6 +512,14 @@
         "currentSpend": {
           "type": "number",
           "description": "Current amount spent in the budget category."
+        },
+        "year": {
+            "type": "number",
+            "description": "The year this budget applies to."
+        },
+        "month": {
+            "type": "number",
+            "description": "The month this budget applies to (1-12)."
         }
       },
       "required": [
@@ -519,7 +527,9 @@
         "userId",
         "categoryName",
         "monthlyLimit",
-        "currentSpend"
+        "currentSpend",
+        "year",
+        "month"
       ]
     },
     "ShoppingList": {
@@ -850,7 +860,7 @@
         "definition": {
           "entityName": "Budget",
           "schema": { "$ref": "#/backend/entities/Budget" },
-          "description": "A single budget document owned by a user. To access a single document, the client MUST use a direct reference."
+          "description": "A single budget document owned by a user for a specific month and year. To access a single document, the client MUST use a direct reference."
         }
       },
       {

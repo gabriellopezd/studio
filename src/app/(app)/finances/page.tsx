@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -100,12 +99,16 @@ const motivationalQuotes = [
     "Invierte en tu futuro financiero. Empieza hoy."
 ];
 
+const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+const months = Array.from({ length: 12 }, (_, i) => ({ value: i, label: new Date(0, i).toLocaleString('es-ES', { month: 'long' }) }));
+
 export default function FinancesPage() {
   const {
     firestore,
     user,
+    currentMonth,
+    setCurrentMonth,
     currentMonthName,
-    currentMonthYear,
     transactions,
     transactionsLoading,
     budgets,
@@ -128,6 +131,7 @@ export default function FinancesPage() {
     incomeCategories,
     categoriesWithoutBudget,
     handlePayRecurringItem,
+    handleRevertRecurringItem,
   } = useAppContext();
   
   const [isTransactionDialogOpen, setTransactionDialogOpen] = useState(false);
@@ -210,7 +214,7 @@ export default function FinancesPage() {
     setTransactionDialogOpen(false);
   };
   
-  const handleSaveBudget = () => {
+  const handleSaveBudget = async () => {
     if (!user || !firestore) return;
   
     const category = budgetToEdit ? budgetToEdit.categoryName : newBudgetCategory;
@@ -218,29 +222,31 @@ export default function FinancesPage() {
   
     if (!category || !newBudgetLimit || isNaN(limit)) return;
   
-    if (!budgetToEdit) {
-      const categoryExists = shoppingLists?.some(l => l.name.toLowerCase() === category.toLowerCase()) || 
-                             budgets?.some(b => b.categoryName.toLowerCase() === category.toLowerCase());
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth() + 1;
 
-      if (categoryExists) {
-          toast({
-              variant: "destructive",
-              title: "Categoría Duplicada",
-              description: `La categoría "${category}" ya existe.`,
-          });
-          return;
-      }
-    }
+    // Find existing budget for this category, month, and year
+    const q = query(
+        collection(firestore, 'users', user.uid, 'budgets'),
+        where('categoryName', '==', category),
+        where('year', '==', year),
+        where('month', '==', month)
+    );
+    const snapshot = await getDocs(q);
+    const existingBudget = snapshot.docs[0];
 
-    if (budgetToEdit) {
-      const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budgetToEdit.id);
-      updateDocumentNonBlocking(budgetRef, { monthlyLimit: limit });
+    if (existingBudget) {
+      // Update existing budget
+      updateDocumentNonBlocking(existingBudget.ref, { monthlyLimit: limit });
     } else {
+      // Create new budget
       const newBudget = {
         categoryName: category,
         monthlyLimit: limit,
         currentSpend: 0,
         userId: user.uid,
+        year: year,
+        month: month,
       };
       const budgetsColRef = collection(
         firestore,
@@ -462,49 +468,6 @@ export default function FinancesPage() {
     await deleteDocumentNonBlocking(itemRef);
     setRecurringToDelete(null);
   };
-  
-const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') => {
-    if (!user || !item.lastTransactionId || !firestore) return;
-
-    const batch = writeBatch(firestore);
-    const transactionRef = doc(firestore, 'users', user.uid, 'transactions', item.lastTransactionId);
-    const transactionSnap = await getDoc(transactionRef);
-
-    if (transactionSnap.exists()) {
-        const transactionData = transactionSnap.data();
-        batch.delete(transactionRef);
-
-        if (type === 'expense') {
-            const budget = budgets?.find(b => b.categoryName === transactionData.category);
-            if (budget) {
-                const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-                batch.update(budgetRef, { currentSpend: increment(-transactionData.amount) });
-            }
-        }
-    } else {
-        toast({
-            variant: "destructive",
-            title: "Advertencia",
-            description: "La transacción original no se encontró, pero se revertirá el estado del registro fijo."
-        });
-    }
-
-    const collectionName = type === 'income' ? 'recurringIncomes' : 'recurringExpenses';
-    const itemRef = doc(firestore, 'users', user.uid, collectionName, item.id);
-    batch.update(itemRef, {
-        lastInstanceCreated: null,
-        lastTransactionId: null,
-    });
-
-    try {
-        await batch.commit();
-        toast({ title: 'Reversión exitosa', description: `Se ha deshecho el registro de ${item.name}.` });
-    } catch (error) {
-        console.error("Error reverting recurring item:", error);
-        toast({ variant: "destructive", title: "Error", description: "No se pudo completar la reversión." });
-    }
-};
-
 
   return (
     <>
@@ -515,83 +478,101 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
           motivation={motivation}
           imageId="finances-header"
         >
-          <Dialog open={isTransactionDialogOpen} onOpenChange={setTransactionDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Añadir Transacción
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Añadir Nueva Transacción</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="type">Tipo</Label>
-                    <Select value={newTransactionType} onValueChange={(value) => setNewTransactionType(value as 'income' | 'expense')}>
-                      <SelectTrigger><SelectValue/></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="expense">Gasto</SelectItem>
-                        <SelectItem value="income">Ingreso</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                     <Label htmlFor="amount">Monto</Label>
-                     <Input id="amount" type="number" value={newTransactionAmount} onChange={(e) => setNewTransactionAmount(e.target.value)} />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                    <Label htmlFor="description">Descripción</Label>
-                    <Input id="description" value={newTransactionDesc} onChange={(e) => setNewTransactionDesc(e.target.value)} />
-                </div>
-                 
-                <div className="space-y-2">
-                  <Label htmlFor="category">Categoría</Label>
-                  <Select value={newTransactionCategory} onValueChange={setNewTransactionCategory}>
-                    <SelectTrigger><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
+            <div className='flex items-center gap-2'>
+                <Select value={String(currentMonth.getFullYear())} onValueChange={(value) => setCurrentMonth(new Date(Number(value), currentMonth.getMonth()))}>
+                    <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="Año" />
+                    </SelectTrigger>
                     <SelectContent>
-                      {newTransactionType === 'expense' 
-                        ? expenseCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>)) 
-                        : incomeCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))
-                      }
+                        {years.map(year => <SelectItem key={year} value={String(year)}>{year}</SelectItem>)}
                     </SelectContent>
-                  </Select>
-                </div>
+                </Select>
+                <Select value={String(currentMonth.getMonth())} onValueChange={(value) => setCurrentMonth(new Date(currentMonth.getFullYear(), Number(value)))}>
+                    <SelectTrigger className="w-[150px]">
+                        <SelectValue placeholder="Mes" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {months.map(month => <SelectItem key={month.value} value={String(month.value)}>{month.label}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                 <Dialog open={isTransactionDialogOpen} onOpenChange={setTransactionDialogOpen}>
+                    <DialogTrigger asChild>
+                    <Button>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Añadir Transacción
+                    </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Añadir Nueva Transacción</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="type">Tipo</Label>
+                            <Select value={newTransactionType} onValueChange={(value) => setNewTransactionType(value as 'income' | 'expense')}>
+                            <SelectTrigger><SelectValue/></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="expense">Gasto</SelectItem>
+                                <SelectItem value="income">Ingreso</SelectItem>
+                            </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="amount">Monto</Label>
+                            <Input id="amount" type="number" value={newTransactionAmount} onChange={(e) => setNewTransactionAmount(e.target.value)} />
+                        </div>
+                        </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2 relative">
-                    <Label htmlFor="date">Fecha</Label>
-                    <ResponsiveCalendar 
-                        id="date"
-                        value={newTransactionDate}
-                        onSelect={setNewTransactionDate}
-                    />
-                  </div>
-                  {newTransactionType === 'expense' && (
-                    <div className="space-y-2">
-                      <Label htmlFor="budget-focus">Enfoque Presupuesto</Label>
-                      <Select value={newTransactionBudgetFocus} onValueChange={setNewTransactionBudgetFocus}>
-                        <SelectTrigger id="budget-focus"><SelectValue placeholder="Selecciona" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Necesidades">Necesidades</SelectItem>
-                          <SelectItem value="Deseos">Deseos</SelectItem>
-                          <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        <div className="space-y-2">
+                            <Label htmlFor="description">Descripción</Label>
+                            <Input id="description" value={newTransactionDesc} onChange={(e) => setNewTransactionDesc(e.target.value)} />
+                        </div>
+                        
+                        <div className="space-y-2">
+                        <Label htmlFor="category">Categoría</Label>
+                        <Select value={newTransactionCategory} onValueChange={setNewTransactionCategory}>
+                            <SelectTrigger><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
+                            <SelectContent>
+                            {newTransactionType === 'expense' 
+                                ? expenseCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>)) 
+                                : incomeCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))
+                            }
+                            </SelectContent>
+                        </Select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2 relative">
+                            <Label htmlFor="date">Fecha</Label>
+                            <ResponsiveCalendar 
+                                id="date"
+                                value={newTransactionDate}
+                                onSelect={setNewTransactionDate}
+                            />
+                        </div>
+                        {newTransactionType === 'expense' && (
+                            <div className="space-y-2">
+                            <Label htmlFor="budget-focus">Enfoque Presupuesto</Label>
+                            <Select value={newTransactionBudgetFocus} onValueChange={setNewTransactionBudgetFocus}>
+                                <SelectTrigger id="budget-focus"><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                                <SelectContent>
+                                <SelectItem value="Necesidades">Necesidades</SelectItem>
+                                <SelectItem value="Deseos">Deseos</SelectItem>
+                                <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            </div>
+                        )}
+                        </div>
                     </div>
-                  )}
-                </div>
-              </div>
-              <DialogFooter>
-                <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                <Button type="submit" onClick={handleAddTransaction}>Guardar Transacción</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                    <DialogFooter>
+                        <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                        <Button type="submit" onClick={handleAddTransaction}>Guardar Transacción</Button>
+                    </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
         </PageHeader>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

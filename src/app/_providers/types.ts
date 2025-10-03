@@ -164,6 +164,7 @@ export interface AppState {
     handleDeleteTaskCategory: (categoryId: string, categoryName: string) => Promise<void>;
     handleSaveMood: (moodData: Mood) => Promise<void>;
     handlePayRecurringItem: (item: any, type: 'income' | 'expense') => Promise<void>;
+    handleRevertRecurringItem: (item: any, type: 'income' | 'expense') => Promise<void>;
     setCurrentMonth: (date: Date | ((prev: Date) => Date)) => void;
     startSession: (id: string, name: string, type: 'habit' | 'task') => void;
     stopSession: () => void;
