@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type { User } from 'firebase/auth';
@@ -18,6 +19,7 @@ export interface Task {
     dueDate?: Date;
     priority: string;
     category: string;
+    completionDate?: Date | null;
 }
 
 export interface Mood {
@@ -95,7 +97,6 @@ export interface AppState {
 
     totalStats: { completed: number; total: number; completionRate: number; };
     categoryStats: Record<string, { completed: number; total: number; completionRate: number; }>;
-    weeklyTaskStats: { name: string; tasks: number; }[];
     taskTimeAnalytics: { name: string; minutos: number; }[];
     
     // Task-related selectors for dashboard
@@ -110,6 +111,9 @@ export interface AppState {
     completedDailyTasks: number;
     totalDailyTasks: number;
     dailyTasksProgress: number;
+    onTimeCompletionRate: number;
+    dailyCompletionStats: { name: string; completadas: number; pendientes: number }[];
+    completedTasksByCategory: { name: string; tareas: number }[];
 
     feelingStats: [string, any][];
     influenceStats: [string, any][];

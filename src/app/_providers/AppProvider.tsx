@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useReducer, useEffect, useMemo, useState, useCallback, useRef } from 'react';
@@ -58,7 +59,7 @@ type Action =
     | { type: 'SET_ACTIVE_SESSION'; payload: ActiveSession | null }
     | { type: 'SET_ELAPSED_TIME'; payload: number };
 
-const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'handlePayRecurringItem' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'routineCompletionAnalytics' |'totalStats' | 'categoryStats' | 'weeklyTaskStats' | 'taskTimeAnalytics' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'tasksForTomorrow' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress'> = {
+const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'handlePayRecurringItem' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'routineCompletionAnalytics' |'totalStats' | 'categoryStats' | 'taskTimeAnalytics' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'tasksForTomorrow' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress' | 'onTimeCompletionRate' | 'dailyCompletionStats' | 'completedTasksByCategory'> = {
     allHabits: null,
     routines: null,
     tasks: null,
@@ -426,17 +427,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const handleToggleTask = (taskId: string, currentStatus: boolean) => {
         if (!user || !firestore) return;
-        updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'tasks', taskId), { isCompleted: !currentStatus });
+        const completionDate = !currentStatus ? new Date() : null;
+        updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'tasks', taskId), { 
+            isCompleted: !currentStatus,
+            completionDate: completionDate ? Timestamp.fromDate(completionDate) : null
+        });
     };
 
     const handleSaveTask = async (taskData: Task) => {
         if (!user || !taskData.name || !firestore) return;
         const { id, ...data } = taskData;
-        const serializableData = { ...data, dueDate: data.dueDate ? Timestamp.fromDate(data.dueDate) : null, userId: user.uid };
+        const serializableData:any = { ...data, dueDate: data.dueDate ? Timestamp.fromDate(data.dueDate) : null, userId: user.uid };
+        
+        // Ensure completionDate is handled correctly
+        if ('completionDate' in data && data.completionDate) {
+            serializableData.completionDate = Timestamp.fromDate(data.completionDate as any);
+        }
+
         if (id) {
             await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'tasks', id), serializableData);
         } else {
-            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'tasks'), { ...serializableData, isCompleted: false, createdAt: serverTimestamp() });
+            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'tasks'), { ...serializableData, isCompleted: false, createdAt: serverTimestamp(), completionDate: null });
         }
     };
 
@@ -566,7 +577,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
              const taskRef = doc(firestore, 'users', user.uid, 'tasks', state.activeSession.id);
              updateDocumentNonBlocking(taskRef, { 
                 isCompleted: true,
-                totalTimeSpent: increment(durationSeconds)
+                totalTimeSpent: increment(durationSeconds),
+                completionDate: Timestamp.now(),
              });
         }
 
@@ -718,9 +730,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [routines, allHabits, timeLogs]);
 
     // Task Selectors
-    const { totalStats, categoryStats, weeklyTaskStats, taskTimeAnalytics, overdueTasks, todayTasks, tasksForTomorrow, upcomingTasks, completedWeeklyTasks, totalWeeklyTasks, weeklyTasksProgress, completedDailyTasks, totalDailyTasks, dailyTasksProgress } = useMemo(() => {
+    const { totalStats, categoryStats, taskTimeAnalytics, overdueTasks, todayTasks, tasksForTomorrow, upcomingTasks, completedWeeklyTasks, totalWeeklyTasks, weeklyTasksProgress, completedDailyTasks, totalDailyTasks, dailyTasksProgress, onTimeCompletionRate, dailyCompletionStats, completedTasksByCategory } = useMemo(() => {
         const taskCategories = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro"];
-        if (!tasks) return { totalStats: { completed: 0, total: 0, completionRate: 0 }, categoryStats: {}, weeklyTaskStats: [], taskTimeAnalytics: [], overdueTasks: [], todayTasks: [], tasksForTomorrow: [], upcomingTasks: [], completedWeeklyTasks: 0, totalWeeklyTasks: 0, weeklyTasksProgress: 0, completedDailyTasks: 0, totalDailyTasks: 0, dailyTasksProgress: 0 };
+        if (!tasks) return { totalStats: { completed: 0, total: 0, completionRate: 0 }, categoryStats: {}, taskTimeAnalytics: [], overdueTasks: [], todayTasks: [], tasksForTomorrow: [], upcomingTasks: [], completedWeeklyTasks: 0, totalWeeklyTasks: 0, weeklyTasksProgress: 0, completedDailyTasks: 0, totalDailyTasks: 0, dailyTasksProgress: 0, onTimeCompletionRate: 0, dailyCompletionStats: [], completedTasksByCategory: [] };
         
         const today = new Date();
         const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -762,13 +774,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return acc;
         }, {} as Record<string, any>);
 
-        const weekData = Array(7).fill(0).map((_, i) => ({ name: new Date(startOfWeek.getTime() + i * 86400000).toLocaleDateString('es-ES', { weekday: 'short' }), tasks: 0 }));
-        tasks.forEach(task => {
-            if (task.dueDate?.toDate() >= startOfWeek && task.dueDate?.toDate() <= endOfWeek) {
-                const dayIndex = (task.dueDate.toDate().getDay() + 6) % 7;
-                if(dayIndex >= 0 && dayIndex < 7) weekData[dayIndex].tasks++;
-            }
+        const completedWithDueDate = tasks.filter(t => t.isCompleted && t.dueDate && t.completionDate);
+        const onTime = completedWithDueDate.filter(t => t.completionDate.toDate() <= t.dueDate.toDate()).length;
+        const onTimeRate = completedWithDueDate.length > 0 ? (onTime / completedWithDueDate.length) * 100 : 0;
+
+        const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+        const dailyStats = weekDays.map((name, i) => {
+            const day = new Date(startOfWeek);
+            day.setDate(startOfWeek.getDate() + i);
+            const dayStart = new Date(day);
+            const dayEnd = new Date(day);
+            dayEnd.setHours(23, 59, 59, 999);
+
+            const dueTasks = tasks.filter(t => t.dueDate && t.dueDate.toDate() >= dayStart && t.dueDate.toDate() <= dayEnd);
+            const completedOnDay = dueTasks.filter(t => t.isCompleted).length;
+            const pendingOnDay = dueTasks.length - completedOnDay;
+
+            return { name, completadas: completedOnDay, pendientes: pendingOnDay };
         });
+        
+        const completedByCategory = taskCategories.map(category => {
+            const count = tasks.filter(t => t.isCompleted && t.category === category).length;
+            return { name: category, tareas: count };
+        }).filter(c => c.tareas > 0);
 
         const taskLogs = (timeLogs || []).filter((log: any) => log.referenceType === 'task');
         const categoryTimeTotals: Record<string, number> = {};
@@ -781,7 +809,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
         const timeAnalytics = Object.entries(categoryTimeTotals).map(([name, value]) => ({ name, minutos: Math.round(value / 60) })).filter(item => item.minutos > 0);
         
-        return { totalStats, categoryStats: catStats, weeklyTaskStats: weekData, taskTimeAnalytics: timeAnalytics, overdueTasks: overdue, todayTasks: forToday, tasksForTomorrow: forTomorrow, upcomingTasks: upcoming, completedWeeklyTasks: completedWeekly, totalWeeklyTasks: totalWeekly, weeklyTasksProgress: weeklyProgress, completedDailyTasks: completedDaily, totalDailyTasks: totalDaily, dailyTasksProgress: dailyProgress };
+        return { totalStats, categoryStats: catStats, taskTimeAnalytics: timeAnalytics, overdueTasks: overdue, todayTasks: forToday, tasksForTomorrow: forTomorrow, upcomingTasks: upcoming, completedWeeklyTasks: completedWeekly, totalWeeklyTasks: totalWeekly, weeklyTasksProgress: weeklyProgress, completedDailyTasks: completedDaily, totalDailyTasks: totalDaily, dailyTasksProgress: dailyProgress, onTimeCompletionRate: onTimeRate, dailyCompletionStats: dailyStats, completedTasksByCategory };
     }, [tasks, timeLogs]);
 
     // Mood Selectors
@@ -1002,7 +1030,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         routineCompletionAnalytics,
         totalStats,
         categoryStats,
-        weeklyTaskStats,
         taskTimeAnalytics,
         overdueTasks,
         todayTasks,
@@ -1014,6 +1041,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         completedDailyTasks,
         totalDailyTasks,
         dailyTasksProgress,
+        onTimeCompletionRate,
+        dailyCompletionStats,
+        completedTasksByCategory,
         feelingStats,
         influenceStats,
         todayMood,

@@ -7,7 +7,7 @@ import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, MoreHorizontal, Pencil, Trash2, Timer, Check, Play, Square } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Pencil, Trash2, Timer, Check, Play, Square, Percent } from 'lucide-react';
 import { addDocumentNonBlocking } from '@/firebase';
 import { collection, doc, query, Timestamp, serverTimestamp, where } from 'firebase/firestore';
 import {
@@ -54,7 +54,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAppContext } from '@/app/_providers/AppProvider';
 import { ResponsiveCalendar } from './_components/ResponsiveCalendar';
 
@@ -78,9 +78,11 @@ export default function TasksPage() {
     tasksLoading,
     totalStats,
     categoryStats,
-    weeklyTaskStats,
     taskTimeAnalytics,
     analyticsLoading,
+    onTimeCompletionRate,
+    dailyCompletionStats,
+    completedTasksByCategory,
     handleToggleTask,
     handleSaveTask,
     handleDeleteTask,
@@ -187,6 +189,9 @@ export default function TasksPage() {
       const taskDate = new Date(date);
       taskDate.setHours(0,0,0,0);
 
+      if (task.isCompleted && task.completionDate) {
+        return `Completada: ${format(task.completionDate.toDate(), 'PPP', { locale: es })}`;
+      }
       if (taskDate.getTime() < today.getTime()) {
         return `Venció: ${format(date, 'PPP', { locale: es })}`;
       }
@@ -324,16 +329,30 @@ export default function TasksPage() {
           <TabsContent value="completed">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
         </Tabs>
 
-        <div className="grid grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-                <CardTitle>Progreso Total</CardTitle>
+                <CardTitle>Progreso Total de Tareas</CardTitle>
                 <CardDescription>
-                    {totalStats.completed} de {totalStats.total} tareas completadas
+                    {totalStats.completed} de {totalStats.total} tareas completadas en total.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <Progress value={totalStats.completionRate} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Percent className="size-5" />
+                    Tasa de Cumplimiento a Tiempo
+                </CardTitle>
+                <CardDescription>
+                    Porcentaje de tareas completadas en o antes de su fecha de vencimiento.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <p className="text-3xl font-bold">{onTimeCompletionRate.toFixed(0)}%</p>
             </CardContent>
           </Card>
         </div>
@@ -355,22 +374,43 @@ export default function TasksPage() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {isClient && weeklyTaskStats.length > 0 && (
+          {isClient && dailyCompletionStats.length > 0 && (
             <Card>
                 <CardHeader>
-                    <CardTitle>Tareas de la Semana</CardTitle>
-                    <CardDescription>Distribución de tareas con fecha de vencimiento en la semana actual.</CardDescription>
+                    <CardTitle>Rendimiento Semanal</CardTitle>
+                    <CardDescription>Tareas completadas vs. pendientes por día en la semana actual.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={weeklyTaskStats}>
+                        <BarChart data={dailyCompletionStats}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="name" />
                             <YAxis allowDecimals={false}/>
                             <Tooltip />
-                            <Bar dataKey="tasks" fill="hsl(var(--primary))" name="Tareas" />
+                            <Legend />
+                            <Bar dataKey="completadas" stackId="a" fill="hsl(var(--primary))" name="Completadas" />
+                            <Bar dataKey="pendientes" stackId="a" fill="hsl(var(--destructive) / 0.5)" name="Pendientes" />
                         </BarChart>
                     </ResponsiveContainer>
+                </CardContent>
+            </Card>
+          )}
+          {isClient && completedTasksByCategory.length > 0 && (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Tareas Completadas por Categoría</CardTitle>
+                    <CardDescription>Volumen total de tareas finalizadas en cada categoría.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={completedTasksByCategory} layout="vertical" margin={{ left: 20, right: 30 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" allowDecimals={false} />
+                          <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
+                          <Tooltip />
+                          <Bar dataKey="tareas" name="Tareas Completadas" fill="hsl(var(--primary))" />
+                        </BarChart>
+                      </ResponsiveContainer>
                 </CardContent>
             </Card>
           )}
@@ -398,10 +438,10 @@ export default function TasksPage() {
           {!isClient && (
             <Card>
               <CardHeader>
-                <CardTitle>Tareas de la Semana</CardTitle>
+                <CardTitle>Cargando Analíticas</CardTitle>
               </CardHeader>
               <CardContent>
-                <p>Cargando gráfico...</p>
+                <p>Cargando gráficos...</p>
               </CardContent>
             </Card>
           )}

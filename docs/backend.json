@@ -238,6 +238,11 @@
         "totalTimeSpent": {
             "type": "number",
             "description": "The total time spent on the task in seconds."
+        },
+        "completionDate": {
+            "type": ["string", "null"],
+            "description": "Timestamp indicating when the task was completed.",
+            "format": "date-time"
         }
       },
       "required": [
@@ -704,22 +709,6 @@
     ]
   },
   "firestore": {
-    "rules": {
-      "version": "2",
-      "rules": {
-        "service": "cloud.firestore",
-        "match": {
-          "database": "{database}",
-          "documents": {
-            "match": "/users/{userId}/{document=**}",
-            "allow": {
-              "read": "if request.auth != null && request.auth.uid == userId;",
-              "write": "if request.auth != null && request.auth.uid == userId;"
-            }
-          }
-        }
-      }
-    },
     "structure": [
       {
         "path": "/users/{userId}",
