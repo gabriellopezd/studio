@@ -59,7 +59,7 @@ type Action =
     | { type: 'SET_ACTIVE_SESSION'; payload: ActiveSession | null }
     | { type: 'SET_ELAPSED_TIME'; payload: number };
 
-const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'handlePayRecurringItem' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'routineCompletionAnalytics' |'totalStats' | 'categoryStats' | 'taskTimeAnalytics' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'tasksForTomorrow' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress' | 'onTimeCompletionRate' | 'dailyCompletionStats' | 'completedTasksByCategory'> = {
+const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'handlePayRecurringItem' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'routineCompletionAnalytics' |'totalStats' | 'categoryStats' | 'taskTimeAnalytics' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'tasksForTomorrow' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress' | 'onTimeCompletionRate' | 'dailyCompletionStats' | 'completedTasksByCategory' | 'taskCategories' | 'taskCategoriesLoading'> = {
     allHabits: null,
     routines: null,
     tasks: null,
@@ -148,6 +148,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return query(collection(firestore, `users/${user.uid}/tasks`), orderBy('createdAt', 'desc'));
     }, [user, firestore]);
     const { data: tasks, isLoading: tasksLoading } = useCollection(tasksQuery);
+
+    const taskCategoriesQuery = useMemo(() => {
+        if (!user || !firestore) return null;
+        return query(collection(firestore, `users/${user.uid}/taskCategories`), orderBy('name'));
+    }, [user, firestore]);
+    const { data: taskCategories, isLoading: taskCategoriesLoading } = useCollection(taskCategoriesQuery);
 
     const goalsQuery = useMemo(() => {
         if (!user || !firestore) return null;
@@ -731,7 +737,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Task Selectors
     const { totalStats, categoryStats, taskTimeAnalytics, overdueTasks, todayTasks, tasksForTomorrow, upcomingTasks, completedWeeklyTasks, totalWeeklyTasks, weeklyTasksProgress, completedDailyTasks, totalDailyTasks, dailyTasksProgress, onTimeCompletionRate, dailyCompletionStats, completedTasksByCategory } = useMemo(() => {
-        const taskCategories = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro"];
         if (!tasks) return { totalStats: { completed: 0, total: 0, completionRate: 0 }, categoryStats: {}, taskTimeAnalytics: [], overdueTasks: [], todayTasks: [], tasksForTomorrow: [], upcomingTasks: [], completedWeeklyTasks: 0, totalWeeklyTasks: 0, weeklyTasksProgress: 0, completedDailyTasks: 0, totalDailyTasks: 0, dailyTasksProgress: 0, onTimeCompletionRate: 0, dailyCompletionStats: [], completedTasksByCategory: [] };
         
         const today = new Date();
@@ -763,13 +768,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         
         const completed = tasks.filter(t => t.isCompleted).length;
         const total = tasks.length;
-        const totalStatsValue = { completed, total, completionRate: total > 0 ? (completed / total) * 100 : 0 };
+        const totalStats = { completed, total, completionRate: total > 0 ? (completed / total) * 100 : 0 };
 
-        const catStats = taskCategories.reduce((acc, category) => {
-            const tasksInCategory = tasks.filter(t => t.category === category);
+        const catStats = (taskCategories || []).reduce((acc, category) => {
+            const tasksInCategory = tasks.filter(t => t.category === category.name);
             if (tasksInCategory.length > 0) {
                 const completed = tasksInCategory.filter(t => t.isCompleted).length;
-                acc[category] = { completed, total: tasksInCategory.length, completionRate: (completed / tasksInCategory.length) * 100 };
+                acc[category.name] = { completed, total: tasksInCategory.length, completionRate: (completed / tasksInCategory.length) * 100 };
             }
             return acc;
         }, {} as Record<string, any>);
@@ -778,9 +783,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const onTime = completedWithDueDate.filter(t => t.completionDate.toDate() <= t.dueDate.toDate()).length;
         const onTimeRate = completedWithDueDate.length > 0 ? (onTime / completedWithDueDate.length) * 100 : 0;
         
-        const completedByCategoryData = taskCategories.map(category => {
-            const count = tasks.filter(t => t.isCompleted && t.category === category).length;
-            return { name: category, tareas: count };
+        const completedByCategoryData = (taskCategories || []).map(category => {
+            const count = tasks.filter(t => t.isCompleted && t.category === category.name).length;
+            return { name: category.name, tareas: count };
         }).filter(c => c.tareas > 0);
 
         const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -810,7 +815,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const timeAnalytics = Object.entries(categoryTimeTotals).map(([name, value]) => ({ name, minutos: Math.round(value / 60) })).filter(item => item.minutos > 0);
         
         return { 
-            totalStats: totalStatsValue, 
+            totalStats, 
             categoryStats: catStats, 
             taskTimeAnalytics: timeAnalytics, 
             overdueTasks: overdue, 
@@ -827,7 +832,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             dailyCompletionStats: dailyStatsData, 
             completedTasksByCategory: completedByCategoryData
         };
-    }, [tasks, timeLogs]);
+    }, [tasks, timeLogs, taskCategories]);
 
     // Mood Selectors
     const { feelingStats, influenceStats, todayMood } = useMemo(() => {
@@ -964,6 +969,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [tasks, tasksLoading]);
 
     useEffect(() => {
+        dispatch({ type: 'SET_DATA', payload: { key: 'taskCategories', data: taskCategories, loading: taskCategoriesLoading } });
+    }, [taskCategories, taskCategoriesLoading]);
+
+    useEffect(() => {
         dispatch({ type: 'SET_DATA', payload: { key: 'goals', data: goals, loading: goalsLoading } });
     }, [goals, goalsLoading]);
 
@@ -1010,6 +1019,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         routinesLoading,
         tasks,
         tasksLoading,
+        taskCategories,
+        taskCategoriesLoading,
         goals,
         goalsLoading,
         moods: moods ?? [],
@@ -1112,5 +1123,3 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
-
-    

@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { Upload, RotateCcw, TimerOff, Trash2, Library, Repeat, ShoppingCart, ChevronRight, User as UserIcon, Lock, Palette, Bell } from 'lucide-react';
+import { Upload, RotateCcw, TimerOff, Trash2, Library, Repeat, ShoppingCart, ChevronRight, User as UserIcon, Lock, Palette, Bell, SquareCheckBig } from 'lucide-react';
 import { useFirebase, useUser, updateDocumentNonBlocking } from '@/firebase';
 import { useState, useEffect } from 'react';
 import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
@@ -102,6 +102,12 @@ export default function SettingsPage() {
         description: 'Activa o desactiva hábitos para tu día a día.' 
     },
     { 
+        href: '/settings/tasks', 
+        icon: SquareCheckBig, 
+        title: 'Categorías de Tareas', 
+        description: 'Crea y gestiona las categorías para tus tareas.' 
+    },
+    { 
         href: '/settings/expenses', 
         icon: ShoppingCart, 
         title: 'Categorías de Compras', 
@@ -114,7 +120,7 @@ export default function SettingsPage() {
       <PageHeader
         title="CONFIGURACIÓN"
         description="Gestiona tu perfil, cuenta y preferencias de la aplicación."
-        imageId="dashboard-header"
+        imageId="settings-header"
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -400,5 +406,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

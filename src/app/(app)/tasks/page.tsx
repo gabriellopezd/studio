@@ -57,8 +57,6 @@ import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAx
 import { useAppContext } from '@/app/_providers/AppProvider';
 import { ResponsiveCalendar } from './_components/ResponsiveCalendar';
 
-const taskCategories = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro"];
-
 const motivationalQuotes = [
     "Una tarea completada es un paso más hacia tu meta.",
     "No dejes para mañana lo que puedas tachar de la lista hoy.",
@@ -75,6 +73,7 @@ export default function TasksPage() {
   const {
     tasks,
     tasksLoading,
+    taskCategories,
     totalStats,
     categoryStats,
     taskTimeAnalytics,
@@ -208,7 +207,7 @@ export default function TasksPage() {
      }
   }
   
-  const categoryOrder = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro", "Sin Categoría"];
+  const categoryOrder = taskCategories.map(c => c.name).sort();
 
   const renderTaskList = (groupedTasks: Record<string, any[]>, allTasksInView: any[]) => {
     const sortedCategories = Object.keys(groupedTasks).sort((a, b) => {
@@ -467,8 +466,8 @@ export default function TasksPage() {
                         <SelectValue placeholder="Selecciona categoría" />
                       </SelectTrigger>
                       <SelectContent>
-                        {taskCategories.map(cat => (
-                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        {taskCategories?.map(cat => (
+                          <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
