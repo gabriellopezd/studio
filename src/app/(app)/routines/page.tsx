@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -84,7 +83,7 @@ export default function RoutinesPage() {
     routineCompletionAnalytics,
     analyticsLoading,
     handleToggleHabit,
-    activeSession, 
+    activeSession,
     startSession, 
     stopSession,
   } = useAppContext();

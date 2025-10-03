@@ -49,7 +49,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Logo } from '@/components/icons';
 import { useUser, useAuth } from '@/firebase';
-import { AppProvider } from '@/app/_providers/AppProvider';
+import { AppProvider, useAppContext } from '@/app/_providers/AppProvider';
 
 const navItems = {
   planning: [

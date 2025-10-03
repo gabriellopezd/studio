@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import {
@@ -9,7 +8,7 @@ import {
   Trophy,
   Activity,
   ListTodo,
-  CheckCircle,
+  CheckCircle2,
   SquareCheck,
   Flame,
   AlertTriangle,
@@ -329,4 +328,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-    
