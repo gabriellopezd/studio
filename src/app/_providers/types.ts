@@ -121,6 +121,7 @@ export interface AppState {
     } | null;
     
     upcomingPayments: any[];
+    pendingRecurringExpenses: any[];
     paidRecurringExpenses: any[];
     pendingRecurringIncomes: any[];
     receivedRecurringIncomes: any[];
