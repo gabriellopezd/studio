@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, createContext, useContext } from 'react';
@@ -69,7 +68,7 @@ const motivationalQuotes = [
 ];
 
 export default function TasksPage() {
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTaskListTab, setActiveTaskListTab] = useState('all');
   const [isClient, setIsClient] = useState(false);
   const [motivation, setMotivation] = useState('');
   
@@ -108,7 +107,7 @@ export default function TasksPage() {
 
     let tasksToShow: any[];
 
-    switch (activeTab) {
+    switch (activeTaskListTab) {
       case 'today':
         tasksToShow = tasks.filter(task => {
           if (!task.dueDate) return false;
@@ -147,7 +146,7 @@ export default function TasksPage() {
 
     return { byCategory, all: tasksToShow };
 
-  }, [tasks, activeTab]);
+  }, [tasks, activeTaskListTab]);
 
   const resetAndCloseForm = () => {
     setTaskToEdit(null);
@@ -316,136 +315,136 @@ export default function TasksPage() {
             </Button>
         </PageHeader>
         
-        <Tabs defaultValue="all" onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="all">Pendientes</TabsTrigger>
-            <TabsTrigger value="today">Hoy</TabsTrigger>
-            <TabsTrigger value="upcoming">Próximos 7 días</TabsTrigger>
-            <TabsTrigger value="completed">Completadas</TabsTrigger>
-          </TabsList>
-          <TabsContent value="all">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
-          <TabsContent value="today">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
-          <TabsContent value="upcoming">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
-          <TabsContent value="completed">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
+        <Tabs defaultValue="tasks">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="tasks">Mis Tareas</TabsTrigger>
+                <TabsTrigger value="analytics">Análisis</TabsTrigger>
+            </TabsList>
+            <TabsContent value="tasks">
+                <Tabs defaultValue="all" onValueChange={setActiveTaskListTab} className="mt-4">
+                    <TabsList>
+                        <TabsTrigger value="all">Pendientes</TabsTrigger>
+                        <TabsTrigger value="today">Hoy</TabsTrigger>
+                        <TabsTrigger value="upcoming">Próximos 7 días</TabsTrigger>
+                        <TabsTrigger value="completed">Completadas</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="all">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
+                    <TabsContent value="today">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
+                    <TabsContent value="upcoming">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
+                    <TabsContent value="completed">{renderTaskList(filteredTasks.byCategory, filteredTasks.all)}</TabsContent>
+                </Tabs>
+            </TabsContent>
+            <TabsContent value="analytics" className="mt-4">
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Progreso Total de Tareas</CardTitle>
+                                <CardDescription>
+                                    {totalStats.completed} de {totalStats.total} tareas completadas en total.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Progress value={totalStats.completionRate} />
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Percent className="size-5" />
+                                    Tasa de Cumplimiento a Tiempo
+                                </CardTitle>
+                                <CardDescription>
+                                    Porcentaje de tareas completadas en o antes de su fecha de vencimiento.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-3xl font-bold">{onTimeCompletionRate.toFixed(0)}%</p>
+                            </CardContent>
+                        </Card>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {Object.entries(categoryStats).map(([category, stats]) => (
+                            <Card key={category}>
+                                <CardHeader>
+                                    <CardTitle>{category}</CardTitle>
+                                    <CardDescription>
+                                        {stats.completed} de {stats.total} tareas completadas
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <Progress value={stats.completionRate} />
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {isClient && dailyCompletionStats.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Rendimiento Semanal</CardTitle>
+                                <CardDescription>Tareas completadas vs. pendientes por día en la semana actual.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart data={dailyCompletionStats}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" />
+                                        <YAxis allowDecimals={false}/>
+                                        <Tooltip />
+                                        <Legend />
+                                        <Bar dataKey="completadas" stackId="a" fill="hsl(var(--primary))" name="Completadas" />
+                                        <Bar dataKey="pendientes" stackId="a" fill="hsl(var(--destructive) / 0.5)" name="Pendientes" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    )}
+                    {isClient && completedTasksByCategory.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Tareas Completadas por Categoría</CardTitle>
+                                <CardDescription>Volumen total de tareas finalizadas en cada categoría.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart data={completedTasksByCategory} layout="vertical" margin={{ left: 20, right: 30 }}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis type="number" allowDecimals={false} />
+                                    <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
+                                    <Tooltip />
+                                    <Bar dataKey="tareas" name="Tareas Completadas" fill="hsl(var(--primary))" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {isClient && taskTimeAnalytics.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Tiempo de Enfoque por Categoría</CardTitle>
+                                <CardDescription>Minutos totales registrados en cada categoría de tarea.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart data={taskTimeAnalytics} layout="vertical" margin={{ left: 20, right: 30 }}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis type="number" unit=" min" />
+                                        <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
+                                        <Tooltip formatter={(value) => `${value} min`} />
+                                        <Bar dataKey="minutos" name="Minutos" fill="hsl(var(--accent))" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    )}
+                    </div>
+                </div>
+            </TabsContent>
         </Tabs>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-                <CardTitle>Progreso Total de Tareas</CardTitle>
-                <CardDescription>
-                    {totalStats.completed} de {totalStats.total} tareas completadas en total.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Progress value={totalStats.completionRate} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <Percent className="size-5" />
-                    Tasa de Cumplimiento a Tiempo
-                </CardTitle>
-                <CardDescription>
-                    Porcentaje de tareas completadas en o antes de su fecha de vencimiento.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <p className="text-3xl font-bold">{onTimeCompletionRate.toFixed(0)}%</p>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {Object.entries(categoryStats).map(([category, stats]) => (
-                <Card key={category}>
-                    <CardHeader>
-                        <CardTitle>{category}</CardTitle>
-                        <CardDescription>
-                            {stats.completed} de {stats.total} tareas completadas
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Progress value={stats.completionRate} />
-                    </CardContent>
-                </Card>
-            ))}
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {isClient && dailyCompletionStats.length > 0 && (
-            <Card>
-                <CardHeader>
-                    <CardTitle>Rendimiento Semanal</CardTitle>
-                    <CardDescription>Tareas completadas vs. pendientes por día en la semana actual.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={dailyCompletionStats}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis allowDecimals={false}/>
-                            <Tooltip />
-                            <Legend />
-                            <Bar dataKey="completadas" stackId="a" fill="hsl(var(--primary))" name="Completadas" />
-                            <Bar dataKey="pendientes" stackId="a" fill="hsl(var(--destructive) / 0.5)" name="Pendientes" />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </CardContent>
-            </Card>
-          )}
-          {isClient && completedTasksByCategory.length > 0 && (
-            <Card>
-                <CardHeader>
-                    <CardTitle>Tareas Completadas por Categoría</CardTitle>
-                    <CardDescription>Volumen total de tareas finalizadas en cada categoría.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={completedTasksByCategory} layout="vertical" margin={{ left: 20, right: 30 }}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis type="number" allowDecimals={false} />
-                          <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
-                          <Tooltip />
-                          <Bar dataKey="tareas" name="Tareas Completadas" fill="hsl(var(--primary))" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                </CardContent>
-            </Card>
-          )}
-
-           {isClient && taskTimeAnalytics.length > 0 && (
-            <Card>
-                <CardHeader>
-                    <CardTitle>Tiempo de Enfoque por Categoría</CardTitle>
-                    <CardDescription>Minutos totales registrados en cada categoría de tarea.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={taskTimeAnalytics} layout="vertical" margin={{ left: 20, right: 30 }}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis type="number" unit=" min" />
-                            <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
-                            <Tooltip formatter={(value) => `${value} min`} />
-                            <Bar dataKey="minutos" name="Minutos" fill="hsl(var(--accent))" />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </CardContent>
-            </Card>
-          )}
-
-          {!isClient && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Cargando Analíticas</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>Cargando gráficos...</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
       </div>
       
        {/* Create/Edit Dialog */}
