@@ -264,7 +264,7 @@ export default function TodayPage() {
                 </CardHeader>
                 <CardContent>
                     {tasksLoading && <p>Cargando tareas...</p>}
-                    {!tasksLoading && todayTasks.length === 0 && tasksForTomorrow.length === 0 && overdueTasks.length === 0 && (
+                    {!tasksLoading && todayTasks.length === 0 && overdueTasks.length === 0 && (
                         <p className="text-sm text-muted-foreground text-center py-4">No tienes tareas urgentes.</p>
                     )}
                     <div className="space-y-4">
@@ -278,12 +278,6 @@ export default function TodayPage() {
                             <div>
                                 <h3 className="font-semibold text-sm flex items-center gap-2 mb-2"><CalendarClock className="size-4"/>Para Hoy</h3>
                                 <div className="space-y-1"><Separator className="-mt-1"/>{todayTasks.map(task => <TaskListItem key={task.id} task={task} onToggle={handleToggleTask} onStartSession={startSession} onStopSession={stopSession} activeSession={activeSession}/>)}</div>
-                            </div>
-                        )}
-                        {tasksForTomorrow.length > 0 && (
-                            <div>
-                                <h3 className="font-semibold text-sm flex items-center gap-2 mb-2"><CalendarDays className="size-4"/>Para Mañana</h3>
-                            <div className="space-y-1"><Separator className="-mt-1"/>{tasksForTomorrow.map(task => <TaskListItem key={task.id} task={task} onToggle={handleToggleTask} onStartSession={startSession} onStopSession={stopSession} activeSession={activeSession}/>)}</div>
                             </div>
                         )}
                     </div>
