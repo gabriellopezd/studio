@@ -2,31 +2,25 @@ import { User } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, getDoc, collection, writeBatch, query, where, getDocs, limit } from 'firebase/firestore';
 import { PRESET_EXPENSE_CATEGORIES } from '@/lib/transaction-categories';
 import { defaultFeelings, defaultInfluences } from '@/lib/moods';
+import { PRESET_TASK_CATEGORIES } from '@/lib/task-categories';
 
 async function initializeDefaultTaskCategories(user: User, firestore: any, batch: any) {
     const taskCategoriesRef = collection(firestore, 'users', user.uid, 'taskCategories');
-    const tasksRef = collection(firestore, 'users', user.uid, 'tasks');
+    const categoriesSnapshot = await getDocs(query(taskCategoriesRef, limit(1)));
 
-    const tasksSnapshot = await getDocs(tasksRef);
-    const existingTaskCategories = new Set(tasksSnapshot.docs.map(doc => doc.data().category));
-
-    existingTaskCategories.add("Otro");
-
-    const categoriesSnapshot = await getDocs(taskCategoriesRef);
-    const definedCategories = new Set(categoriesSnapshot.docs.map(doc => doc.data().name));
-
-    const missingCategories = [...existingTaskCategories].filter(cat => !definedCategories.has(cat));
-
-    missingCategories.forEach(categoryName => {
-        if (categoryName) {
-            const newCategoryRef = doc(taskCategoriesRef);
-            batch.set(newCategoryRef, {
-                name: categoryName,
-                isActive: true,
-                userId: user.uid,
-            });
-        }
-    });
+    // Only initialize if the collection is empty
+    if (categoriesSnapshot.empty) {
+        PRESET_TASK_CATEGORIES.forEach(categoryName => {
+            if (categoryName) {
+                const newCategoryRef = doc(taskCategoriesRef);
+                batch.set(newCategoryRef, {
+                    name: categoryName,
+                    isActive: true,
+                    userId: user.uid,
+                });
+            }
+        });
+    }
 }
 
 async function initializeDefaultMoodOptions(user: User, firestore: any, batch: any) {
@@ -69,16 +63,16 @@ export const handleUserLogin = async (user: User, firestore: any, displayName?: 
         };
         batch.set(userRef, userProfileData);
         
-        // This is a new user, so also initialize mood options
+        // This is a new user, so initialize everything
+        await initializeDefaultTaskCategories(user, firestore, batch);
         await initializeDefaultMoodOptions(user, firestore, batch);
 
     } else {
         batch.update(userRef, { lastLoginAt: serverTimestamp() });
-        // Also check for existing users who might not have mood options
+        // Also check for existing users who might not have the default options
+        await initializeDefaultTaskCategories(user, firestore, batch);
         await initializeDefaultMoodOptions(user, firestore, batch);
     }
-    
-    await initializeDefaultTaskCategories(user, firestore, batch);
 
     await batch.commit();
 };

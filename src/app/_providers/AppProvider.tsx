@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useReducer, useEffect, useMemo, useState } from 'react';
 import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc, limit } from 'firebase/firestore';
 import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking, type FirebaseServicesAndUser } from '@/firebase';
 import { AppState, Habit, Task, Mood, ActiveSession } from './types';
@@ -11,7 +11,7 @@ import { Timer, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { PresetHabits } from '@/lib/preset-habits';
-import { PRESET_EXPENSE_CATEGORIES } from '@/lib/transaction-categories';
+import { PRESET_TASK_CATEGORIES } from '@/lib/task-categories';
 import { defaultFeelings, defaultInfluences } from '@/lib/moods';
 
 // --- Context Definition ---
@@ -24,6 +24,7 @@ export const useAppContext = () => {
     }
     return context;
 };
+
 
 type Action =
     | { type: 'SET_DATA'; payload: { key: string; data: any; loading: boolean } }
@@ -407,36 +408,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             // Delete all existing budgets
             const budgetsSnapshot = await getDocs(collection(firestore, 'users', user.uid, 'budgets'));
             budgetsSnapshot.forEach(doc => batch.delete(doc.ref));
+            
+            // Delete all user created task categories
+            const tasksCatSnapshot = await getDocs(query(collection(firestore, 'users', user.uid, 'taskCategories'), where('name', '!=', 'Otro')));
+            tasksCatSnapshot.forEach(doc => batch.delete(doc.ref));
 
-            // Re-create preset categories
-            PRESET_EXPENSE_CATEGORIES.forEach((categoryName, index) => {
-                // Create shopping list
-                const listsColRef = collection(firestore, 'users', user.uid, 'shoppingLists');
-                const listDocRef = doc(listsColRef);
-                const budgetFocus = ['Arriendo', 'Servicios', 'Transporte', 'Salud', 'Hogar', 'Impuestos', 'Comida'].includes(categoryName)
-                    ? 'Necesidades'
-                    : ['Deudas', 'Ahorros'].includes(categoryName) ? 'Ahorros y Deudas' : 'Deseos';
-                
-                batch.set(listDocRef, {
-                    name: categoryName,
-                    budgetFocus: budgetFocus,
-                    createdAt: serverTimestamp(),
-                    items: [],
-                    userId: user.uid,
-                    order: index,
-                    isActive: true, // All presets start as active
-                });
-
-                // Create budget
-                const budgetsColRef = collection(firestore, 'users', user.uid, 'budgets');
-                const budgetDocRef = doc(budgetsColRef);
-                batch.set(budgetDocRef, {
-                    categoryName: categoryName,
-                    monthlyLimit: 1000000, 
-                    currentSpend: 0,
-                    userId: user.uid,
-                });
-            });
 
             await batch.commit();
             toast({ title: 'Categorías Restauradas', description: 'Las listas de compras y presupuestos se han restaurado a los valores predefinidos.' });
@@ -659,66 +635,63 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
 
     // --- Derived State & Selectors ---
-    const analyticsLoading = habitsLoading || timeLogsLoading || tasksLoading || routinesLoading;
-    
-    // Habit Selectors
-    const { groupedHabits, dailyHabits, weeklyHabits, completedDaily, completedWeekly, longestStreak, topLongestStreakHabits, longestCurrentStreak, topCurrentStreakHabits, habitCategoryData, dailyProductivityData, topHabitsByStreak, topHabitsByTime, monthlyCompletionData } = useMemo(() => {
-        if (!allHabits) return { groupedHabits: {}, dailyHabits: [], weeklyHabits: [], completedDaily: 0, completedWeekly: 0, longestStreak: 0, topLongestStreakHabits: [], longestCurrentStreak: 0, topCurrentStreakHabits: [], habitCategoryData: [], dailyProductivityData: [], topHabitsByStreak: [], topHabitsByTime: [], monthlyCompletionData: [] };
+    const derivedState = useMemo(() => {
+        const analyticsLoading = habitsLoading || timeLogsLoading || tasksLoading || routinesLoading || taskCategoriesLoading;
 
-        const activeHabits = allHabits.filter(h => h.isActive);
-
-        const grouped = activeHabits.reduce((acc, habit) => {
+        // Habit Selectors
+        const activeHabits = (allHabits || []).filter((h: any) => h.isActive);
+        const groupedHabits = activeHabits.reduce((acc: any, habit: any) => {
             const category = habit.category || 'Sin Categoría';
             if (!acc[category]) acc[category] = [];
             acc[category].push(habit);
             return acc;
         }, {});
 
-        const daily = activeHabits.filter(h => h.frequency === 'Diario');
-        const weekly = activeHabits.filter(h => h.frequency === 'Semanal');
-        const completedD = daily.filter(h => isHabitCompletedToday(h)).length;
-        const completedW = weekly.filter(h => isHabitCompletedToday(h)).length;
+        const dailyHabits = activeHabits.filter((h: any) => h.frequency === 'Diario');
+        const weeklyHabits = activeHabits.filter((h: any) => h.frequency === 'Semanal');
+        const completedDaily = dailyHabits.filter((h: any) => isHabitCompletedToday(h)).length;
+        const completedWeekly = weeklyHabits.filter((h: any) => isHabitCompletedToday(h)).length;
         
-        const longestS = activeHabits.reduce((max, h) => Math.max(max, h.longestStreak || 0), 0);
-        const topLongestS = longestS > 0 ? activeHabits.filter(h => (h.longestStreak || 0) === longestS).map(h => h.name) : [];
+        const longestStreak = activeHabits.reduce((max: number, h: any) => Math.max(max, h.longestStreak || 0), 0);
+        const topLongestStreakHabits = longestStreak > 0 ? activeHabits.filter((h: any) => (h.longestStreak || 0) === longestStreak).map((h: any) => h.name) : [];
         
-        const longestCS = activeHabits.reduce((max, h) => Math.max(max, h.currentStreak || 0), 0);
-        const topCurrentS = longestCS > 0 ? activeHabits.filter(h => (h.currentStreak || 0) === longestCS).map(h => h.name) : [];
+        const longestCurrentStreak = activeHabits.reduce((max: number, h: any) => Math.max(max, h.currentStreak || 0), 0);
+        const topCurrentStreakHabits = longestCurrentStreak > 0 ? activeHabits.filter((h: any) => (h.currentStreak || 0) === longestCurrentStreak).map((h: any) => h.name) : [];
 
         const habitLogs = (timeLogs || []).filter((log: any) => log.referenceType === 'habit');
-        const categoryTotals: Record<string, number> = {};
+        const habitCategoryTotals: Record<string, number> = {};
         habitLogs.forEach((log: any) => {
             const habit = activeHabits.find((h: any) => h.id === log.referenceId);
             if (habit) {
                 const category = habit.category || 'Sin Categoría';
-                categoryTotals[category] = (categoryTotals[category] || 0) + log.durationSeconds;
+                habitCategoryTotals[category] = (habitCategoryTotals[category] || 0) + log.durationSeconds;
             }
         });
-        const categoryData = Object.entries(categoryTotals).map(([name, value]) => ({ name, value: Math.round(value / 60) })).filter(item => item.value > 0);
+        const habitCategoryData = Object.entries(habitCategoryTotals).map(([name, value]) => ({ name, value: Math.round(value / 60) })).filter(item => item.value > 0);
 
         const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-        const dailyTotals = Array(7).fill(0).map((_, i) => ({ name: daysOfWeek[i], value: 0}));
+        const dailyProductivityTotals = Array(7).fill(0).map((_, i) => ({ name: daysOfWeek[i], value: 0}));
         (timeLogs || []).forEach((log: any) => {
             const date = log.startTime.toDate();
             const dayIndex = date.getDay();
-            dailyTotals[dayIndex].value += log.durationSeconds;
+            dailyProductivityTotals[dayIndex].value += log.durationSeconds;
         });
-        const dailyData = dailyTotals.map(day => ({...day, value: Math.round(day.value / 60)}));
+        const dailyProductivityData = dailyProductivityTotals.map(day => ({...day, value: Math.round(day.value / 60)}));
 
-        const topStreak = [...activeHabits].sort((a,b) => (b.longestStreak || 0) - (a.longestStreak || 0)).slice(0, 5).map(h => ({ name: h.name, racha: h.longestStreak || 0 }));
+        const topHabitsByStreak = [...activeHabits].sort((a,b) => (b.longestStreak || 0) - (a.longestStreak || 0)).slice(0, 5).map(h => ({ name: h.name, racha: h.longestStreak || 0 }));
 
-        const timeTotals: Record<string, number> = {};
+        const habitTimeTotals: Record<string, number> = {};
         habitLogs.forEach((log: any) => {
             const habit = activeHabits.find((h: any) => h.id === log.referenceId);
-            if (habit) timeTotals[habit.name] = (timeTotals[habit.name] || 0) + log.durationSeconds;
+            if (habit) habitTimeTotals[habit.name] = (habitTimeTotals[habit.name] || 0) + log.durationSeconds;
         });
-        const topTime = Object.entries(timeTotals).map(([name, time]) => ({ name, minutos: Math.round(time / 60) })).sort((a, b) => b.minutos - a.minutos).slice(0, 5);
+        const topHabitsByTime = Object.entries(habitTimeTotals).map(([name, time]) => ({ name, minutos: Math.round(time / 60) })).sort((a, b) => b.minutos - a.minutos).slice(0, 5);
 
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = today.getMonth();
+        const todayDate = new Date();
+        const year = todayDate.getFullYear();
+        const month = todayDate.getMonth();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const dailyHabitsForMonth = activeHabits.filter(h => h.frequency === 'Diario');
+        const dailyHabitsForMonth = activeHabits.filter((h: any) => h.frequency === 'Diario');
         const completionByDay: Record<number, {completed: number, total: number}> = {};
         if (dailyHabitsForMonth.length > 0) {
             activeHabits.forEach(habit => {
@@ -732,145 +705,132 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 }
             });
         }
-        const monthlyData = Array.from({ length: daysInMonth }, (_, i) => {
+        const monthlyCompletionData = Array.from({ length: daysInMonth }, (_, i) => {
             const day = i + 1;
             const data = completionByDay[day];
             return { day, value: data ? Math.round((data.completed / data.total) * 100) : 0 };
         });
 
-        return { groupedHabits: grouped, dailyHabits: daily, weeklyHabits: weekly, completedDaily: completedD, completedWeekly: completedW, longestStreak: longestS, topLongestStreakHabits: topLongestS, longestCurrentStreak: longestCS, topCurrentStreakHabits: topCurrentS, habitCategoryData: categoryData, dailyProductivityData: dailyData, topHabitsByStreak: topStreak, topHabitsByTime: topTime, monthlyCompletionData: monthlyData };
-    }, [allHabits, timeLogs]);
-    
-    // Routines Selectors
-    const { routineTimeAnalytics, routineCompletionAnalytics } = useMemo(() => {
-        if (!routines || !allHabits || !timeLogs) return { routineTimeAnalytics: [], routineCompletionAnalytics: [] };
-    
-        const activeHabits = allHabits.filter(h => h.isActive);
-    
-        // Time Analytics
-        const habitTimeTotals: Record<string, number> = {};
-        timeLogs.filter(log => log.referenceType === 'habit').forEach(log => {
-            habitTimeTotals[log.referenceId] = (habitTimeTotals[log.referenceId] || 0) + log.durationSeconds;
+        // Routines Selectors
+        const habitTimeMap: Record<string, number> = {};
+        (timeLogs || []).filter((log: any) => log.referenceType === 'habit').forEach((log: any) => {
+            habitTimeMap[log.referenceId] = (habitTimeMap[log.referenceId] || 0) + log.durationSeconds;
         });
     
         const routineTimeTotals: Record<string, number> = {};
-        routines.forEach(routine => {
+        (routines || []).forEach((routine: any) => {
             routine.habitIds.forEach((habitId: string) => {
-                const habit = activeHabits.find(h => h.id === habitId);
-                if (habit && habitTimeTotals[habitId]) {
-                    routineTimeTotals[routine.name] = (routineTimeTotals[routine.name] || 0) + habitTimeTotals[habitId];
+                if (habitTimeMap[habitId]) {
+                    routineTimeTotals[routine.name] = (routineTimeTotals[routine.name] || 0) + habitTimeMap[habitId];
                 }
             });
         });
-        const timeAnalytics = Object.entries(routineTimeTotals)
+        const routineTimeAnalytics = Object.entries(routineTimeTotals)
             .map(([name, time]) => ({ name, minutos: Math.round(time / 60) }))
             .sort((a, b) => b.minutos - a.minutos);
     
-        // Completion Analytics
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-        const completionAnalytics = routines.map(routine => {
-            const routineHabits = activeHabits.filter(h => routine.habitIds.includes(h.id));
+        const routineCompletionAnalytics = (routines || []).map((routine: any) => {
+            const routineHabits = activeHabits.filter((h: any) => routine.habitIds.includes(h.id));
             if (routineHabits.length === 0) return { name: routine.name, completionRate: 0 };
-    
+            
             let totalPossibleCompletions = 0;
-            let totalActualCompletions = 0;
-    
-            // This is a simplified calculation. For a more accurate one, we'd need to query the full history of completions.
-            // Here, we estimate based on streak and last completion.
-            routineHabits.forEach(habit => {
-                if (habit.frequency === 'Diario') {
-                    totalPossibleCompletions += 30;
-                } else { // Semanal
-                    totalPossibleCompletions += 4;
-                }
-                // Using currentStreak as a proxy for recent completions
-                totalActualCompletions += (habit.currentStreak || 0);
-            });
-    
-            const rate = totalPossibleCompletions > 0 ? (totalActualCompletions / totalPossibleCompletions) * 100 : 0;
-    
-            return {
-                name: routine.name,
-                completionRate: Math.min(100, rate) // Cap at 100%
-            };
-        }).filter(r => r.completionRate > 0).sort((a, b) => b.completionRate - a.completionRate);
-    
-        return { routineTimeAnalytics: timeAnalytics, routineCompletionAnalytics: completionAnalytics };
-    }, [routines, allHabits, timeLogs]);
+            let actualCompletions = 0;
 
-    // Task Selectors
-    const { totalStats, categoryStats, taskTimeAnalytics, overdueTasks, todayTasks, tasksForTomorrow, upcomingTasks, completedWeeklyTasks, totalWeeklyTasks, weeklyTasksProgress, completedDailyTasks, totalDailyTasks, dailyTasksProgress, onTimeCompletionRate, dailyCompletionStats, completedTasksByCategory } = useMemo(() => {
-        if (!tasks || !taskCategories) return { totalStats: { completed: 0, total: 0, completionRate: 0 }, categoryStats: {}, taskTimeAnalytics: [], overdueTasks: [], todayTasks: [], tasksForTomorrow: [], upcomingTasks: [], completedWeeklyTasks: 0, totalWeeklyTasks: 0, weeklyTasksProgress: 0, completedDailyTasks: 0, totalDailyTasks: 0, dailyTasksProgress: 0, onTimeCompletionRate: 0, dailyCompletionStats: [], completedTasksByCategory: [] };
-        
+            routineHabits.forEach(habit => {
+                const createdAt = habit.createdAt.toDate();
+                const daysSinceCreation = Math.floor((new Date().getTime() - Math.max(createdAt.getTime(), thirtyDaysAgo.getTime())) / (1000 * 60 * 60 * 24));
+                
+                if (habit.frequency === 'Diario') {
+                    totalPossibleCompletions += daysSinceCreation;
+                } else if (habit.frequency === 'Semanal') {
+                    totalPossibleCompletions += Math.floor(daysSinceCreation / 7);
+                }
+                
+                // This part is tricky without querying all completions.
+                // We'll estimate based on streaks, which is not perfect.
+                // A better approach would be a `completions` subcollection.
+                // For now, let's use a simplified proxy.
+                const completionsInPeriod = (timeLogs || []).filter(l => l.referenceId === habit.id && l.startTime.toDate() > thirtyDaysAgo).length;
+                actualCompletions += completionsInPeriod;
+
+            });
+            const rate = totalPossibleCompletions > 0 ? (actualCompletions / totalPossibleCompletions) * 100 : 0;
+            return { name: routine.name, completionRate: Math.min(100, rate) };
+        }).filter(r => r.completionRate > 0).sort((a, b) => b.completionRate - a.completionRate);
+
+        // Task Selectors
         const today = new Date();
         const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
         
         const tomorrow = new Date(startOfDay);
         tomorrow.setDate(startOfDay.getDate() + 1);
         const endOfTomorrow = new Date(tomorrow);
-        endOfTomorrow.setHours(23, 59, 59, 999);
+        endOfTomorrow.setDate(tomorrow.getDate() + 1);
 
         const startOfWeek = getStartOfWeek(today);
         const endOfWeek = getEndOfWeek(today);
         
-        const overdue = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() < startOfDay);
-        const forToday = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= startOfDay && t.dueDate.toDate() <= endOfDay);
-        const forTomorrow = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= tomorrow && t.dueDate.toDate() <= endOfTomorrow);
-        const upcoming = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() > endOfDay && t.dueDate.toDate() <= endOfWeek);
+        const allTasks = tasks || [];
+        const overdueTasks = allTasks.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() < startOfDay);
+        const todayTasks = allTasks.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= startOfDay && t.dueDate.toDate() < tomorrow);
+        const tasksForTomorrow = allTasks.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= tomorrow && t.dueDate.toDate() < endOfTomorrow);
+        const upcomingTasks = allTasks.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= tomorrow && t.dueDate.toDate() <= endOfWeek);
 
-        const dailyTs = tasks.filter(t => t.dueDate && t.dueDate.toDate() >= startOfDay && t.dueDate.toDate() <= endOfDay);
-        const completedDaily = dailyTs.filter(t => t.isCompleted).length;
-        const totalDaily = dailyTs.length;
-        const dailyProgress = totalDaily > 0 ? (completedDaily / totalDaily) * 100 : 0;
+        const dailyTs = allTasks.filter((t: any) => {
+            if (!t.dueDate) return false;
+            const dueDate = t.dueDate.toDate();
+            return dueDate >= startOfDay && dueDate < tomorrow;
+        });
+        const completedDailyTasks = dailyTs.filter((t: any) => t.isCompleted).length;
+        const totalDailyTasks = dailyTs.length;
+        const dailyTasksProgress = totalDailyTasks > 0 ? (completedDailyTasks / totalDailyTasks) * 100 : 0;
         
-        const weeklyTasks = tasks.filter(t => t.dueDate && t.dueDate.toDate() >= startOfWeek && t.dueDate.toDate() <= endOfWeek);
-        const completedWeekly = weeklyTasks.filter(t => t.isCompleted).length;
-        const totalWeekly = weeklyTasks.length;
-        const weeklyProgress = totalWeekly > 0 ? (completedWeekly / totalWeekly) * 100 : 0;
+        const weeklyTasks = allTasks.filter((t: any) => t.dueDate && t.dueDate.toDate() >= startOfWeek && t.dueDate.toDate() <= endOfWeek);
+        const completedWeeklyTasks = weeklyTasks.filter((t: any) => t.isCompleted).length;
+        const totalWeeklyTasks = weeklyTasks.length;
+        const weeklyTasksProgress = totalWeeklyTasks > 0 ? (completedWeeklyTasks / totalWeeklyTasks) * 100 : 0;
         
-        const completed = tasks.filter(t => t.isCompleted).length;
-        const total = tasks.length;
+        const completed = allTasks.filter((t: any) => t.isCompleted).length;
+        const total = allTasks.length;
         const totalStats = { completed, total, completionRate: total > 0 ? (completed / total) * 100 : 0 };
-
-        const catStats = (taskCategories || []).reduce((acc, category) => {
-            const tasksInCategory = tasks.filter(t => t.category === category.name);
+        
+        const catStats = (taskCategories || []).reduce((acc: any, category: any) => {
+            const tasksInCategory = allTasks.filter((t: any) => t.category === category.name);
             if (tasksInCategory.length > 0) {
-                const completed = tasksInCategory.filter(t => t.isCompleted).length;
+                const completed = tasksInCategory.filter((t: any) => t.isCompleted).length;
                 acc[category.name] = { completed, total: tasksInCategory.length, completionRate: (completed / tasksInCategory.length) * 100 };
             }
             return acc;
         }, {} as Record<string, any>);
-
-        const completedWithDueDate = tasks.filter(t => t.isCompleted && t.dueDate && t.completionDate);
-        const onTime = completedWithDueDate.filter(t => {
+        
+        const completedWithDueDate = allTasks.filter((t: any) => t.isCompleted && t.dueDate && t.completionDate);
+        const onTime = completedWithDueDate.filter((t: any) => {
             const completion = t.completionDate.toDate();
             const due = t.dueDate.toDate();
             completion.setHours(0,0,0,0);
-            due.setHours(0,0,0,0);
+            due.setHours(23,59,59,999); // give buffer until end of day
             return completion <= due;
         }).length;
-
-        const onTimeRate = completedWithDueDate.length > 0 ? (onTime / completedWithDueDate.length) * 100 : 0;
+        const onTimeCompletionRate = completedWithDueDate.length > 0 ? (onTime / completedWithDueDate.length) * 100 : 0;
         
-        const completedByCategoryData = (taskCategories || []).map(category => {
-            const count = tasks.filter(t => t.isCompleted && t.category === category.name).length;
-            return { name: category.name, tareas: count };
-        }).filter(c => c.tareas > 0);
+        const completedTasksByCategory = (taskCategories || []).map((category: any) => ({
+            name: category.name,
+            tareas: allTasks.filter((t: any) => t.isCompleted && t.category === category.name).length
+        })).filter((c: any) => c.tareas > 0);
 
         const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-        const dailyStatsData = weekDays.map((name, i) => {
+        const dailyCompletionStats = weekDays.map((name, i) => {
             const day = new Date(startOfWeek);
             day.setDate(startOfWeek.getDate() + i);
             const dayStart = new Date(day);
             const dayEnd = new Date(day);
             dayEnd.setHours(23, 59, 59, 999);
 
-            const dueTasks = tasks.filter(t => t.dueDate && t.dueDate.toDate() >= dayStart && t.dueDate.toDate() <= dayEnd);
-            const completedOnDay = tasks.filter(t => t.isCompleted && t.completionDate && t.completionDate.toDate() >= dayStart && t.completionDate.toDate() <= dayEnd).length;
-            const pendingOnDay = dueTasks.filter(t => !t.isCompleted).length;
+            const dueTasks = allTasks.filter((t: any) => t.dueDate && t.dueDate.toDate() >= dayStart && t.dueDate.toDate() <= dayEnd);
+            const completedOnDay = allTasks.filter((t: any) => t.isCompleted && t.completionDate && t.completionDate.toDate() >= dayStart && t.completionDate.toDate() <= dayEnd).length;
+            const pendingOnDay = dueTasks.filter((t: any) => !t.isCompleted).length;
 
             return { name, completadas: completedOnDay, pendientes: pendingOnDay };
         });
@@ -878,306 +838,110 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const taskLogs = (timeLogs || []).filter((log: any) => log.referenceType === 'task');
         const categoryTimeTotals: Record<string, number> = {};
         taskLogs.forEach((log: any) => {
-            const task = tasks.find((t: any) => t.id === log.referenceId);
+            const task = allTasks.find((t: any) => t.id === log.referenceId);
             if (task) {
                 const category = task.category || 'Sin Categoría';
                 categoryTimeTotals[category] = (categoryTimeTotals[category] || 0) + log.durationSeconds;
             }
         });
-        const timeAnalytics = Object.entries(categoryTimeTotals).map(([name, value]) => ({ name, minutos: Math.round(value / 60) })).filter(item => item.minutos > 0);
+        const taskTimeAnalytics = Object.entries(categoryTimeTotals).map(([name, value]) => ({ name, minutos: Math.round(value / 60) })).filter(item => item.minutos > 0);
         
-        return { 
-            totalStats, 
-            categoryStats: catStats, 
-            taskTimeAnalytics: timeAnalytics, 
-            overdueTasks: overdue, 
-            todayTasks: forToday, 
-            tasksForTomorrow: forTomorrow, 
-            upcomingTasks: upcoming, 
-            completedWeeklyTasks: completedWeekly, 
-            totalWeeklyTasks: totalWeekly, 
-            weeklyTasksProgress: weeklyProgress, 
-            completedDailyTasks: completedDaily, 
-            totalDailyTasks: totalDaily, 
-            dailyTasksProgress: dailyProgress, 
-            onTimeCompletionRate: onTimeRate, 
-            dailyCompletionStats: dailyStatsData, 
-            completedTasksByCategory: completedByCategoryData
-        };
-    }, [tasks, timeLogs, taskCategories]);
-
-    // Mood Selectors
-    const { feelingStats, influenceStats, todayMood } = useMemo(() => {
+        // Mood Selectors
         const moodSource = moods ?? [];
-
-        const feelingsCount = moodSource.flatMap(m => m.feelings).reduce((acc, f) => { acc[f] = (acc[f] || 0) + 1; return acc; }, {} as Record<string, number>);
-        const influencesCount = moodSource.flatMap(m => m.influences).reduce((acc, i) => { acc[i] = (acc[i] || 0) + 1; return acc; }, {} as Record<string, number>);
+        const feelingsCount = moodSource.flatMap((m: any) => m.feelings).reduce((acc: any, f: any) => { acc[f] = (acc[f] || 0) + 1; return acc; }, {} as Record<string, number>);
+        const influencesCount = moodSource.flatMap((m: any) => m.influences).reduce((acc: any, i: any) => { acc[i] = (acc[i] || 0) + 1; return acc; }, {} as Record<string, number>);
+        const todayMood = todayMoodData?.[0] || null;
         
-        const today = todayMoodData?.[0] || null;
-
-        return {
-            feelingStats: (Object.entries(feelingsCount) as [string, number][]).sort((a, b) => b[1] - a[1]).slice(0, 5),
-            influenceStats: (Object.entries(influencesCount) as [string, number][]).sort((a, b) => b[1] - a[1]).slice(0, 5),
-            todayMood: today,
-        };
-    }, [moods, todayMoodData]);
-    
-    // Finance/Expenses Selectors
-    const { currentMonthName, currentMonthYear, monthlyIncome, monthlyExpenses, balance, budget503020, upcomingPayments, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, expenseCategories, incomeCategories, categoriesWithoutBudget, sortedLists, spendingByCategory, budgetAccuracy, spendingByFocus } = useMemo(() => {
+        // Finance Selectors
         const now = state.currentMonth;
-        const monthName = now.toLocaleDateString('es-ES', { month: 'long' });
-        const monthYear = `${now.getFullYear()}-${now.getMonth()}`;
+        const currentMonthName = now.toLocaleDateString('es-ES', { month: 'long' });
+        const currentMonthYear = `${now.getFullYear()}-${now.getMonth()}`;
 
-        const income = transactions?.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0) ?? 0;
-        const expenses = transactions?.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0) ?? 0;
+        const transactionsForMonth = transactions || [];
+        const monthlyIncome = transactionsForMonth.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + t.amount, 0);
+        const monthlyExpenses = transactionsForMonth.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + t.amount, 0);
+        const balance = monthlyIncome - monthlyExpenses;
         
-        const bal = income - expenses;
+        let budget503020 = null;
+        const needsSpend = transactionsForMonth.filter((t: any) => t.type === 'expense' && t.budgetFocus === 'Necesidades').reduce((s: number, t: any) => s + t.amount, 0);
+        const wantsSpend = transactionsForMonth.filter((t: any) => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((s: number, t: any) => s + t.amount, 0);
+        const savingsSpend = transactionsForMonth.filter((t: any) => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((s: number, t: any) => s + t.amount, 0);
         
-        let needsBudget = income * 0.5;
-        let wantsBudget = income * 0.3;
-        let savingsBudget = income * 0.2;
-        let b503020 = null;
-        
-        const needsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Necesidades').reduce((s, t) => s + t.amount, 0) ?? 0;
-        const wantsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((s, t) => s + t.amount, 0) ?? 0;
-        const savingsSpend = transactions?.filter(t => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((s, t) => s + t.amount, 0) ?? 0;
-        
-        if (income === 0) {
-            const totalSpend = needsSpend + wantsSpend + savingsSpend;
-            if (totalSpend > 0) {
-                 b503020 = {
-                    needs: { budget: 0, spend: needsSpend, progress: (needsSpend / totalSpend) * 100 },
-                    wants: { budget: 0, spend: wantsSpend, progress: (wantsSpend / totalSpend) * 100 },
-                    savings: { budget: 0, spend: savingsSpend, progress: (savingsSpend / totalSpend) * 100 },
-                };
-            }
-        }
-        
-        if (!b503020) {
-            b503020 = {
-                needs: { budget: needsBudget, spend: needsSpend, progress: (needsSpend / (needsBudget || 1)) * 100 },
-                wants: { budget: wantsBudget, spend: wantsSpend, progress: (wantsSpend / (wantsBudget || 1)) * 100 },
-                savings: { budget: savingsBudget, spend: savingsSpend, progress: (savingsSpend / (savingsBudget || 1)) * 100 },
+        if (monthlyIncome > 0) {
+            budget503020 = {
+                needs: { budget: monthlyIncome * 0.5, spend: needsSpend, progress: (needsSpend / (monthlyIncome * 0.5)) * 100 },
+                wants: { budget: monthlyIncome * 0.3, spend: wantsSpend, progress: (wantsSpend / (monthlyIncome * 0.3)) * 100 },
+                savings: { budget: monthlyIncome * 0.2, spend: savingsSpend, progress: (savingsSpend / (monthlyIncome * 0.2)) * 100 },
             };
         }
-        
-        const today = new Date();
-        const nextSevenDays = new Date();
-        nextSevenDays.setDate(today.getDate() + 7);
 
-        const upcoming = (recurringExpenses || []).filter(e => {
-            if (e.lastInstanceCreated === monthYear) return false; // Already paid this month
+        const upcomingPayments = (recurringExpenses || []).filter((e: any) => {
+            if (e.lastInstanceCreated === currentMonthYear) return false;
             const dayOfMonth = e.dayOfMonth;
-            if (dayOfMonth < today.getDate()) return false; // Past due date for this month
-            const dueDate = new Date(today.getFullYear(), today.getMonth(), dayOfMonth);
-            return dueDate >= today && dueDate <= nextSevenDays;
-        }) ?? [];
+            const todayDay = today.getDate();
+            return dayOfMonth >= todayDay && dayOfMonth <= todayDay + 7;
+        });
 
-        const pendingRE = (recurringExpenses || []).filter(e => e.lastInstanceCreated !== monthYear) ?? [];
-        const paidRE = (recurringExpenses || []).filter(e => e.lastInstanceCreated === monthYear) ?? [];
-        const pendingRI = (recurringIncomes || []).filter(i => i.lastInstanceCreated !== monthYear) ?? [];
-        const receivedRI = (recurringIncomes || []).filter(i => i.lastInstanceCreated === monthYear) ?? [];
-        
-        const pendingRecurringTotal = (recurringExpenses || []).filter(e => e.lastInstanceCreated !== monthYear).reduce((s, e) => s + e.amount, 0);
-        const pendingShoppingTotal = (shoppingLists || []).filter(l => l.isActive).reduce((total, list) => 
-            total + list.items.filter((item: any) => !item.isPurchased).reduce((subtotal: number, item: any) => subtotal + item.amount, 0), 0) ?? 0;
-        const pendingETotal = pendingRecurringTotal + pendingShoppingTotal;
+        const pendingRecurringExpenses = (recurringExpenses || []).filter((e: any) => e.lastInstanceCreated !== currentMonthYear);
+        const paidRecurringExpenses = (recurringExpenses || []).filter((e: any) => e.lastInstanceCreated === currentMonthYear);
+        const pendingRecurringIncomes = (recurringIncomes || []).filter((i: any) => i.lastInstanceCreated !== currentMonthYear);
+        const receivedRecurringIncomes = (recurringIncomes || []).filter((i: any) => i.lastInstanceCreated === currentMonthYear);
+        const pendingExpensesTotal = pendingRecurringExpenses.reduce((s: number, e: any) => s + e.amount, 0);
 
-        
-        const allCategoryNames = [...new Set([
-            ...PRESET_EXPENSE_CATEGORIES,
-            ...(budgets || []).map(b => b.categoryName), 
-            ...(shoppingLists || []).map(l => l.name),
-            ...(transactions?.filter(t => t.type === 'expense').map(t => t.category) ?? [])
-        ])].filter(Boolean);
-
-        const incomeCats = [...new Set(["Salario", "Bonificación", "Otro", ...(transactions?.filter(t => t.type === 'income').map(t => t.category) ?? [])])].filter(Boolean);
-        const catsNoBudget = allCategoryNames.filter(cat => !(budgets || []).some(b => b.categoryName === cat));
+        const allExpenseCategoryNames = [...new Set([...(budgets || []).map((b: any) => b.categoryName), ...(shoppingLists || []).map((l: any) => l.name), ...(transactionsForMonth.filter((t: any) => t.type === 'expense').map((t: any) => t.category))])].filter(Boolean);
+        const incomeCategories = [...new Set(["Salario", "Bonificación", "Otro", ...(transactionsForMonth.filter((t: any) => t.type === 'income').map((t: any) => t.category))])].filter(Boolean);
+        const categoriesWithoutBudget = allExpenseCategoryNames.filter(cat => !(budgets || []).some((b: any) => b.categoryName === cat));
 
         const activeShoppingLists = (shoppingLists || []).filter((l: any) => l.isActive);
-        const sorted = [...activeShoppingLists].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        const sortedLists = [...activeShoppingLists].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
-        const spendingByCat = activeShoppingLists.map(l => ({ name: l.name, gasto: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.gasto > 0) ?? [];
-        const budgetAcc = activeShoppingLists.map(l => ({ name: l.name, estimado: l.items.filter((i:any) => i.isPurchased).reduce((s:number, i:any) => s + i.amount, 0), real: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.real > 0 || d.estimado > 0) ?? [];
-        const spendingByF = (Object.entries(activeShoppingLists.reduce((acc, l) => {
+        const spendingByCategory = activeShoppingLists.map((l: any) => ({ name: l.name, gasto: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.gasto > 0);
+        const budgetAccuracy = activeShoppingLists.map((l: any) => ({ name: l.name, estimado: l.items.filter((i:any) => i.isPurchased).reduce((s:number, i:any) => s + i.amount, 0), real: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.real > 0 || d.estimado > 0);
+        const spendingByFocus = (Object.entries(activeShoppingLists.reduce((acc: any, l: any) => {
             const total = l.items.filter((i: any) => i.isPurchased && i.price).reduce((s: number, i: any) => s + i.price, 0);
             if(l.budgetFocus && acc.hasOwnProperty(l.budgetFocus)) acc[l.budgetFocus] += total;
             return acc;
         }, {'Necesidades':0, 'Deseos':0, 'Ahorros y Deudas':0}) ?? {}) as [string, number][]).map(([name, value]) => ({name, value})).filter(d => d.value > 0);
+        
+        const catStats = (taskCategories || []).reduce((acc: any, category: any) => {
+            const tasksInCategory = allTasks.filter((t: any) => t.category === category.name);
+            if (tasksInCategory.length > 0) {
+                const completed = tasksInCategory.filter((t: any) => t.isCompleted).length;
+                acc[category.name] = { completed, total: tasksInCategory.length, completionRate: (completed / tasksInCategory.length) * 100 };
+            }
+            return acc;
+        }, {} as Record<string, any>);
 
-        return { 
-            currentMonthName: monthName.charAt(0).toUpperCase() + monthName.slice(1), 
-            currentMonthYear: monthYear, 
-            monthlyIncome: income, 
-            monthlyExpenses: expenses, 
-            balance: bal, 
-            budget503020: b503020, 
-            upcomingPayments: upcoming, 
-            pendingRecurringExpenses: pendingRE, 
-            paidRecurringExpenses: paidRE, 
-            pendingRecurringIncomes: pendingRI, 
-            receivedRecurringIncomes: receivedRI, 
-            pendingExpensesTotal: pendingETotal, 
-            expenseCategories: allCategoryNames, 
-            incomeCategories: incomeCats, 
-            categoriesWithoutBudget: catsNoBudget, 
-            sortedLists: sorted, 
-            spendingByCategory: spendingByCat, 
-            budgetAccuracy: budgetAcc, 
-            spendingByFocus: spendingByF 
+
+        return {
+            analyticsLoading,
+            groupedHabits, dailyHabits, weeklyHabits, completedDaily, completedWeekly, longestStreak, topLongestStreakHabits, longestCurrentStreak, topCurrentStreakHabits, habitCategoryData, dailyProductivityData, topHabitsByStreak, topHabitsByTime, monthlyCompletionData,
+            routineTimeAnalytics, routineCompletionAnalytics,
+            totalStats, categoryStats: catStats, taskTimeAnalytics, overdueTasks, todayTasks, tasksForTomorrow, upcomingTasks, completedWeeklyTasks, totalWeeklyTasks, weeklyTasksProgress, completedDailyTasks, totalDailyTasks, dailyTasksProgress, onTimeCompletionRate, dailyCompletionStats, completedTasksByCategory,
+            feelingStats: (Object.entries(feelingsCount) as [string, any][]).sort((a, b) => b[1] - a[1]).slice(0, 5),
+            influenceStats: (Object.entries(influencesCount) as [string, any][]).sort((a, b) => b[1] - a[1]).slice(0, 5),
+            todayMood,
+            currentMonthName, currentMonthYear, monthlyIncome, monthlyExpenses, balance, budget503020, upcomingPayments, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, expenseCategories: allExpenseCategoryNames, incomeCategories, categoriesWithoutBudget, sortedLists, spendingByCategory, budgetAccuracy, spendingByFocus,
+            urgentTasks: urgentTasks ?? [],
         };
-    }, [transactions, recurringExpenses, recurringIncomes, shoppingLists, budgets, state.currentMonth]);
-
-    useEffect(() => {
-        dispatch({ type: 'SET_DATA', payload: { key: 'allHabits', data: allHabits, loading: habitsLoading } });
-    }, [allHabits, habitsLoading]);
-
-    useEffect(() => {
-        dispatch({ type: 'SET_DATA', payload: { key: 'routines', data: routines, loading: routinesLoading } });
-    }, [routines, routinesLoading]);
-
-    useEffect(() => {
-        dispatch({ type: 'SET_DATA', payload: { key: 'tasks', data: tasks, loading: tasksLoading } });
-    }, [tasks, tasksLoading]);
-
-    useEffect(() => {
-        dispatch({ type: 'SET_DATA', payload: { key: 'taskCategories', data: taskCategories, loading: taskCategoriesLoading } });
-    }, [taskCategories, taskCategoriesLoading]);
-
-    useEffect(() => {
-        dispatch({ type: 'SET_DATA', payload: { key: 'goals', data: goals, loading: goalsLoading } });
-    }, [goals, goalsLoading]);
-
-    useEffect(() => {
-        dispatch({ type: 'SET_DATA', payload: { key: 'timeLogs', data: timeLogs, loading: timeLogsLoading } });
-    }, [timeLogs, timeLogsLoading]);
+    }, [allHabits, routines, tasks, taskCategories, goals, moods, feelings, influences, timeLogs, transactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, todayMoodData, habitsLoading, routinesLoading, tasksLoading, taskCategoriesLoading, goalsLoading, moodsLoading, feelingsLoading, influencesLoading, timeLogsLoading, transactionsLoading, budgetsLoading, shoppingListsLoading, recurringExpensesLoading, recurringIncomesLoading, state.currentMonth]);
     
     useEffect(() => {
-        dispatch({ type: 'SET_DATA', payload: { key: 'budgets', data: budgets, loading: budgetsLoading } });
-    }, [budgets, budgetsLoading]);
-
-    useEffect(() => {
-        dispatch({ type: 'SET_DATA', payload: { key: 'shoppingLists', data: shoppingLists, loading: shoppingListsLoading } });
-    }, [shoppingLists, shoppingListsLoading]);
-    
-    useEffect(() => {
-        dispatch({ type: 'SET_DATA', payload: { key: 'recurringExpenses', data: recurringExpenses, loading: recurringExpensesLoading } });
-    }, [recurringExpenses, recurringExpensesLoading]);
-    
-    useEffect(() => {
-        dispatch({ type: 'SET_DATA', payload: { key: 'recurringIncomes', data: recurringIncomes, loading: recurringIncomesLoading } });
-    }, [recurringIncomes, recurringIncomesLoading]);
-
-    useEffect(() => {
-        dispatch({ type: 'SET_DATA', payload: { key: 'transactions', data: transactions, loading: transactionsLoading } });
-    }, [transactions, transactionsLoading]);
-
-    useEffect(() => {
-        dispatch({ type: 'SET_DATA', payload: { key: 'moods', data: moods, loading: moodsLoading } });
-    }, [moods, moodsLoading]);
-
-     useEffect(() => {
-        dispatch({ type: 'SET_DATA', payload: { key: 'feelings', data: feelings, loading: feelingsLoading } });
-    }, [feelings, feelingsLoading]);
-
-    useEffect(() => {
-        dispatch({ type: 'SET_DATA', payload: { key: 'influences', data: influences, loading: influencesLoading } });
-    }, [influences, influencesLoading]);
-    
-    useEffect(() => {
-        dispatch({ type: 'SET_DATA', payload: { key: 'urgentTasks', data: urgentTasks, loading: urgentTasksLoading } });
-    }, [urgentTasks, urgentTasksLoading]);
+        const rawData = { allHabits, routines, tasks, taskCategories, goals, moods, feelings, influences, transactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, timeLogs, urgentTasks };
+        const loadingFlags: Record<string, boolean> = { habitsLoading, routinesLoading, tasksLoading, taskCategoriesLoading, goalsLoading, moodsLoading, feelingsLoading, influencesLoading, transactionsLoading, budgetsLoading, shoppingListsLoading, recurringExpensesLoading, recurringIncomesLoading, timeLogsLoading, urgentTasksLoading };
+        
+        Object.entries(rawData).forEach(([key, data]) => {
+            dispatch({ type: 'SET_DATA', payload: { key, data, loading: loadingFlags[`${key}Loading`] } });
+        });
+    }, [allHabits, routines, tasks, taskCategories, goals, moods, feelings, influences, transactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, timeLogs, urgentTasks, habitsLoading, routinesLoading, tasksLoading, taskCategoriesLoading, goalsLoading, moodsLoading, feelingsLoading, influencesLoading, transactionsLoading, budgetsLoading, shoppingListsLoading, recurringExpensesLoading, recurringIncomesLoading, timeLogsLoading, urgentTasksLoading]);
 
     const value: AppState = {
         ...state,
+        ...derivedState,
         firestore,
         user,
-        allHabits,
-        habitsLoading,
-        routines,
-        routinesLoading,
-        tasks,
-        tasksLoading,
-        taskCategories,
-        taskCategoriesLoading,
-        goals,
-        goalsLoading,
-        moods: moods ?? [],
-        moodsLoading,
-        feelings: feelings ?? [],
-        feelingsLoading,
-        influences: influences ?? [],
-        influencesLoading,
-        transactions: transactions ?? [],
-        transactionsLoading,
-        budgets,
-        budgetsLoading,
-        shoppingLists,
-        shoppingListsLoading,
-        recurringExpenses,
-        recurringExpensesLoading,
-        recurringIncomes,
-        recurringIncomesLoading,
-        timeLogs,
-        timeLogsLoading,
         presetHabits: PresetHabits,
         presetHabitsLoading: false,
-        analyticsLoading,
-        groupedHabits,
-        dailyHabits,
-        weeklyHabits,
-        completedDaily,
-        completedWeekly,
-        longestStreak,
-        topLongestStreakHabits,
-        longestCurrentStreak,
-        topCurrentStreakHabits,
-        habitCategoryData,
-        dailyProductivityData,
-        topHabitsByStreak,
-        topHabitsByTime,
-        monthlyCompletionData,
-        routineTimeAnalytics,
-        routineCompletionAnalytics,
-        totalStats,
-        categoryStats,
-        taskTimeAnalytics,
-        overdueTasks,
-        todayTasks,
-        upcomingTasks,
-        tasksForTomorrow,
-        completedWeeklyTasks,
-        totalWeeklyTasks,
-        weeklyTasksProgress,
-        completedDailyTasks,
-        totalDailyTasks,
-        dailyTasksProgress,
-        onTimeCompletionRate,
-        dailyCompletionStats,
-        completedTasksByCategory,
-        feelingStats,
-        influenceStats,
-        todayMood,
-        currentMonthName,
-        currentMonthYear,
-        monthlyIncome,
-        monthlyExpenses,
-        balance,
-        budget503020,
-        upcomingPayments,
-        pendingRecurringExpenses,
-        paidRecurringExpenses,
-        pendingRecurringIncomes,
-        receivedRecurringIncomes,
-        pendingExpensesTotal,
-        expenseCategories,
-        incomeCategories,
-        categoriesWithoutBudget,
-        sortedLists,
-        spendingByCategory,
-        budgetAccuracy,
-        spendingByFocus,
-        urgentTasks: urgentTasks ?? [],
         handleToggleHabit,
         handleCreateOrUpdateHabit,
         handleDeleteHabit,
