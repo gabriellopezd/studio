@@ -72,6 +72,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppContext } from '@/app/_providers/AppProvider';
 import { ResponsiveCalendar } from '../tasks/_components/ResponsiveCalendar';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { TooltipProvider, Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const motivationalQuotes = [
     "Tus finanzas son el reflejo de tus hábitos. ¡Constrúyelos sabiamente!",
@@ -107,6 +108,7 @@ export default function FinancesPage() {
     pendingRecurringIncomes,
     receivedRecurringIncomes,
     pendingExpensesTotal,
+    pendingIncomesTotal,
     expenseCategories,
     incomeCategories,
     categoriesWithoutBudget,
@@ -175,7 +177,7 @@ export default function FinancesPage() {
           </TabsList>
           
           <TabsContent value="monthly" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
                 <Card>
                     <CardHeader>
                     <CardTitle>Ingresos del Mes</CardTitle>
@@ -196,6 +198,16 @@ export default function FinancesPage() {
                     </p>
                     </CardContent>
                 </Card>
+                 <Card>
+                    <CardHeader>
+                    <CardTitle>Ingresos Pendientes</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-2xl font-bold text-emerald-500/80">
+                            {formatCurrency(pendingIncomesTotal)}
+                        </p>
+                    </CardContent>
+                </Card>
                 <Card>
                     <CardHeader>
                     <CardTitle>Gastos Pendientes</CardTitle>
@@ -208,7 +220,16 @@ export default function FinancesPage() {
                 </Card>
                 <Card>
                     <CardHeader>
-                    <CardTitle>Balance del Mes</CardTitle>
+                         <TooltipProvider>
+                            <UITooltip>
+                                <TooltipTrigger asChild>
+                                    <CardTitle>Balance Proyectado</CardTitle>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                <p>(Ingresos + Pendientes) - (Gastos + Pendientes)</p>
+                                </TooltipContent>
+                            </UITooltip>
+                        </TooltipProvider>
                     </CardHeader>
                     <CardContent>
                     <p className="text-2xl font-bold">{formatCurrency(balance)}</p>

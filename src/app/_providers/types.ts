@@ -148,6 +148,7 @@ export interface AppState {
     pendingRecurringIncomes: any[];
     receivedRecurringIncomes: any[];
     pendingExpensesTotal: number;
+    pendingIncomesTotal: number;
     expenseCategories: string[];
     incomeCategories: string[];
     categoriesWithoutBudget: string[];

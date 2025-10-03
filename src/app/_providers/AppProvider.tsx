@@ -37,7 +37,7 @@ type Action =
     | { type: 'SET_ACTIVE_SESSION'; payload: ActiveSession | null }
     | { type: 'SET_ELAPSED_TIME'; payload: number };
 
-const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleSaveHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetHabitStreak'| 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveTaskCategory'| 'handleDeleteTaskCategory' | 'handleSaveMood'| 'handleSaveRoutine'| 'handleDeleteRoutine'| 'handleCompleteRoutine' | 'handleSaveGoal' | 'handleDeleteGoal' | 'handleUpdateGoalProgress'| 'handlePayRecurringItem' | 'handleRevertRecurringItem' | 'handleSaveBudget'| 'handleSaveRecurringItem'| 'handleDeleteRecurringItem' | 'handleSaveTransaction' | 'handleDeleteTransaction' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics'| 'routineCompletionAnalytics' | 'totalStats' | 'categoryStats' | 'taskTimeAnalytics' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress' | 'onTimeCompletionRate' | 'dailyCompletionStats' | 'completedTasksByCategory' | 'modalState' | 'formState' | 'handleOpenModal' | 'handleCloseModal' | 'setFormState' | 'annualTransactions' | 'annualTransactionsLoading' | 'annualFlowData' | 'annualCategorySpending' | 'monthlySummaryData'> = {
+const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleSaveHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetHabitStreak'| 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveTaskCategory'| 'handleDeleteTaskCategory' | 'handleSaveMood'| 'handleSaveRoutine'| 'handleDeleteRoutine'| 'handleCompleteRoutine' | 'handleSaveGoal' | 'handleDeleteGoal' | 'handleUpdateGoalProgress'| 'handlePayRecurringItem' | 'handleRevertRecurringItem' | 'handleSaveBudget'| 'handleSaveRecurringItem'| 'handleDeleteRecurringItem' | 'handleSaveTransaction' | 'handleDeleteTransaction' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics'| 'routineCompletionAnalytics' | 'totalStats' | 'categoryStats' | 'taskTimeAnalytics' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'pendingIncomesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress' | 'onTimeCompletionRate' | 'dailyCompletionStats' | 'completedTasksByCategory' | 'modalState' | 'formState' | 'handleOpenModal' | 'handleCloseModal' | 'setFormState' | 'annualTransactions' | 'annualTransactionsLoading' | 'annualFlowData' | 'annualCategorySpending' | 'monthlySummaryData'> = {
     allHabits: null,
     routines: null,
     tasks: null,
@@ -1255,8 +1255,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         const monthlyIncome = allTransactionsData.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + t.amount, 0);
         const monthlyExpenses = allTransactionsData.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + t.amount, 0);
-        const balance = monthlyIncome - monthlyExpenses;
         
+        const pendingRecurringExpenses = allRecurringExpensesData.filter((e: any) => e.lastInstanceCreated !== currentMonthYear);
+        const paidRecurringExpenses = allRecurringExpensesData.filter((e: any) => e.lastInstanceCreated === currentMonthYear);
+        const pendingRecurringIncomes = allRecurringIncomesData.filter((i: any) => i.lastInstanceCreated !== currentMonthYear);
+        const receivedRecurringIncomes = allRecurringIncomesData.filter((i: any) => i.lastInstanceCreated === currentMonthYear);
+        const pendingExpensesTotal = pendingRecurringExpenses.reduce((s: number, e: any) => s + e.amount, 0);
+        const pendingIncomesTotal = pendingRecurringIncomes.reduce((s: number, i: any) => s + i.amount, 0);
+        
+        const balance = (monthlyIncome + pendingIncomesTotal) - (monthlyExpenses + pendingExpensesTotal);
+
         let budget503020 = null;
         const needsSpend = allTransactionsData.filter((t: any) => t.type === 'expense' && t.budgetFocus === 'Necesidades').reduce((s: number, t: any) => s + t.amount, 0);
         const wantsSpend = allTransactionsData.filter((t: any) => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((s: number, t: any) => s + t.amount, 0);
@@ -1269,12 +1277,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 savings: { budget: monthlyIncome * 0.2, spend: savingsSpend, progress: (savingsSpend / (monthlyIncome * 0.2)) * 100 },
             };
         }
-
-        const pendingRecurringExpenses = allRecurringExpensesData.filter((e: any) => e.lastInstanceCreated !== currentMonthYear);
-        const paidRecurringExpenses = allRecurringExpensesData.filter((e: any) => e.lastInstanceCreated === currentMonthYear);
-        const pendingRecurringIncomes = allRecurringIncomesData.filter((i: any) => i.lastInstanceCreated !== currentMonthYear);
-        const receivedRecurringIncomes = allRecurringIncomesData.filter((i: any) => i.lastInstanceCreated === currentMonthYear);
-        const pendingExpensesTotal = pendingRecurringExpenses.reduce((s: number, e: any) => s + e.amount, 0);
         
         const upcomingPayments = allRecurringExpensesData.filter((e: any) => {
             const dayOfMonth = e.dayOfMonth;
@@ -1355,7 +1357,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             paidRecurringExpenses, 
             pendingRecurringIncomes, 
             receivedRecurringIncomes, 
-            pendingExpensesTotal, 
+            pendingExpensesTotal,
+            pendingIncomesTotal, 
             expenseCategories: allExpenseCategoryNames, 
             incomeCategories, 
             categoriesWithoutBudget, 
