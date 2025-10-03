@@ -125,7 +125,7 @@ const motivationalQuotes = [
     "Cada peso que no gastas es un peso que trabaja para ti."
 ];
 
-const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+const years = Array.from({ length: 3 }, (_, i) => 2025 + i);
 const months = Array.from({ length: 12 }, (_, i) => ({ value: i, label: new Date(0, i).toLocaleString('es-ES', { month: 'long' }) }));
 
 export default function FinancialPlanningPage() {
