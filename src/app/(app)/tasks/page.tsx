@@ -6,7 +6,7 @@ import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, MoreHorizontal, Pencil, Trash2, Timer, Check, Play, Square, Percent } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Pencil, Trash2, Timer, Check, Play, Square, Percent, Settings } from 'lucide-react';
 import { addDocumentNonBlocking } from '@/firebase';
 import { collection, doc, query, Timestamp, serverTimestamp, where } from 'firebase/firestore';
 import {
@@ -56,6 +56,7 @@ import { Progress } from '@/components/ui/progress';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAppContext } from '@/app/_providers/AppProvider';
 import { ResponsiveCalendar } from './_components/ResponsiveCalendar';
+import Link from 'next/link';
 
 const motivationalQuotes = [
     "Una tarea completada es un paso más hacia tu meta.",
@@ -310,10 +311,18 @@ export default function TasksPage() {
             motivation={motivation}
             imageId="dashboard-header"
         >
-            <Button onClick={() => handleOpenDialog()}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Crear Tarea
-            </Button>
+            <div className="flex shrink-0 items-center gap-2">
+                <Button variant="outline" asChild>
+                    <Link href="/settings/tasks">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Configurar Categorías
+                    </Link>
+                </Button>
+                <Button onClick={() => handleOpenDialog()}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Crear Tarea
+                </Button>
+            </div>
         </PageHeader>
         
         <Tabs defaultValue="tasks">
