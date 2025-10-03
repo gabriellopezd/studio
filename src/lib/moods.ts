@@ -17,7 +17,7 @@ export const feelings = [
 ];
 
 export const influences = [
-    'Salud', 'Condición física', 'Autocuidado', 'Pasatiempos', 'Identidad',
+    'Salud y Deporte', 'Autocuidado', 'Pasatiempos', 'Identidad',
     'Espiritualidad', 'Comunidad', 'Familia', 'Amistades', 'Pareja',
     'Trabajo', 'Estudios', 'Finanzas', 'Clima', 'Noticias'
 ];
