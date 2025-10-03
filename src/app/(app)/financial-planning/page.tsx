@@ -41,7 +41,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
   Select,
@@ -67,7 +66,6 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppContext } from '@/app/_providers/AppProvider';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -123,7 +121,6 @@ export default function FinancialPlanningPage() {
     setCurrentMonth,
     shoppingLists,
     shoppingListsLoading,
-    sortedLists: appSortedLists,
     recurringExpenses,
     recurringExpensesLoading,
     recurringIncomes,
@@ -534,7 +531,7 @@ export default function FinancialPlanningPage() {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle>Ingresos Fijos</CardTitle>
-                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal('recurringIncome')}>
+                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal('recurringItem', { type: 'income' })}>
                                 <PlusCircle className="h-4 w-4" />
                             </Button>
                         </CardHeader>
@@ -548,7 +545,7 @@ export default function FinancialPlanningPage() {
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
                                         <DropdownMenuContent>
-                                            <DropdownMenuItem onClick={() => handleOpenModal('recurringIncome', income)}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleOpenModal('recurringItem', { ...income, type: 'income' })}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
                                             <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleOpenModal('deleteRecurring', { ...income, type: 'income' })} className="text-red-500"><Trash2 className="mr-2 h-4 w-4" />Eliminar</DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
@@ -600,7 +597,7 @@ export default function FinancialPlanningPage() {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle>Gastos Fijos</CardTitle>
-                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal('recurringExpense')}>
+                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal('recurringItem', { type: 'expense' })}>
                                 <PlusCircle className="h-4 w-4" />
                             </Button>
                         </CardHeader>
@@ -614,7 +611,7 @@ export default function FinancialPlanningPage() {
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
                                         <DropdownMenuContent>
-                                            <DropdownMenuItem onClick={() => handleOpenModal('recurringExpense', expense)}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleOpenModal('recurringItem', { ...expense, type: 'expense' })}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
                                             <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleOpenModal('deleteRecurring', { ...expense, type: 'expense' })} className="text-red-500"><Trash2 className="mr-2 h-4 w-4" />Eliminar</DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
@@ -688,10 +685,10 @@ export default function FinancialPlanningPage() {
 
 
         {/* Recurring Item Dialog */}
-        <Dialog open={modalState.type === 'recurringIncome' || modalState.type === 'recurringExpense'} onOpenChange={() => handleCloseModal(modalState.type as string)}>
+        <Dialog open={modalState.type === 'recurringItem'} onOpenChange={() => handleCloseModal('recurringItem')}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{formState.id ? 'Editar' : 'Añadir'} {modalState.type === 'recurringIncome' ? 'Ingreso' : 'Gasto'} Fijo</DialogTitle>
+                    <DialogTitle>{formState.id ? 'Editar' : 'Crear'} {formState.type === 'income' ? 'Ingreso' : 'Gasto'} Fijo</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="space-y-2">
@@ -707,7 +704,7 @@ export default function FinancialPlanningPage() {
                         <Select value={formState.category || ''} onValueChange={(value) => setFormState(prev => ({...prev, category: value}))}>
                             <SelectTrigger><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
                             <SelectContent>
-                                {modalState.type === 'recurringExpense'
+                                {formState.type === 'expense'
                                     ? expenseCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>)) 
                                     : incomeCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))
                                 }
@@ -719,7 +716,7 @@ export default function FinancialPlanningPage() {
                             <Label htmlFor="recurring-day">Día del Mes (1-31)</Label>
                             <Input id="recurring-day" type="number" min="1" max="31" value={formState.dayOfMonth || ''} onChange={(e) => setFormState(prev => ({...prev, dayOfMonth: e.target.value}))} />
                         </div>
-                        {modalState.type === 'recurringExpense' && (
+                        {formState.type === 'expense' && (
                             <div className="space-y-2">
                                 <Label htmlFor="recurring-budget-focus">Enfoque Presupuesto</Label>
                                 <Select value={formState.budgetFocus || ''} onValueChange={(value) => setFormState(prev => ({...prev, budgetFocus: value}))}>
@@ -735,8 +732,8 @@ export default function FinancialPlanningPage() {
                     </div>
                 </div>
                 <DialogFooter>
-                    <DialogClose asChild><Button variant="outline" onClick={() => handleCloseModal(modalState.type as string)}>Cancelar</Button></DialogClose>
-                    <Button onClick={() => handleSaveRecurringItem(modalState.type as 'income' | 'expense')}>{formState.id ? 'Guardar Cambios' : 'Guardar'}</Button>
+                    <DialogClose asChild><Button variant="outline" onClick={() => handleCloseModal('recurringItem')}>Cancelar</Button></DialogClose>
+                    <Button onClick={handleSaveRecurringItem}>{formState.id ? 'Guardar Cambios' : 'Guardar'}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

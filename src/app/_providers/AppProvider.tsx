@@ -35,7 +35,7 @@ type Action =
     | { type: 'SET_ACTIVE_SESSION'; payload: ActiveSession | null }
     | { type: 'SET_ELAPSED_TIME'; payload: number };
 
-const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleSaveHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetHabitStreak'| 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveTaskCategory'| 'handleDeleteTaskCategory' | 'handleSaveMood'| 'handleSaveRoutine'| 'handleDeleteRoutine'| 'handleCompleteRoutine' | 'handleSaveGoal' | 'handleDeleteGoal' | 'handleUpdateGoalProgress'| 'handlePayRecurringItem' | 'handleRevertRecurringItem' | 'handleSaveBudget'| 'handleSaveRecurringItem'| 'handleDeleteRecurringItem' | 'handleSaveTransaction' | 'handleDeleteTransaction' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics'| 'routineCompletionAnalytics' | 'totalStats' | 'categoryStats' | 'taskTimeAnalytics' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'pendingIncomesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress' | 'onTimeCompletionRate' | 'dailyCompletionStats' | 'completedTasksByCategory' | 'modalState' | 'formState' | 'handleOpenModal' | 'handleCloseModal' | 'setFormState' | 'annualTransactions' | 'annualTransactionsLoading' | 'annualFlowData' | 'annualCategorySpending' | 'monthlySummaryData' | 'annualTotalIncome' | 'annualTotalExpense' | 'annualNetSavings' | 'annualSavingsRate' > = {
+const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleSaveHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetHabitStreak'| 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveTaskCategory'| 'handleDeleteTaskCategory' | 'handleSaveMood'| 'handleSaveRoutine'| 'handleDeleteRoutine'| 'handleCompleteRoutine' | 'handleSaveGoal' | 'handleDeleteGoal' | 'handleUpdateGoalProgress'| 'handlePayRecurringItem' | 'handleRevertRecurringItem' | 'handleSaveBudget'| 'handleSaveRecurringItem'| 'handleDeleteRecurringItem' | 'handleSaveTransaction' | 'handleDeleteTransaction' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics'| 'routineCompletionAnalytics' | 'totalStats' | 'categoryStats' | 'taskTimeAnalytics' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'pendingIncomesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress' | 'onTimeCompletionRate' | 'dailyCompletionStats' | 'completedTasksByCategory' | 'modalState' | 'formState' | 'handleOpenModal' | 'handleCloseModal' | 'setFormState' | 'handleCreateList' | 'handleAddItem' | 'handleConfirmPurchase' | 'handleDeleteItem' | 'handleRevertPurchase' | 'annualTransactions' | 'annualTransactionsLoading' | 'annualFlowData' | 'annualCategorySpending' | 'monthlySummaryData' | 'annualTotalIncome' | 'annualTotalExpense' | 'annualNetSavings' | 'annualSavingsRate' > = {
     allHabits: null,
     routines: null,
     tasks: null,
@@ -894,27 +894,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         handleCloseModal('budget');
       };
       
-      const handleSaveRecurringItem = async (type: 'income' | 'expense') => {
-        if (!user || !firestore || !formState.name || !formState.amount || !formState.category || !formState.dayOfMonth) return;
-        
-        const { id, ...data } = formState;
-        const amount = parseFloat(data.amount);
-        const dayOfMonth = parseInt(data.dayOfMonth, 10);
-        if (isNaN(amount) || isNaN(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) {
-            toast({ variant: "destructive", title: "Datos inválidos" });
+    const handleSaveRecurringItem = async () => {
+        if (!user || !firestore || !formState.name || !formState.amount || !formState.category || !formState.dayOfMonth || !formState.type) {
+            toast({ variant: "destructive", title: "Datos inválidos", description: "Todos los campos son obligatorios." });
             return;
         }
-        
+
+        const { id, type, ...data } = formState;
+        const amount = parseFloat(data.amount);
+        const dayOfMonth = parseInt(data.dayOfMonth, 10);
+
+        if (isNaN(amount) || isNaN(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) {
+            toast({ variant: "destructive", title: "Datos numéricos inválidos." });
+            return;
+        }
+
         const collectionName = type === 'income' ? 'recurringIncomes' : 'recurringExpenses';
-        const serializableData: any = { ...data, amount, dayOfMonth, userId: user.uid };
-        
+        const serializableData = { ...data, amount, dayOfMonth, userId: user.uid };
+
         if (id) {
             await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, collectionName, id), serializableData);
+            toast({ title: "Ítem actualizado" });
         } else {
             await addDocumentNonBlocking(collection(firestore, 'users', user.uid, collectionName), serializableData);
+            toast({ title: "Ítem creado" });
         }
-        handleCloseModal(`recurring${type.charAt(0).toUpperCase() + type.slice(1)}`);
-      };
+        handleCloseModal('recurringItem');
+    };
 
     const handleDeleteRecurringItem = async () => {
         if (!formState.id || !user || !firestore) return;
@@ -923,6 +929,153 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         handleCloseModal('deleteRecurring');
     };
 
+    const handleCreateList = async () => {
+        if (!user || !firestore || !formState.listName) return;
+
+        const { listName, listBudgetFocus } = formState;
+
+        const categoryExists = shoppingLists?.some(l => l.name.toLowerCase() === listName.toLowerCase()) || 
+                               budgets?.some(b => b.categoryName.toLowerCase() === listName.toLowerCase());
+
+        if (categoryExists) {
+            toast({
+                variant: "destructive",
+                title: "Categoría Duplicada",
+                description: `La categoría "${listName}" ya existe.`,
+            });
+            return;
+        }
+
+        const newOrder = shoppingLists?.length || 0;
+        await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'shoppingLists'), {
+            name: listName,
+            budgetFocus: listBudgetFocus || 'Deseos',
+            items: [],
+            order: newOrder,
+            isActive: true,
+            createdAt: serverTimestamp(),
+            userId: user.uid,
+        });
+        handleCloseModal('list');
+    };
+    
+    const handleAddItem = async (listId: string | null) => {
+        if (!listId || !user || !firestore || !formState.itemName || !formState.itemAmount) return;
+
+        const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
+        const list = shoppingLists?.find(l => l.id === listId);
+        if (!list) return;
+
+        const newItem = {
+            itemId: doc(collection(firestore, 'dummy')).id, // Generate a unique ID
+            name: formState.itemName,
+            amount: parseFloat(formState.itemAmount),
+            isPurchased: false,
+            price: null,
+            transactionId: null,
+        };
+
+        const updatedItems = [...(list.items || []), newItem];
+        await updateDocumentNonBlocking(listRef, { items: updatedItems });
+        
+        setFormState(p => ({...p, itemName: '', itemAmount: ''})); // Clear only item inputs
+    };
+
+    const handleConfirmPurchase = async (listId: string | null) => {
+        if (!listId || !user || !firestore || !formState.itemId || !formState.purchasePrice) return;
+        
+        const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
+        const list = shoppingLists?.find(l => l.id === listId);
+        if (!list) return;
+
+        const price = parseFloat(formState.purchasePrice);
+        if (isNaN(price)) return;
+        
+        const batch = writeBatch(firestore);
+
+        const newTransactionRef = doc(collection(firestore, 'users', user.uid, 'transactions'));
+        batch.set(newTransactionRef, {
+            type: 'expense',
+            description: formState.name,
+            category: list.name,
+            amount: price,
+            date: new Date().toISOString(),
+            budgetFocus: list.budgetFocus,
+            createdAt: serverTimestamp(),
+            userId: user.uid,
+        });
+
+        const updatedItems = list.items.map((item: any) => 
+            item.itemId === formState.itemId 
+                ? { ...item, isPurchased: true, price: price, transactionId: newTransactionRef.id }
+                : item
+        );
+        batch.update(listRef, { items: updatedItems });
+        
+        const budget = budgets?.find(b => b.categoryName === list.name);
+        if (budget) {
+            const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+            batch.update(budgetRef, { currentSpend: increment(price) });
+        }
+
+        await batch.commit();
+        handleCloseModal('purchaseItem');
+    };
+
+    const handleDeleteItem = async (listId: string, itemId: string) => {
+        if (!listId || !itemId || !user || !firestore) return;
+        
+        const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
+        const list = shoppingLists?.find(l => l.id === listId);
+        if (!list) return;
+
+        const itemToDelete = list.items.find((i: any) => i.itemId === itemId);
+        if (!itemToDelete) return;
+
+        const batch = writeBatch(firestore);
+        const updatedItems = list.items.filter((item: any) => item.itemId !== itemId);
+        batch.update(listRef, { items: updatedItems });
+
+        if (itemToDelete.isPurchased && itemToDelete.transactionId) {
+            const transactionRef = doc(firestore, 'users', user.uid, 'transactions', itemToDelete.transactionId);
+            batch.delete(transactionRef);
+
+            const budget = budgets?.find(b => b.categoryName === list.name);
+            if (budget && itemToDelete.price) {
+                const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+                batch.update(budgetRef, { currentSpend: increment(-itemToDelete.price) });
+            }
+        }
+        await batch.commit();
+    };
+
+    const handleRevertPurchase = async (listId: string, itemToRevert: any) => {
+        if (!listId || !itemToRevert || !user || !firestore) return;
+
+        const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
+        const list = shoppingLists?.find(l => l.id === listId);
+        if (!list) return;
+
+        const batch = writeBatch(firestore);
+        const updatedItems = list.items.map((item: any) => 
+            item.itemId === itemToRevert.itemId 
+                ? { ...item, isPurchased: false, price: null, transactionId: null }
+                : item
+        );
+        batch.update(listRef, { items: updatedItems });
+
+        if (itemToRevert.transactionId) {
+            const transactionRef = doc(firestore, 'users', user.uid, 'transactions', itemToRevert.transactionId);
+            batch.delete(transactionRef);
+
+            const budget = budgets?.find(b => b.categoryName === list.name);
+            if (budget && itemToRevert.price) {
+                const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+                batch.update(budgetRef, { currentSpend: increment(-itemToRevert.price) });
+            }
+        }
+        await batch.commit();
+    };
 
     const setCurrentMonth = (date: Date | ((prev: Date) => Date)) => {
         if (typeof date === 'function') {
@@ -1280,14 +1433,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const activeShoppingLists = allShoppingListsData.filter((l: any) => l.isActive);
         const sortedLists = [...activeShoppingLists].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
-        const spendingByCategory = activeShoppingLists.map((l: any) => ({ name: l.name, gasto: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.gasto > 0);
-        const budgetAccuracy = activeShoppingLists.map((l: any) => ({ name: l.name, estimado: l.items.filter((i:any) => i.isPurchased).reduce((s:number, i:any) => s + i.amount, 0), real: l.items.filter((i:any) => i.isPurchased && i.price).reduce((s:number, i:any) => s + i.price, 0) })).filter(d => d.real > 0 || d.estimado > 0);
-        const spendingByFocus = (Object.entries(activeShoppingLists.reduce((acc: any, l: any) => {
-            const total = l.items.filter((i: any) => i.isPurchased && i.price).reduce((s: number, i: any) => s + i.price, 0);
-            if(l.budgetFocus && acc.hasOwnProperty(l.budgetFocus)) acc[l.budgetFocus] += total;
-            return acc;
-        }, {'Necesidades':0, 'Deseos':0, 'Ahorros y Deudas':0}) ?? {}) as [string, number][]).map(([name, value]) => ({name, value})).filter(d => d.value > 0);
-
         // Finance Selectors (Annual)
         const annualTotalIncome = allAnnualTransactionsData.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + t.amount, 0);
         const annualTotalExpense = allAnnualTransactionsData.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + t.amount, 0);
@@ -1347,10 +1492,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             incomeCategories, 
             categoriesWithoutBudget, 
             sortedLists, 
-            spendingByCategory, 
-            budgetAccuracy, 
-            spendingByFocus,
             urgentTasks: urgentTasks ?? [],
+            annualTransactions: allAnnualTransactionsData,
+            annualTransactionsLoading,
             annualFlowData,
             annualCategorySpending,
             monthlySummaryData,
@@ -1413,6 +1557,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         handleSaveBudget,
         handleSaveRecurringItem,
         handleDeleteRecurringItem,
+        handleCreateList,
+        handleAddItem,
+        handleConfirmPurchase,
+        handleDeleteItem,
+        handleRevertPurchase,
         setCurrentMonth,
         startSession,
         stopSession,
@@ -1429,6 +1578,3 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
-
-
-      

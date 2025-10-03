@@ -157,9 +157,6 @@ export interface AppState {
     incomeCategories: string[];
     categoriesWithoutBudget: string[];
     sortedLists: any[];
-    spendingByCategory: { name: string; gasto: number }[];
-    budgetAccuracy: { name: string; estimado: number; real: number }[];
-    spendingByFocus: { name: string; value: number }[];
     urgentTasks: any[] | null;
 
     // Actions
@@ -188,8 +185,13 @@ export interface AppState {
     handleSaveTransaction: () => Promise<void>;
     handleDeleteTransaction: () => Promise<void>;
     handleSaveBudget: () => Promise<void>;
-    handleSaveRecurringItem: (type: 'income' | 'expense') => Promise<void>;
+    handleSaveRecurringItem: () => Promise<void>;
     handleDeleteRecurringItem: () => Promise<void>;
+    handleCreateList: () => Promise<void>;
+    handleAddItem: (listId: string | null) => Promise<void>;
+    handleConfirmPurchase: (listId: string | null) => Promise<void>;
+    handleDeleteItem: (listId: string, itemId: string) => Promise<void>;
+    handleRevertPurchase: (listId: string, itemToRevert: any) => Promise<void>;
     setCurrentMonth: (date: Date | ((prev: Date) => Date)) => void;
     startSession: (id: string, name: string, type: 'habit' | 'task') => void;
     stopSession: () => void;
