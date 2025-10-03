@@ -946,7 +946,7 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
                             <CardTitle>Ingresos Pendientes</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                            {pendingRecurringIncomes.map(income => (
+                            {pendingRecurringIncomes.length > 0 ? pendingRecurringIncomes.map(income => (
                                 <div key={income.id} className="flex items-center justify-between rounded-lg border bg-card p-3 shadow-sm">
                                     <div>
                                         <p className="font-semibold">{income.name}</p>
@@ -954,15 +954,16 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
                                     </div>
                                     <Button onClick={() => handlePayRecurringItem(income, 'income')}><CheckCircle className="mr-2 h-4 w-4" />Recibir</Button>
                                 </div>
-                            ))}
-                            {pendingRecurringIncomes.length === 0 && !recurringIncomesLoading && <p className="text-sm text-center text-muted-foreground">No tienes ingresos pendientes este mes.</p>}
+                            )) : (
+                                !recurringIncomesLoading && <p className="text-sm text-center text-muted-foreground">No tienes ingresos pendientes este mes.</p>
+                            )}
                         </CardContent>
                     </Card>
                     
                     <Card>
                         <CardHeader><CardTitle>Ingresos Recibidos</CardTitle></CardHeader>
                         <CardContent className="space-y-3">
-                            {receivedRecurringIncomes.map(income => (
+                            {receivedRecurringIncomes.length > 0 ? receivedRecurringIncomes.map(income => (
                                 <div key={income.id} className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
                                      <div>
                                         <p className="font-semibold text-muted-foreground line-through">{income.name}</p>
@@ -970,8 +971,9 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
                                     </div>
                                     <Button variant="ghost" onClick={() => handleRevertRecurringItem(income, 'income')}><Undo2 className="mr-2 h-4 w-4" />Revertir</Button>
                                 </div>
-                            ))}
-                             {receivedRecurringIncomes.length === 0 && !recurringIncomesLoading && <p className="text-sm text-center text-muted-foreground">No has recibido ingresos fijos este mes.</p>}
+                            )) : (
+                               !recurringIncomesLoading && <p className="text-sm text-center text-muted-foreground">No has recibido ingresos fijos este mes.</p>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
@@ -1014,7 +1016,7 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
                             <CardTitle>Gastos Pendientes</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                            {pendingRecurringExpenses.map(expense => (
+                            {pendingRecurringExpenses.length > 0 ? pendingRecurringExpenses.map(expense => (
                                 <div key={expense.id} className="flex items-center justify-between rounded-lg border bg-card p-3 shadow-sm">
                                     <div>
                                         <p className="font-semibold">{expense.name}</p>
@@ -1022,15 +1024,16 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
                                     </div>
                                     <Button onClick={() => handlePayRecurringItem(expense, 'expense')}><CheckCircle className="mr-2 h-4 w-4" />Pagar</Button>
                                 </div>
-                            ))}
-                            {pendingRecurringExpenses.length === 0 && !recurringExpensesLoading && <p className="text-sm text-center text-muted-foreground">No tienes gastos pendientes este mes.</p>}
+                            )) : (
+                               !recurringExpensesLoading && <p className="text-sm text-center text-muted-foreground">No tienes gastos pendientes este mes.</p>
+                            )}
                         </CardContent>
                     </Card>
 
                      <Card>
                         <CardHeader><CardTitle>Gastos Pagados</CardTitle></CardHeader>
                         <CardContent className="space-y-3">
-                            {paidRecurringExpenses.map(expense => (
+                            {paidRecurringExpenses.length > 0 ? paidRecurringExpenses.map(expense => (
                                 <div key={expense.id} className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
                                      <div>
                                         <p className="font-semibold text-muted-foreground line-through">{expense.name}</p>
@@ -1038,8 +1041,9 @@ const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') 
                                     </div>
                                     <Button variant="ghost" onClick={() => handleRevertRecurringItem(expense, 'expense')}><Undo2 className="mr-2 h-4 w-4" />Revertir</Button>
                                 </div>
-                            ))}
-                            {paidRecurringExpenses.length === 0 && !recurringExpensesLoading && <p className="text-sm text-center text-muted-foreground">No has pagado gastos fijos este mes.</p>}
+                            )) : (
+                                !recurringExpensesLoading && <p className="text-sm text-center text-muted-foreground">No has pagado gastos fijos este mes.</p>
+                            )}
                         </CardContent>
                     </Card>
                 </div>

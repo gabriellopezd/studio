@@ -785,7 +785,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return acc;
         }, {'Necesidades':0, 'Deseos':0, 'Ahorros y Deudas':0}) ?? {}) as [string, number][]).map(([name, value]) => ({name, value})).filter(d => d.value > 0);
 
-        return { currentMonthName: monthName.charAt(0).toUpperCase() + monthName.slice(1), currentMonthYear: monthYear, monthlyIncome: income, monthlyExpenses: expenses, balance: bal, budget503020: b503020, upcomingPayments: upcoming, pendingRecurringExpenses: pendingRE, paidRecurringExpenses: paidRE, pendingRecurringIncomes: pendingRI, receivedRecurringIncomes: receivedRI, pendingExpensesTotal: pendingETotal, expenseCategories: allCategoryNames, incomeCategories: incomeCats, categoriesWithoutBudget: catsNoBudget, sortedLists: sorted, spendingByCategory: spendingByCat, budgetAccuracy: budgetAcc, spendingByFocus: spendingByF };
+        return { 
+            currentMonthName: monthName.charAt(0).toUpperCase() + monthName.slice(1), 
+            currentMonthYear: monthYear, 
+            monthlyIncome: income, 
+            monthlyExpenses: expenses, 
+            balance: bal, 
+            budget503020: b503020, 
+            upcomingPayments: upcoming, 
+            pendingRecurringExpenses: pendingRE, 
+            paidRecurringExpenses: paidRE, 
+            pendingRecurringIncomes: pendingRI, 
+            receivedRecurringIncomes: receivedRI, 
+            pendingExpensesTotal: pendingETotal, 
+            expenseCategories: allCategoryNames, 
+            incomeCategories: incomeCats, 
+            categoriesWithoutBudget: catsNoBudget, 
+            sortedLists: sorted, 
+            spendingByCategory: spendingByCat, 
+            budgetAccuracy: budgetAcc, 
+            spendingByFocus: spendingByF 
+        };
     }, [transactions, recurringExpenses, recurringIncomes, shoppingLists, budgets, state.currentMonth]);
 
     useEffect(() => {
@@ -903,9 +923,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         balance,
         budget503020,
         upcomingPayments,
-        paidRecurringExpenses,
-        pendingRecurringIncomes,
-        receivedRecurringIncomes,
+        paidRecurringExpenses: paidRecurringExpenses ?? [],
+        pendingRecurringIncomes: pendingRecurringIncomes ?? [],
+        receivedRecurringIncomes: receivedRecurringIncomes ?? [],
         pendingExpensesTotal,
         expenseCategories,
         incomeCategories,
@@ -915,6 +935,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         budgetAccuracy,
         spendingByFocus,
         urgentTasks: urgentTasks ?? [],
+        pendingRecurringExpenses: pendingRecurringExpenses ?? [],
         handleToggleHabit,
         handleCreateOrUpdateHabit,
         handleDeleteHabit,
