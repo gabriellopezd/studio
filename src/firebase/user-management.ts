@@ -1,5 +1,5 @@
 import { User } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, getDoc, collection, writeBatch, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc, collection, writeBatch, query, where, getDocs, limit } from 'firebase/firestore';
 import { PRESET_EXPENSE_CATEGORIES } from '@/lib/transaction-categories';
 import { defaultFeelings, defaultInfluences } from '@/lib/moods';
 
@@ -75,6 +75,8 @@ export const handleUserLogin = async (user: User, firestore: any, displayName?: 
 
     } else {
         batch.update(userRef, { lastLoginAt: serverTimestamp() });
+        // Also check for existing users who might not have mood options
+        await initializeDefaultMoodOptions(user, firestore, batch);
     }
     
     await initializeDefaultTaskCategories(user, firestore, batch);
