@@ -199,3 +199,4 @@ export interface AppState {
     handleCloseModal: (type: string) => void;
     setFormState: React.Dispatch<any>;
 }
+
