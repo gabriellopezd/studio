@@ -241,7 +241,7 @@ export default function TaskSettingsPage() {
                   }
                   aria-label={`Activar categoría ${cat.name}`}
                 />
-                 {cat.name !== 'Otro' && cat.name !== 'MinJusticia' && cat.name !== 'CNMH' && (
+                 {cat.name !== 'Otro' && (
                   <>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleOpenDialog(cat)}>
                         <Pencil className="h-4 w-4" />
@@ -323,4 +323,3 @@ export default function TaskSettingsPage() {
     </div>
   );
 }
-
