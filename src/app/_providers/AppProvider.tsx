@@ -25,7 +25,6 @@ export const useAppContext = () => {
     return context;
 };
 
-
 type Action =
     | { type: 'SET_DATA'; payload: { key: string; data: any; loading: boolean } }
     | { type: 'SET_CURRENT_MONTH'; payload: Date }
