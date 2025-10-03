@@ -763,7 +763,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         
         const completed = tasks.filter(t => t.isCompleted).length;
         const total = tasks.length;
-        const totalStats = { completed, total, completionRate: total > 0 ? (completed / total) * 100 : 0 };
+        const totalStatsValue = { completed, total, completionRate: total > 0 ? (completed / total) * 100 : 0 };
 
         const catStats = taskCategories.reduce((acc, category) => {
             const tasksInCategory = tasks.filter(t => t.category === category);
@@ -778,13 +778,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const onTime = completedWithDueDate.filter(t => t.completionDate.toDate() <= t.dueDate.toDate()).length;
         const onTimeRate = completedWithDueDate.length > 0 ? (onTime / completedWithDueDate.length) * 100 : 0;
         
-        const completedByCategory = taskCategories.map(category => {
+        const completedByCategoryData = taskCategories.map(category => {
             const count = tasks.filter(t => t.isCompleted && t.category === category).length;
             return { name: category, tareas: count };
         }).filter(c => c.tareas > 0);
 
         const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-        const dailyStats = weekDays.map((name, i) => {
+        const dailyStatsData = weekDays.map((name, i) => {
             const day = new Date(startOfWeek);
             day.setDate(startOfWeek.getDate() + i);
             const dayStart = new Date(day);
@@ -809,7 +809,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
         const timeAnalytics = Object.entries(categoryTimeTotals).map(([name, value]) => ({ name, minutos: Math.round(value / 60) })).filter(item => item.minutos > 0);
         
-        return { totalStats, categoryStats: catStats, taskTimeAnalytics: timeAnalytics, overdueTasks: overdue, todayTasks: forToday, tasksForTomorrow: forTomorrow, upcomingTasks: upcoming, completedWeeklyTasks: completedWeekly, totalWeeklyTasks: totalWeekly, weeklyTasksProgress: weeklyProgress, completedDailyTasks: completedDaily, totalDailyTasks: totalDaily, dailyTasksProgress: dailyProgress, onTimeCompletionRate: onTimeRate, dailyCompletionStats: dailyStats, completedTasksByCategory };
+        return { 
+            totalStats: totalStatsValue, 
+            categoryStats: catStats, 
+            taskTimeAnalytics: timeAnalytics, 
+            overdueTasks: overdue, 
+            todayTasks: forToday, 
+            tasksForTomorrow: forTomorrow, 
+            upcomingTasks: upcoming, 
+            completedWeeklyTasks: completedWeekly, 
+            totalWeeklyTasks: totalWeekly, 
+            weeklyTasksProgress: weeklyProgress, 
+            completedDailyTasks: completedDaily, 
+            totalDailyTasks: totalDaily, 
+            dailyTasksProgress: dailyProgress, 
+            onTimeCompletionRate: onTimeRate, 
+            dailyCompletionStats: dailyStatsData, 
+            completedTasksByCategory: completedByCategoryData
+        };
     }, [tasks, timeLogs]);
 
     // Mood Selectors
@@ -1095,3 +1112,5 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         </AppContext.Provider>
     );
 };
+
+    
