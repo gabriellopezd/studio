@@ -141,6 +141,10 @@ export interface AppState {
     annualFlowData: { name: string, ingresos: number, gastos: number }[];
     annualCategorySpending: { name: string, value: any }[];
     monthlySummaryData: { month: string, ingresos: number, gastos: number, balance: number }[];
+    annualTotalIncome: number;
+    annualTotalExpense: number;
+    annualNetSavings: number;
+    annualSavingsRate: number;
 
     upcomingPayments: any[];
     pendingRecurringExpenses: any[];

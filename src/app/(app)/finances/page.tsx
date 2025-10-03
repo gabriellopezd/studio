@@ -29,6 +29,10 @@ import {
   Trash2,
   ArrowDownCircle,
   ArrowUpCircle,
+  TrendingUp,
+  TrendingDown,
+  Scale,
+  Percent,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -65,6 +69,7 @@ import {
 } from '@/components/ui/select';
 import { ResponsiveCalendar } from '../tasks/_components/ResponsiveCalendar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 
 const motivationalQuotes = [
     "Tus finanzas son el reflejo de tus hábitos. ¡Constrúyelos sabiamente!",
@@ -98,6 +103,10 @@ export default function FinancesPage() {
     expenseCategories,
     incomeCategories,
     categoriesWithoutBudget,
+    annualTotalIncome,
+    annualTotalExpense,
+    annualNetSavings,
+    annualSavingsRate,
     handleSaveTransaction,
     handleDeleteTransaction,
     handleSaveBudget,
@@ -147,105 +156,104 @@ export default function FinancesPage() {
             </div>
         </PageHeader>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-            <Card>
-                <CardHeader>
-                <CardTitle>Ingresos del Mes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                <p className="text-2xl font-bold text-emerald-500">
-                    {formatCurrency(monthlyIncome)}
-                </p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                <CardTitle>Gastos del Mes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                <p className="text-2xl font-bold text-red-500">
-                    {formatCurrency(monthlyExpenses)}
-                </p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                <CardTitle>Ingresos Pendientes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-2xl font-bold text-emerald-500/80">
-                        {formatCurrency(pendingIncomesTotal)}
-                    </p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                <CardTitle>Gastos Pendientes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-2xl font-bold text-amber-500">
-                        {formatCurrency(pendingExpensesTotal)}
-                    </p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                     <TooltipProvider>
-                        <UITooltip>
-                            <TooltipTrigger asChild>
-                                <CardTitle>Balance Proyectado</CardTitle>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                            <p>(Ingresos + Pendientes) - (Gastos + Pendientes)</p>
-                            </TooltipContent>
-                        </UITooltip>
-                    </TooltipProvider>
-                </CardHeader>
-                <CardContent>
-                <p className="text-2xl font-bold">{formatCurrency(balance)}</p>
-                </CardContent>
-            </Card>
-        </div>
-
-        {budget503020 && (
-            <Card className="mb-6">
-                <CardHeader>
-                    <CardTitle>Presupuesto 50/30/20</CardTitle>
-                    <CardDescription>Una guía para distribuir tus ingresos: 50% Necesidades, 30% Deseos, 20% Ahorros y Deudas.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div>
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium flex items-center gap-2"><Landmark className="size-4 text-red-500" />Necesidades</span>
-                            <span className="text-sm text-muted-foreground">{formatCurrency(budget503020.needs.spend)} / {formatCurrency(budget503020.needs.budget)}</span>
-                        </div>
-                        <Progress value={budget503020.needs.progress} className="h-2 [&>div]:bg-red-500" />
-                    </div>
-                     <div>
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium flex items-center gap-2"><Heart className="size-4 text-amber-500" />Deseos</span>
-                            <span className="text-sm text-muted-foreground">{formatCurrency(budget503020.wants.spend)} / {formatCurrency(budget503020.wants.budget)}</span>
-                        </div>
-                        <Progress value={budget503020.wants.progress} className="h-2 [&>div]:bg-amber-500" />
-                    </div>
-                     <div>
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium flex items-center gap-2"><PiggyBank className="size-4 text-emerald-500" />Ahorros y Deudas</span>
-                            <span className="text-sm text-muted-foreground">{formatCurrency(budget503020.savings.spend)} / {formatCurrency(budget503020.savings.budget)}</span>
-                        </div>
-                        <Progress value={budget503020.savings.progress} className="h-2 [&>div]:bg-emerald-500" />
-                    </div>
-                </CardContent>
-            </Card>
-        )}
-        
         <Tabs defaultValue="transactions">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="transactions">Transacciones y Presupuestos</TabsTrigger>
+            <TabsTrigger value="transactions">Resumen Mensual</TabsTrigger>
             <TabsTrigger value="annual">Análisis Anual</TabsTrigger>
           </TabsList>
           
           <TabsContent value="transactions" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+                <Card>
+                    <CardHeader>
+                    <CardTitle>Ingresos del Mes</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                    <p className="text-2xl font-bold text-emerald-500">
+                        {formatCurrency(monthlyIncome)}
+                    </p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                    <CardTitle>Gastos del Mes</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                    <p className="text-2xl font-bold text-red-500">
+                        {formatCurrency(monthlyExpenses)}
+                    </p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                    <CardTitle>Ingresos Pendientes</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-2xl font-bold text-emerald-500/80">
+                            {formatCurrency(pendingIncomesTotal)}
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                    <CardTitle>Gastos Pendientes</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-2xl font-bold text-amber-500">
+                            {formatCurrency(pendingExpensesTotal)}
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <TooltipProvider>
+                            <UITooltip>
+                                <TooltipTrigger asChild>
+                                    <CardTitle>Balance Proyectado</CardTitle>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                <p>(Ingresos + Pendientes) - (Gastos + Pendientes)</p>
+                                </TooltipContent>
+                            </UITooltip>
+                        </TooltipProvider>
+                    </CardHeader>
+                    <CardContent>
+                    <p className="text-2xl font-bold">{formatCurrency(balance)}</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {budget503020 && (
+                <Card className="mb-6">
+                    <CardHeader>
+                        <CardTitle>Presupuesto 50/30/20</CardTitle>
+                        <CardDescription>Una guía para distribuir tus ingresos: 50% Necesidades, 30% Deseos, 20% Ahorros y Deudas.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div>
+                            <div className="flex justify-between items-center mb-1">
+                                <span className="text-sm font-medium flex items-center gap-2"><Landmark className="size-4 text-red-500" />Necesidades</span>
+                                <span className="text-sm text-muted-foreground">{formatCurrency(budget503020.needs.spend)} / {formatCurrency(budget503020.needs.budget)}</span>
+                            </div>
+                            <Progress value={budget503020.needs.progress} className="h-2 [&>div]:bg-red-500" />
+                        </div>
+                        <div>
+                            <div className="flex justify-between items-center mb-1">
+                                <span className="text-sm font-medium flex items-center gap-2"><Heart className="size-4 text-amber-500" />Deseos</span>
+                                <span className="text-sm text-muted-foreground">{formatCurrency(budget503020.wants.spend)} / {formatCurrency(budget503020.wants.budget)}</span>
+                            </div>
+                            <Progress value={budget503020.wants.progress} className="h-2 [&>div]:bg-amber-500" />
+                        </div>
+                        <div>
+                            <div className="flex justify-between items-center mb-1">
+                                <span className="text-sm font-medium flex items-center gap-2"><PiggyBank className="size-4 text-emerald-500" />Ahorros y Deudas</span>
+                                <span className="text-sm text-muted-foreground">{formatCurrency(budget503020.savings.spend)} / {formatCurrency(budget503020.savings.budget)}</span>
+                            </div>
+                            <Progress value={budget503020.savings.progress} className="h-2 [&>div]:bg-emerald-500" />
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <Card className="lg:col-span-2">
                     <CardHeader>
@@ -367,6 +375,45 @@ export default function FinancesPage() {
           </TabsContent>
 
            <TabsContent value="annual" className="mt-6 space-y-6">
+                <div className='flex items-center gap-2 mb-6'>
+                    <Label>Seleccionar Año:</Label>
+                    <Select value={String(currentMonth.getFullYear())} onValueChange={(value) => setCurrentMonth(new Date(Number(value), currentMonth.getMonth()))}>
+                        <SelectTrigger className="w-[120px]">
+                            <SelectValue placeholder="Año" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {years.map(year => <SelectItem key={year} value={String(year)}>{year}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="text-emerald-500"/>Ingreso Anual</CardTitle>
+                        </CardHeader>
+                        <CardContent><p className="text-2xl font-bold">{formatCurrency(annualTotalIncome)}</p></CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-base"><TrendingDown className="text-red-500"/>Gasto Anual</CardTitle>
+                        </CardHeader>
+                        <CardContent><p className="text-2xl font-bold">{formatCurrency(annualTotalExpense)}</p></CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-base"><Scale className="text-blue-500"/>Ahorro/Déficit Neto</CardTitle>
+                        </CardHeader>
+                        <CardContent><p className={cn("text-2xl font-bold", annualNetSavings >= 0 ? "text-emerald-500" : "text-red-500")}>{formatCurrency(annualNetSavings)}</p></CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-base"><Percent/>Tasa de Ahorro</CardTitle>
+                        </CardHeader>
+                        <CardContent><p className={cn("text-2xl font-bold", annualSavingsRate >= 0 ? "text-emerald-500" : "text-red-500")}>{annualSavingsRate.toFixed(1)}%</p></CardContent>
+                    </Card>
+                </div>
+
                 {annualTransactionsLoading ? (
                     <p>Cargando análisis anual...</p>
                 ) : (

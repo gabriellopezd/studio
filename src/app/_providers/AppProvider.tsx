@@ -35,7 +35,7 @@ type Action =
     | { type: 'SET_ACTIVE_SESSION'; payload: ActiveSession | null }
     | { type: 'SET_ELAPSED_TIME'; payload: number };
 
-const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleSaveHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetHabitStreak'| 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveTaskCategory'| 'handleDeleteTaskCategory' | 'handleSaveMood'| 'handleSaveRoutine'| 'handleDeleteRoutine'| 'handleCompleteRoutine' | 'handleSaveGoal' | 'handleDeleteGoal' | 'handleUpdateGoalProgress'| 'handlePayRecurringItem' | 'handleRevertRecurringItem' | 'handleSaveBudget'| 'handleSaveRecurringItem'| 'handleDeleteRecurringItem' | 'handleSaveTransaction' | 'handleDeleteTransaction' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics'| 'routineCompletionAnalytics' | 'totalStats' | 'categoryStats' | 'taskTimeAnalytics' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'pendingIncomesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress' | 'onTimeCompletionRate' | 'dailyCompletionStats' | 'completedTasksByCategory' | 'modalState' | 'formState' | 'handleOpenModal' | 'handleCloseModal' | 'setFormState' | 'annualTransactions' | 'annualTransactionsLoading' | 'annualFlowData' | 'annualCategorySpending' | 'monthlySummaryData'> = {
+const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleSaveHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetHabitStreak'| 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveTaskCategory'| 'handleDeleteTaskCategory' | 'handleSaveMood'| 'handleSaveRoutine'| 'handleDeleteRoutine'| 'handleCompleteRoutine' | 'handleSaveGoal' | 'handleDeleteGoal' | 'handleUpdateGoalProgress'| 'handlePayRecurringItem' | 'handleRevertRecurringItem' | 'handleSaveBudget'| 'handleSaveRecurringItem'| 'handleDeleteRecurringItem' | 'handleSaveTransaction' | 'handleDeleteTransaction' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics'| 'routineCompletionAnalytics' | 'totalStats' | 'categoryStats' | 'taskTimeAnalytics' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'pendingIncomesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress' | 'onTimeCompletionRate' | 'dailyCompletionStats' | 'completedTasksByCategory' | 'modalState' | 'formState' | 'handleOpenModal' | 'handleCloseModal' | 'setFormState' | 'annualTransactions' | 'annualTransactionsLoading' | 'annualFlowData' | 'annualCategorySpending' | 'monthlySummaryData' | 'annualTotalIncome' | 'annualTotalExpense' | 'annualNetSavings' | 'annualSavingsRate' > = {
     allHabits: null,
     routines: null,
     tasks: null,
@@ -875,29 +875,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const limit = parseFloat(monthlyLimit);
         if (isNaN(limit)) return;
       
-        const year = state.currentMonth.getFullYear();
-        const month = state.currentMonth.getMonth() + 1;
+        if (!id) {
+          const categoryExists = budgets?.some(b => b.categoryName.toLowerCase() === categoryName.toLowerCase());
+          if (categoryExists) {
+            toast({ variant: "destructive", title: "Categoría Duplicada", description: `El presupuesto para "${categoryName}" ya existe.` });
+            return;
+          }
+        }
       
-        if (id) { // Editing existing budget
+        if (id) {
           const budgetRef = doc(firestore, 'users', user.uid, 'budgets', id);
           await updateDocumentNonBlocking(budgetRef, { monthlyLimit: limit });
-        } else { // Creating new budget
-            // Check if a budget for this category already exists for the selected month and year
-            const q = query(
-                collection(firestore, 'users', user.uid, 'budgets'),
-                where('categoryName', '==', categoryName),
-                where('year', '==', year),
-                where('month', '==', month)
-            );
-            const existingBudgetSnap = await getDocs(q);
-
-            if (!existingBudgetSnap.empty) {
-                toast({ variant: "destructive", title: "Categoría Duplicada", description: `El presupuesto para "${categoryName}" ya existe en este mes.` });
-                return;
-            }
-
-            const newBudget = { categoryName, monthlyLimit: limit, currentSpend: 0, year, month, userId: user.uid };
-            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'budgets'), newBudget);
+        } else {
+          const newBudget = { categoryName, monthlyLimit: limit, currentSpend: 0, userId: user.uid };
+          await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'budgets'), newBudget);
         }
       
         handleCloseModal('budget');
@@ -1298,6 +1289,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }, {'Necesidades':0, 'Deseos':0, 'Ahorros y Deudas':0}) ?? {}) as [string, number][]).map(([name, value]) => ({name, value})).filter(d => d.value > 0);
 
         // Finance Selectors (Annual)
+        const annualTotalIncome = allAnnualTransactionsData.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + t.amount, 0);
+        const annualTotalExpense = allAnnualTransactionsData.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + t.amount, 0);
+        const annualNetSavings = annualTotalIncome - annualTotalExpense;
+        const annualSavingsRate = annualTotalIncome > 0 ? (annualNetSavings / annualTotalIncome) * 100 : 0;
+
         const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
         const annualFlowData = Array.from({length: 12}, (_, i) => ({ name: monthNames[i], ingresos: 0, gastos: 0 }));
         allAnnualTransactionsData.forEach((t: any) => {
@@ -1358,6 +1354,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             annualFlowData,
             annualCategorySpending,
             monthlySummaryData,
+            annualTotalIncome,
+            annualTotalExpense,
+            annualNetSavings,
+            annualSavingsRate,
         };
     }, [
         allHabits, routines, tasks, taskCategories, goals, moods, feelings, influences, timeLogs, transactions, annualTransactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, todayMoodData, urgentTasks,
