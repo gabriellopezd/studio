@@ -58,7 +58,7 @@ type Action =
     | { type: 'SET_ACTIVE_SESSION'; payload: ActiveSession | null }
     | { type: 'SET_ELAPSED_TIME'; payload: number };
 
-const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'totalStats' | 'categoryStats' | 'weeklyTaskStats' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress'> = {
+const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'handlePayRecurringItem' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'totalStats' | 'categoryStats' | 'weeklyTaskStats' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress'> = {
     allHabits: null,
     routines: null,
     tasks: null,
@@ -463,6 +463,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'moods'), { ...fullMoodData, createdAt: serverTimestamp() });
         }
     };
+    
+    const handlePayRecurringItem = async (item: any, type: 'income' | 'expense') => {
+        if (!user || !firestore) return;
+        
+        const batch = writeBatch(firestore);
+    
+        const transactionData = {
+          type: type,
+          description: item.name,
+          category: item.category,
+          date: new Date().toISOString(),
+          amount: item.amount,
+          budgetFocus: type === 'expense' ? item.budgetFocus : null,
+          userId: user.uid,
+          createdAt: serverTimestamp(),
+        };
+    
+        const newTransactionRef = doc(collection(firestore, 'users', user.uid, 'transactions'));
+        batch.set(newTransactionRef, transactionData);
+    
+        if (type === 'expense') {
+          const budget = budgets?.find(b => b.categoryName === item.category);
+          if (budget) {
+            const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+            batch.update(budgetRef, { currentSpend: increment(item.amount) });
+          }
+        }
+    
+        const collectionName = type === 'income' ? 'recurringIncomes' : 'recurringExpenses';
+        const itemRef = doc(firestore, 'users', user.uid, collectionName, item.id);
+        batch.update(itemRef, {
+          lastInstanceCreated: `${state.currentMonth.getFullYear()}-${state.currentMonth.getMonth()}`,
+          lastTransactionId: newTransactionRef.id,
+        });
+    
+        await batch.commit();
+        toast({ title: `Registro exitoso`, description: `${item.name} ha sido registrado.` });
+    };
 
     const setCurrentMonth = (date: Date | ((prev: Date) => Date)) => {
         if (typeof date === 'function') {
@@ -639,7 +677,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Task Selectors
     const { totalStats, categoryStats, weeklyTaskStats, overdueTasks, todayTasks, upcomingTasks, completedWeeklyTasks, totalWeeklyTasks, weeklyTasksProgress, completedDailyTasks, totalDailyTasks, dailyTasksProgress } = useMemo(() => {
         const taskCategories = ["MinJusticia", "CNMH", "Proyectos Personales", "Otro"];
-        if (!tasks) return { totalStats: { completed: 0, total: 0, completionRate: 0 }, categoryStats: {}, weeklyTaskStats: [], overdueTasks:[], todayTasks: [], upcomingTasks: [], completedWeeklyTasks: 0, totalWeeklyTasks: 0, weeklyTasksProgress: 0, completedDailyTasks: 0, totalDailyTasks: 0, dailyTasksProgress: 0 };
+        if (!tasks) return { totalStats: { completed: 0, total: 0, completionRate: 0 }, categoryStats: {}, weeklyTaskStats: [], overdueTasks: [], todayTasks: [], upcomingTasks: [], completedWeeklyTasks: 0, totalWeeklyTasks: 0, weeklyTasksProgress: 0, completedDailyTasks: 0, totalDailyTasks: 0, dailyTasksProgress: 0 };
         
         const today = new Date();
         const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -947,6 +985,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         handleSaveTask,
         handleDeleteTask,
         handleSaveMood,
+        handlePayRecurringItem,
         setCurrentMonth,
         startSession,
         stopSession,
