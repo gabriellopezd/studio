@@ -89,7 +89,10 @@ export interface AppState {
     topHabitsByStreak: any[];
     topHabitsByTime: any[];
     monthlyCompletionData: { day: number; value: number }[];
+    
     routineTimeAnalytics: { name: string; minutos: number }[];
+    routineCompletionAnalytics: { name: string; completionRate: number }[];
+
     totalStats: { completed: number; total: number; completionRate: number; };
     categoryStats: Record<string, { completed: number; total: number; completionRate: number; }>;
     weeklyTaskStats: { name: string; tasks: number; }[];

@@ -80,6 +80,7 @@ export default function RoutinesPage() {
     routinesLoading,
     allHabits,
     routineTimeAnalytics,
+    routineCompletionAnalytics,
     analyticsLoading,
     handleToggleHabit,
     activeSession, 
@@ -289,7 +290,7 @@ setName(routine.name);
           <TabsContent value="analytics" className="mt-6">
              {analyticsLoading && <p>Cargando análisis...</p>}
 
-            {!analyticsLoading && routineTimeAnalytics?.length === 0 && (
+            {!analyticsLoading && routineTimeAnalytics?.length === 0 && routineCompletionAnalytics.length === 0 && (
                 <Card className="mt-4 flex flex-col items-center justify-center p-10 text-center">
                     <CardHeader>
                     <CardTitle className="mt-4">No hay datos para analizar</CardTitle>
@@ -315,6 +316,25 @@ setName(routine.name);
                           <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
                           <Tooltip formatter={(value) => `${value} min`} />
                           <Bar dataKey="minutos" name="Minutos de Enfoque" fill="hsl(var(--primary))" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                )}
+                {routineCompletionAnalytics.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Tasa de Cumplimiento por Rutina</CardTitle>
+                      <CardDescription>Consistencia de los hábitos en cada rutina (últimos 30 días).</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={routineCompletionAnalytics} layout="vertical" margin={{ left: 20, right: 30 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" unit="%" domain={[0, 100]} />
+                          <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
+                          <Tooltip formatter={(value) => `${(value as number).toFixed(0)}%`} />
+                          <Bar dataKey="completionRate" name="Cumplimiento" fill="hsl(var(--accent))" />
                         </BarChart>
                       </ResponsiveContainer>
                     </CardContent>

@@ -58,7 +58,7 @@ type Action =
     | { type: 'SET_ACTIVE_SESSION'; payload: ActiveSession | null }
     | { type: 'SET_ELAPSED_TIME'; payload: number };
 
-const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'handlePayRecurringItem' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'totalStats' | 'categoryStats' | 'weeklyTaskStats' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'tasksForTomorrow' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress'> = {
+const initialState: Omit<AppState, keyof FirebaseServicesAndUser | 'handleToggleHabit' | 'handleCreateOrUpdateHabit' | 'handleDeleteHabit' | 'handleResetAllStreaks' | 'handleResetTimeLogs' | 'handleResetMoods' | 'handleResetCategories' | 'handleToggleTask' | 'handleSaveTask' | 'handleDeleteTask' | 'handleSaveMood' | 'handlePayRecurringItem' | 'setCurrentMonth' | 'startSession' | 'stopSession' | 'analyticsLoading' | 'groupedHabits' | 'dailyHabits' | 'weeklyHabits' | 'completedDaily' | 'completedWeekly' | 'longestStreak' | 'topLongestStreakHabits' | 'longestCurrentStreak' | 'topCurrentStreakHabits' | 'habitCategoryData' | 'dailyProductivityData' | 'topHabitsByStreak' | 'topHabitsByTime' | 'monthlyCompletionData' | 'routineTimeAnalytics' | 'routineCompletionAnalytics' |'totalStats' | 'categoryStats' | 'weeklyTaskStats' | 'overdueTasks' | 'todayTasks' | 'upcomingTasks' | 'tasksForTomorrow' | 'completedWeeklyTasks' | 'totalWeeklyTasks' | 'weeklyTasksProgress' | 'feelingStats' | 'influenceStats' | 'todayMood' | 'currentMonthName' | 'currentMonthYear' | 'monthlyIncome' | 'monthlyExpenses' | 'balance' | 'budget503020' | 'upcomingPayments' | 'pendingRecurringExpenses' | 'paidRecurringExpenses' | 'pendingRecurringIncomes' | 'receivedRecurringIncomes' | 'pendingExpensesTotal' | 'expenseCategories' | 'incomeCategories' | 'categoriesWithoutBudget' | 'sortedLists' | 'spendingByCategory' | 'budgetAccuracy' | 'spendingByFocus' | 'urgentTasks' | 'presetHabitsLoading' | 'presetHabits' | 'completedDailyTasks' | 'totalDailyTasks' | 'dailyTasksProgress'> = {
     allHabits: null,
     routines: null,
     tasks: null,
@@ -156,7 +156,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const timeLogsQuery = useMemo(() => {
         if (!user || !firestore) return null;
-        return collection(firestore, `users/${user.uid}/timeLogs`);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        return query(collection(firestore, `users/${user.uid}/timeLogs`), where("createdAt", ">=", thirtyDaysAgo));
     }, [user, firestore]);
     const { data: timeLogs, isLoading: timeLogsLoading } = useCollection(timeLogsQuery);
 
@@ -657,21 +659,62 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [allHabits, timeLogs]);
     
     // Routines Selectors
-    const routineTimeAnalytics = useMemo(() => {
-        if (!routines || !allHabits || !timeLogs) return [];
+    const { routineTimeAnalytics, routineCompletionAnalytics } = useMemo(() => {
+        if (!routines || !allHabits || !timeLogs) return { routineTimeAnalytics: [], routineCompletionAnalytics: [] };
+    
         const activeHabits = allHabits.filter(h => h.isActive);
+    
+        // Time Analytics
         const habitTimeTotals: Record<string, number> = {};
         timeLogs.filter(log => log.referenceType === 'habit').forEach(log => {
             habitTimeTotals[log.referenceId] = (habitTimeTotals[log.referenceId] || 0) + log.durationSeconds;
         });
-        const routineTotals: Record<string, number> = {};
+    
+        const routineTimeTotals: Record<string, number> = {};
         routines.forEach(routine => {
             routine.habitIds.forEach((habitId: string) => {
-                 const habit = activeHabits.find(h => h.id === habitId);
-                if (habit && habitTimeTotals[habitId]) routineTotals[routine.name] = (routineTotals[routine.name] || 0) + habitTimeTotals[habitId];
+                const habit = activeHabits.find(h => h.id === habitId);
+                if (habit && habitTimeTotals[habitId]) {
+                    routineTimeTotals[routine.name] = (routineTimeTotals[routine.name] || 0) + habitTimeTotals[habitId];
+                }
             });
         });
-        return Object.entries(routineTotals).map(([name, time]) => ({ name, minutos: Math.round(time / 60) })).sort((a, b) => b.minutos - a.minutos);
+        const timeAnalytics = Object.entries(routineTimeTotals)
+            .map(([name, time]) => ({ name, minutos: Math.round(time / 60) }))
+            .sort((a, b) => b.minutos - a.minutos);
+    
+        // Completion Analytics
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+        const completionAnalytics = routines.map(routine => {
+            const routineHabits = activeHabits.filter(h => routine.habitIds.includes(h.id));
+            if (routineHabits.length === 0) return { name: routine.name, completionRate: 0 };
+    
+            let totalPossibleCompletions = 0;
+            let totalActualCompletions = 0;
+    
+            // This is a simplified calculation. For a more accurate one, we'd need to query the full history of completions.
+            // Here, we estimate based on streak and last completion.
+            routineHabits.forEach(habit => {
+                if (habit.frequency === 'Diario') {
+                    totalPossibleCompletions += 30;
+                } else { // Semanal
+                    totalPossibleCompletions += 4;
+                }
+                // Using currentStreak as a proxy for recent completions
+                totalActualCompletions += (habit.currentStreak || 0);
+            });
+    
+            const rate = totalPossibleCompletions > 0 ? (totalActualCompletions / totalPossibleCompletions) * 100 : 0;
+    
+            return {
+                name: routine.name,
+                completionRate: Math.min(100, rate) // Cap at 100%
+            };
+        }).filter(r => r.completionRate > 0).sort((a, b) => b.completionRate - a.completionRate);
+    
+        return { routineTimeAnalytics: timeAnalytics, routineCompletionAnalytics: completionAnalytics };
     }, [routines, allHabits, timeLogs]);
 
     // Task Selectors
@@ -690,18 +733,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         const startOfWeek = getStartOfWeek(today);
         const endOfWeek = getEndOfWeek(today);
-        const weeklyTasks = tasks.filter(t => t.dueDate && t.dueDate.toDate() >= startOfWeek && t.dueDate.toDate() <= endOfWeek);
         
         const overdue = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() < startOfDay);
         const forToday = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= startOfDay && t.dueDate.toDate() <= endOfDay);
         const forTomorrow = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= tomorrow && t.dueDate.toDate() <= endOfTomorrow);
-        const upcoming = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() > endOfDay && t.dueDate.toDate() <= endOfWeek);
+        const upcoming = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() > endOfTomorrow && t.dueDate.toDate() <= endOfWeek);
 
-        const dailyTs = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= startOfDay && t.dueDate.toDate() <= endOfDay);
+        const dailyTs = tasks.filter(t => t.dueDate && t.dueDate.toDate() >= startOfDay && t.dueDate.toDate() <= endOfDay);
         const completedDaily = dailyTs.filter(t => t.isCompleted).length;
         const totalDaily = dailyTs.length;
         const dailyProgress = totalDaily > 0 ? (completedDaily / totalDaily) * 100 : 0;
         
+        const weeklyTasks = tasks.filter(t => t.dueDate && t.dueDate.toDate() >= startOfWeek && t.dueDate.toDate() <= endOfWeek);
         const completedWeekly = weeklyTasks.filter(t => t.isCompleted).length;
         const totalWeekly = weeklyTasks.length;
         const weeklyProgress = totalWeekly > 0 ? (completedWeekly / totalWeekly) * 100 : 0;
@@ -945,6 +988,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         topHabitsByTime,
         monthlyCompletionData,
         routineTimeAnalytics,
+        routineCompletionAnalytics,
         totalStats,
         categoryStats,
         weeklyTaskStats,
