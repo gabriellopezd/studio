@@ -145,7 +145,6 @@ export default function MoodTrackerPage() {
   const activeInfluences = useMemo(() => (influences || []).filter(i => i.isActive), [influences]);
 
   return (
-    <>
     <div className="flex flex-col gap-6">
       <PageHeader
         title="RASTREADOR DE ÁNIMO"
@@ -263,90 +262,88 @@ export default function MoodTrackerPage() {
             </Card>
         </div>
       </div>
-    </div>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => !open && resetForm()}>
+          <DialogContent className="max-w-lg">
+              <DialogHeader>
+              <DialogTitle>
+                  {step === 1 && `¿Cómo te sentiste el ${selectedDate ? format(selectedDate, "d 'de' LLLL", { locale: es }) : ''}?`}
+                  {step === 2 && '¿Qué características describen mejor lo que sentiste?'}
+                  {step === 3 && '¿Qué es lo que más influyó en tu ánimo?'}
+              </DialogTitle>
+              </DialogHeader>
 
-    <Dialog open={isDialogOpen} onOpenChange={(open) => !open && resetForm()}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-                {step === 1 && `¿Cómo te sentiste el ${selectedDate ? format(selectedDate, 'd \\'de\\' LLLL', { locale: es }) : ''}?`}
-                {step === 2 && '¿Qué características describen mejor lo que sentiste?'}
-                {step === 3 && '¿Qué es lo que más influyó en tu ánimo?'}
-            </DialogTitle>
-          </DialogHeader>
+              {step === 1 && (
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,1fr))] gap-2 justify-center py-6">
+                  {moodLevels.map((mood) => (
+                      <Button
+                      key={mood.level}
+                      variant={selectedMood?.level === mood.level ? 'secondary' : 'ghost'}
+                      size="icon"
+                      onClick={() => handleMoodSelect(mood)}
+                      className="h-24 w-full rounded-lg"
+                      >
+                      <div className="flex flex-col items-center gap-1">
+                          <span className="text-4xl">{mood.emoji}</span>
+                          <span className="text-xs text-muted-foreground text-center">
+                          {mood.label}
+                          </span>
+                      </div>
+                      </Button>
+                  ))}
+              </div>
+              )}
 
-          {step === 1 && (
-             <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,1fr))] gap-2 justify-center py-6">
-                {moodLevels.map((mood) => (
-                  <Button
-                    key={mood.level}
-                    variant={selectedMood?.level === mood.level ? 'secondary' : 'ghost'}
-                    size="icon"
-                    onClick={() => handleMoodSelect(mood)}
-                    className="h-24 w-full rounded-lg"
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-4xl">{mood.emoji}</span>
-                      <span className="text-xs text-muted-foreground text-center">
-                        {mood.label}
-                      </span>
-                    </div>
-                  </Button>
-                ))}
-            </div>
-          )}
+              {step === 2 && (
+              <div className="flex flex-wrap gap-2 justify-center py-4">
+                  {activeFeelings.map((feeling) => (
+                      <Button 
+                          key={feeling.id} 
+                          variant={selectedFeelings.includes(feeling.name) ? 'secondary' : 'outline'}
+                          onClick={() => handleToggleSelection(feeling.name, selectedFeelings, setSelectedFeelings)}
+                          className="gap-2"
+                      >
+                          <span>{feeling.icon}</span>
+                          {feeling.name}
+                      </Button>
+                  ))}
+              </div>
+              )}
 
-          {step === 2 && (
-             <div className="flex flex-wrap gap-2 justify-center py-4">
-                {activeFeelings.map((feeling) => (
-                    <Button 
-                        key={feeling.id} 
-                        variant={selectedFeelings.includes(feeling.name) ? 'secondary' : 'outline'}
-                        onClick={() => handleToggleSelection(feeling.name, selectedFeelings, setSelectedFeelings)}
-                        className="gap-2"
-                    >
-                      <span>{feeling.icon}</span>
-                      {feeling.name}
-                    </Button>
-                ))}
-             </div>
-          )}
-
-           {step === 3 && (
-             <div className="flex flex-wrap gap-2 justify-center py-4">
-                {activeInfluences.map((influence) => (
-                    <Button 
-                        key={influence.id} 
-                        variant={selectedInfluences.includes(influence.name) ? 'secondary' : 'outline'}
-                        onClick={() => handleToggleSelection(influence.name, selectedInfluences, setSelectedInfluences)}
-                        className="gap-2"
-                    >
-                      <span>{influence.icon}</span>
-                      {influence.name}
-                    </Button>
-                ))}
-             </div>
-          )}
-
-          <DialogFooter>
-             {step > 1 && (
-                <Button variant="outline" onClick={() => setStep(s => s - 1)}>
-                    Atrás
-                </Button>
-             )}
-             {step < 3 && (
-                <Button onClick={() => setStep(s => s + 1)} disabled={(step === 1 && !selectedMood) || (step === 2 && selectedFeelings.length === 0)}>
-                    Siguiente
-                </Button>
-             )}
               {step === 3 && (
-                <Button onClick={onSaveMood} disabled={selectedInfluences.length === 0}>
-                    Guardar Registro
-                </Button>
-             )}
-          </DialogFooter>
-        </DialogContent>
+              <div className="flex flex-wrap gap-2 justify-center py-4">
+                  {activeInfluences.map((influence) => (
+                      <Button 
+                          key={influence.id} 
+                          variant={selectedInfluences.includes(influence.name) ? 'secondary' : 'outline'}
+                          onClick={() => handleToggleSelection(influence.name, selectedInfluences, setSelectedInfluences)}
+                          className="gap-2"
+                      >
+                          <span>{influence.icon}</span>
+                          {influence.name}
+                      </Button>
+                  ))}
+              </div>
+              )}
+
+              <DialogFooter>
+              {step > 1 && (
+                  <Button variant="outline" onClick={() => setStep(s => s - 1)}>
+                      Atrás
+                  </Button>
+              )}
+              {step < 3 && (
+                  <Button onClick={() => setStep(s => s + 1)} disabled={(step === 1 && !selectedMood) || (step === 2 && selectedFeelings.length === 0)}>
+                      Siguiente
+                  </Button>
+              )}
+                  {step === 3 && (
+                  <Button onClick={onSaveMood} disabled={selectedInfluences.length === 0}>
+                      Guardar Registro
+                  </Button>
+              )}
+              </DialogFooter>
+          </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
