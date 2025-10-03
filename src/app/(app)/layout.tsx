@@ -66,8 +66,8 @@ const navItems = {
     { href: '/mood-tracker', label: 'Ánimo', icon: Smile },
   ],
   finance: [
-    { href: '/finances', label: 'Mis Finanzas', icon: CircleDollarSign },
-    { href: '/expenses', label: 'Listas de Compra', icon: ShoppingCart },
+    { href: '/finances', label: 'Supervisión', icon: CircleDollarSign },
+    { href: '/financial-planning', label: 'Planificación', icon: ClipboardList },
   ],
 };
 
@@ -248,5 +248,4 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </AppProvider>
     )
 }
-
     
