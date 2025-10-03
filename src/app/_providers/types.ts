@@ -81,7 +81,9 @@ export interface AppState {
     completedDaily: number;
     completedWeekly: number;
     longestStreak: number;
+    topLongestStreakHabits: string[];
     longestCurrentStreak: number;
+    topCurrentStreakHabits: string[];
     habitCategoryData: { name: string; value: number }[];
     dailyProductivityData: { name: string; value: number }[];
     topHabitsByStreak: any[];
@@ -91,10 +93,19 @@ export interface AppState {
     totalStats: { completed: number; total: number; completionRate: number; };
     categoryStats: Record<string, { completed: number; total: number; completionRate: number; }>;
     weeklyTaskStats: { name: string; tasks: number; }[];
-    pendingTasks: any[];
+    
+    // Task-related selectors for dashboard
+    overdueTasks: any[];
+    todayTasks: any[];
+    upcomingTasks: any[];
+
     completedWeeklyTasks: number;
     totalWeeklyTasks: number;
     weeklyTasksProgress: number;
+    completedDailyTasks: number;
+    totalDailyTasks: number;
+    dailyTasksProgress: number;
+
     feelingStats: [string, any][];
     influenceStats: [string, any][];
     todayMood: any;
@@ -108,7 +119,8 @@ export interface AppState {
         wants: { budget: number; spend: number; progress: number; };
         savings: { budget: number; spend: number; progress: number; };
     } | null;
-    pendingRecurringExpenses: any[];
+    
+    upcomingPayments: any[];
     paidRecurringExpenses: any[];
     pendingRecurringIncomes: any[];
     receivedRecurringIncomes: any[];
