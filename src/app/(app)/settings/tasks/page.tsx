@@ -158,7 +158,7 @@ export default function TaskSettingsPage() {
         ))}
       </div>
       
-       <Dialog open={modalState.type === 'taskCategory'} onOpenChange={() => handleCloseModal('taskCategory')}>
+       <Dialog open={modalState.type === 'taskCategory'} onOpenChange={(open) => !open && handleCloseModal('taskCategory')}>
             <DialogContent>
                 <DialogHeader>
                 <DialogTitle>{formState.id ? 'Editar Categoría' : 'Crear Nueva Categoría'}</DialogTitle>
@@ -175,7 +175,7 @@ export default function TaskSettingsPage() {
                     </div>
                 </div>
                 <DialogFooter>
-                 <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                 <DialogClose asChild><Button variant="outline" onClick={() => handleCloseModal('taskCategory')}>Cancelar</Button></DialogClose>
                     <Button
                     type="button"
                     onClick={handleSaveTaskCategory}

@@ -200,7 +200,7 @@ export default function MoodTrackerPage() {
                                 onClick={() => handleDayClick(day)}
                                 className={cn(
                                     "flex aspect-square flex-col items-center justify-center rounded-lg border bg-card p-1 text-center transition-colors hover:bg-muted/50",
-                                    isToday && 'border-primary'
+                                    isToday && 'border-primary ring-2 ring-primary/50'
                                 )}
                             >
                                 <span className="text-xs md:text-sm text-muted-foreground">{day}</span>

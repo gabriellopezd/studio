@@ -49,19 +49,13 @@ async function initializeDefaultBudgets(user: User, firestore: any, batch: any) 
     const budgetsRef = collection(firestore, 'users', user.uid, 'budgets');
     const budgetsSnapshot = await getDocs(query(budgetsRef, limit(1)));
 
-    // Only initialize if the collection is empty
     if (budgetsSnapshot.empty) {
-        const currentYear = new Date().getFullYear();
-        const currentMonth = new Date().getMonth() + 1;
-
         PRESET_EXPENSE_CATEGORIES.forEach(categoryName => {
             const newBudgetRef = doc(budgetsRef);
             batch.set(newBudgetRef, {
                 categoryName: categoryName,
-                monthlyLimit: 1000000, // Default limit
+                monthlyLimit: 1000000,
                 currentSpend: 0,
-                year: currentYear,
-                month: currentMonth,
                 userId: user.uid,
             });
         });

@@ -26,7 +26,7 @@ export function ResponsiveCalendar({
     const dateValue = event.target.value;
     if (dateValue) {
       // The input value is a string 'YYYY-MM-DD'. The Date constructor
-      // correctly interprets this in the local timezone.
+      // correctly interprets this in the local timezone if we add T00:00:00
       const newDate = new Date(dateValue + 'T00:00:00');
       onSelect(newDate);
     } else {
@@ -38,7 +38,7 @@ export function ResponsiveCalendar({
     <Input
       id={id}
       type="date"
-      value={formatDateToInput(value)}
+      value={value ? formatDateToInput(value) : ''}
       onChange={handleChange}
       className="w-full"
     />
