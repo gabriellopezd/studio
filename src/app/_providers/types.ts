@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import type { User } from 'firebase/auth';
@@ -162,6 +161,7 @@ export interface AppState {
     handleToggleTask: (taskId: string, currentStatus: boolean) => void;
     handleSaveTask: (taskData: Task) => Promise<void>;
     handleDeleteTask: (taskId: string) => Promise<void>;
+    handleDeleteTaskCategory: (categoryId: string, categoryName: string) => Promise<void>;
     handleSaveMood: (moodData: Mood) => Promise<void>;
     handlePayRecurringItem: (item: any, type: 'income' | 'expense') => Promise<void>;
     setCurrentMonth: (date: Date | ((prev: Date) => Date)) => void;

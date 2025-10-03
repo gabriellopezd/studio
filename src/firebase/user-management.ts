@@ -82,5 +82,3 @@ export const handleUserLogin = async (user: User, firestore: any, displayName?: 
 
     await batch.commit();
 };
-
-    

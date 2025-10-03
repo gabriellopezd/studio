@@ -2,7 +2,6 @@
 'use client';
 
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
 interface ResponsiveCalendarProps {
   value: Date | undefined;
@@ -45,5 +44,3 @@ export function ResponsiveCalendar({
     />
   );
 }
-
-    
