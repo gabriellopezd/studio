@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -11,7 +12,7 @@ import {
   CardDescription
 } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { useAppContext } from '@/app/_providers/AppContext';
+import { useAppContext } from '@/app/_providers/AppProvider';
 import {
   addDocumentNonBlocking,
   updateDocumentNonBlocking,

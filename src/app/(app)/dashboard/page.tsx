@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -28,7 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { useAppContext } from '@/app/_providers/AppContext';
+import { useAppContext } from '@/app/_providers/AppProvider';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';

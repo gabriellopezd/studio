@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -32,7 +33,7 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect, useMemo } from 'react';
 import { isHabitCompletedToday } from '@/lib/habits';
 import { cn } from '@/lib/utils';
-import { useAppContext } from '@/app/_providers/AppContext';
+import { useAppContext } from '@/app/_providers/AppProvider';
 import { TodaysMoodCard } from './_components/TodaysMoodCard';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';

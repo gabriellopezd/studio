@@ -12,7 +12,7 @@ import {
   CardDescription
 } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { useAppContext } from '@/app/_providers/AppContext';
+import { useAppContext } from '@/app/_providers/AppProvider';
 import {
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
@@ -175,7 +175,7 @@ export default function FeelingSettingsPage() {
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => handleOpenDialog(item)}>
                             <Pencil className="h-4 w-4" />
                         </Button>
-                         <AlertDialog open={itemToDelete?.id === item.id} onOpenChange={(open) => !open && setItemToDelete(null)}>
+                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setItemToDelete(item)}>
                                     <Trash2 className="h-4 w-4" />

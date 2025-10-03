@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useReducer, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useMemo, useState } from 'react';
 import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc, limit } from 'firebase/firestore';
 import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking, type FirebaseServicesAndUser } from '@/firebase';
 import { AppState, Habit, Task, Mood, ActiveSession } from './types';
@@ -13,9 +13,19 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { PresetHabits } from '@/lib/preset-habits';
 import { PRESET_EXPENSE_CATEGORIES } from '@/lib/transaction-categories';
-import { AppContext } from './AppContext';
+import { defaultFeelings, defaultInfluences } from '@/lib/moods';
 
-// --- Reducer Logic ---
+// --- Context Definition ---
+export const AppContext = createContext<AppState | undefined>(undefined);
+
+export const useAppContext = () => {
+    const context = useContext(AppContext);
+    if (context === undefined) {
+        throw new Error('useAppContext must be used within an AppProvider');
+    }
+    return context;
+};
+
 
 type Action =
     | { type: 'SET_DATA'; payload: { key: string; data: any; loading: boolean } }
