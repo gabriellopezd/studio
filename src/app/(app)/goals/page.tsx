@@ -61,7 +61,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useAppContext } from '@/app/_providers/AppProvider';
+import { useGoals } from '@/app/_providers/GoalsProvider';
+import { useUI } from '@/app/_providers/UIProvider';
 
 const motivationalQuotes = [
     "Una meta sin un plan es solo un deseo.",
@@ -78,12 +79,15 @@ export default function GoalsPage() {
     handleSaveGoal, 
     handleDeleteGoal, 
     handleUpdateGoalProgress,
+  } = useGoals();
+
+  const {
     modalState,
     handleOpenModal,
     handleCloseModal,
     formState,
     setFormState,
-  } = useAppContext();
+  } = useUI();
 
   const [motivation, setMotivation] = useState('');
 
