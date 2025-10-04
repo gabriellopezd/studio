@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useEffect } from 'react';
@@ -75,7 +74,7 @@ const navItems = {
   ],
   finance: [
     { href: '/finances', label: 'Supervisión', icon: CircleDollarSign },
-    { href: '/financial-planning', label: 'Planificación', icon: ClipboardList },
+    { href: '/financial-planning', label: 'Planificación', icon: ShoppingCart },
   ],
 };
 
@@ -273,4 +272,3 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     
 
     
-

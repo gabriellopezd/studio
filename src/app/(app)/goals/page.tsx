@@ -194,9 +194,11 @@ export default function GoalsPage() {
                     {projectedDate}
                 </p>
             ) : (
-                <p className="text-sm text-muted-foreground">
-                    Vencimiento: {formatDate(goal.dueDate)}
-                </p>
+                goal.dueDate && (
+                  <p className="text-sm text-muted-foreground">
+                      Vencimiento: {formatDate(goal.dueDate)}
+                  </p>
+                )
             )}
             <Button variant="outline" className="w-full" onClick={() => handleOpenModal('progressGoal', goal)}>
               <TrendingUp className="mr-2 h-4 w-4" />
@@ -214,7 +216,7 @@ export default function GoalsPage() {
           title="METAS"
           description="Define y sigue el progreso de tus metas a largo plazo."
           motivation={motivation}
-          imageId="dashboard-header"
+          imageId="goals-header"
         >
           <Button onClick={() => handleOpenModal('goal')}>
             <PlusCircle className="mr-2 h-4 w-4" />

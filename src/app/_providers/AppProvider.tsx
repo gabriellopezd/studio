@@ -1,18 +1,12 @@
 
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
 import { useFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { writeBatch, doc, collection, getDocs } from 'firebase/firestore';
+import { writeBatch, collection, getDocs } from 'firebase/firestore';
 import { handleUserLogin, initializeDefaultBudgets, initializeDefaultTaskCategories } from '@/firebase/user-management';
-import { useHabits } from './HabitsProvider';
-import { useTasks } from './TasksProvider';
-import { useFinances } from './FinancesProvider';
-import { useGoals } from './GoalsProvider';
-import { useMood } from './MoodProvider';
 
-// This is a simplified AppState, focusing on actions that cross multiple domains.
 interface AppContextState {
     firestore: any;
     user: any;
@@ -22,7 +16,6 @@ interface AppContextState {
     handleResetCategories: () => Promise<void>;
 }
 
-// --- Context Definition ---
 export const AppContext = createContext<AppContextState | undefined>(undefined);
 
 export const useAppContext = () => {
@@ -33,7 +26,6 @@ export const useAppContext = () => {
     return context;
 };
 
-// --- Provider Component ---
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { firestore, user } = useFirebase();
     const { toast } = useToast();
@@ -42,7 +34,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (!user || !firestore) return;
         try {
             const batch = writeBatch(firestore);
-            
             const collectionsToDelete = ['habits', 'routines', 'tasks', 'taskCategories', 'goals', 'moods', 'feelings', 'influences', 'transactions', 'budgets', 'shoppingLists', 'recurringExpenses', 'recurringIncomes', 'timeLogs'];
             
             for (const col of collectionsToDelete) {
@@ -50,7 +41,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 snapshot.forEach(doc => batch.delete(doc.ref));
             }
             
-            await handleUserLogin(user, firestore, user.displayName || undefined, true);
+            await handleUserLogin(user, firestore, user.displayName || undefined);
 
             await batch.commit();
             toast({ title: 'Datos restaurados', description: 'Todos tus datos se han reiniciado a los valores predeterminados.' });
