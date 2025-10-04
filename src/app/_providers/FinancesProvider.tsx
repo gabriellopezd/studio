@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useMemo, useState, ReactNode } from 'react';
@@ -51,6 +52,7 @@ interface FinancesContextState {
     annualProjectedExpense: number;
     annualProjectedSavings: number;
     annualProjectedSavingsRate: number;
+    annualIncomeCategorySpending: any[];
 
     // Actions
     handleSaveTransaction: () => Promise<void>;
@@ -218,6 +220,13 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             return acc;
         }, {});
         const annualCategorySpending = Object.entries(annualCategorySpendingMap).map(([name, value]) => ({ name, value }));
+        
+        const annualIncomeCategorySpendingMap = allAnnualTransactionsData.filter((t: any) => t.type === 'income').reduce((acc: any, t: any) => {
+            acc[t.category] = (acc[t.category] || 0) + t.amount;
+            return acc;
+        }, {});
+        const annualIncomeCategorySpending = Object.entries(annualIncomeCategorySpendingMap).map(([name, value]) => ({ name, value }));
+
         const monthlySummaryData = monthNames.map((name, i) => {
             const ingresos = annualFlowData[i].ingresos;
             const gastos = annualFlowData[i].gastos;
@@ -236,7 +245,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         const annualProjectedSavings = annualProjectedIncome - annualProjectedExpense;
         const annualProjectedSavingsRate = annualProjectedIncome > 0 ? (annualProjectedSavings / annualProjectedIncome) * 100 : 0;
         
-        return { monthlyIncome, monthlyExpenses, balance, budget503020, upcomingPayments, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, pendingIncomesTotal, expenseCategories: allExpenseCategoryNames, incomeCategories, categoriesWithoutBudget, sortedLists, annualFlowData, annualCategorySpending, monthlySummaryData, annualTotalIncome, annualTotalExpense, annualNetSavings, annualSavingsRate, annualProjectedIncome, annualProjectedExpense, annualProjectedSavings, annualProjectedSavingsRate };
+        return { monthlyIncome, monthlyExpenses, balance, budget503020, upcomingPayments, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, pendingIncomesTotal, expenseCategories: allExpenseCategoryNames, incomeCategories, categoriesWithoutBudget, sortedLists, annualFlowData, annualCategorySpending, monthlySummaryData, annualTotalIncome, annualTotalExpense, annualNetSavings, annualSavingsRate, annualProjectedIncome, annualProjectedExpense, annualProjectedSavings, annualProjectedSavingsRate, annualIncomeCategorySpending };
     }, [transactions, annualTransactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, currentMonth]);
 
     // --- Actions ---
@@ -525,3 +534,5 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         </FinancesContext.Provider>
     );
 };
+
+    

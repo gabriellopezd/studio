@@ -112,6 +112,7 @@ export default function FinancesPage() {
     annualProjectedExpense,
     annualProjectedSavings,
     annualProjectedSavingsRate,
+    annualIncomeCategorySpending,
     handleSaveTransaction,
     handleDeleteTransaction,
     handleSaveBudget,
@@ -475,36 +476,7 @@ export default function FinancesPage() {
                         </Card>
                         
                         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                            <Card className="lg:col-span-2">
-                                <CardHeader>
-                                    <CardTitle>Desglose de Gastos Anuales</CardTitle>
-                                    <CardDescription>Distribución de tus gastos por categoría durante el año.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                     <ResponsiveContainer width="100%" height={300}>
-                                        <PieChart>
-                                        <Pie
-                                            data={annualCategorySpending}
-                                            cx="50%"
-                                            cy="50%"
-                                            labelLine={false}
-                                            outerRadius={80}
-                                            fill="#8884d8"
-                                            dataKey="value"
-                                            nameKey="name"
-                                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                        >
-                                            {annualCategorySpending.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                                        <Legend />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </CardContent>
-                            </Card>
-                             <Card className="lg:col-span-3">
+                            <Card className="lg:col-span-3">
                                 <CardHeader>
                                     <CardTitle>Resumen Mensual del Año</CardTitle>
                                     <CardDescription>Tabla resumen de tu rendimiento financiero cada mes.</CardDescription>
@@ -531,7 +503,41 @@ export default function FinancesPage() {
                                         </TableBody>
                                     </Table>
                                 </CardContent>
-                             </Card>
+                            </Card>
+                            <div className="lg:col-span-2 flex flex-col gap-6">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Desglose de Gastos Anuales</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <ResponsiveContainer width="100%" height={250}>
+                                            <PieChart>
+                                            <Pie data={annualCategorySpending} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={80} paddingAngle={2} label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}>
+                                                {annualCategorySpending.map((entry, index) => ( <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} /> ))}
+                                            </Pie>
+                                            <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                                            <Legend />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Desglose de Ingresos Anuales</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                         <ResponsiveContainer width="100%" height={250}>
+                                            <PieChart>
+                                            <Pie data={annualIncomeCategorySpending} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={80} paddingAngle={2} label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}>
+                                                {annualIncomeCategorySpending.map((entry, index) => ( <Cell key={`cell-${index}`} fill={COLORS.slice().reverse()[index % COLORS.length]} /> ))}
+                                            </Pie>
+                                            <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                                            <Legend />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </CardContent>
+                                </Card>
+                            </div>
                         </div>
                     </>
                 )}
@@ -683,5 +689,7 @@ export default function FinancesPage() {
     </>
   );
 }
+
+    
 
     
