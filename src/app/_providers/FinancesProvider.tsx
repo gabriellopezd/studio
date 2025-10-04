@@ -1,9 +1,8 @@
-
 'use client';
 
 import React, { createContext, useContext, useMemo, useState, ReactNode } from 'react';
 import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc } from 'firebase/firestore';
-import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useFirebase, useCollectionData, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useUI } from './UIProvider';
 
@@ -93,7 +92,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             orderBy('date', 'desc')
         );
     }, [user, firestore, currentMonth]);
-    const { data: transactions, isLoading: transactionsLoading } = useCollection(transactionsQuery);
+    const { data: transactions, isLoading: transactionsLoading } = useCollectionData(transactionsQuery);
 
     const annualTransactionsQuery = useMemo(() => {
         if (!user || !firestore) return null;
@@ -106,31 +105,31 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             where('date', '<=', endOfYear.toISOString()),
         );
     }, [user, firestore, currentMonth]);
-    const { data: annualTransactions, isLoading: annualTransactionsLoading } = useCollection(annualTransactionsQuery);
+    const { data: annualTransactions, isLoading: annualTransactionsLoading } = useCollectionData(annualTransactionsQuery);
     
     const budgetsQuery = useMemo(() => {
         if (!user || !firestore) return null;
         return query(collection(firestore, 'users', user.uid, 'budgets'));
     }, [user, firestore]);
-    const { data: budgets, isLoading: budgetsLoading } = useCollection(budgetsQuery);
+    const { data: budgets, isLoading: budgetsLoading } = useCollectionData(budgetsQuery);
 
     const shoppingListsQuery = useMemo(() => {
         if (!user || !firestore) return null;
         return query(collection(firestore, `users/${user.uid}/shoppingLists`));
     }, [user, firestore]);
-    const { data: shoppingLists, isLoading: shoppingListsLoading } = useCollection(shoppingListsQuery);
+    const { data: shoppingLists, isLoading: shoppingListsLoading } = useCollectionData(shoppingListsQuery);
 
     const recurringExpensesQuery = useMemo(() => {
         if (!user || !firestore) return null;
         return query(collection(firestore, `users/${user.uid}/recurringExpenses`), orderBy('dayOfMonth'));
     }, [user, firestore]);
-    const { data: recurringExpenses, isLoading: recurringExpensesLoading } = useCollection(recurringExpensesQuery);
+    const { data: recurringExpenses, isLoading: recurringExpensesLoading } = useCollectionData(recurringExpensesQuery);
 
     const recurringIncomesQuery = useMemo(() => {
         if (!user || !firestore) return null;
         return query(collection(firestore, `users/${user.uid}/recurringIncomes`), orderBy('dayOfMonth'));
     }, [user, firestore]);
-    const { data: recurringIncomes, isLoading: recurringIncomesLoading } = useCollection(recurringIncomesQuery);
+    const { data: recurringIncomes, isLoading: recurringIncomesLoading } = useCollectionData(recurringIncomesQuery);
 
 
     // --- Derived State ---

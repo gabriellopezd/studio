@@ -1,9 +1,8 @@
-
 'use client';
 
 import React, { createContext, useContext, useMemo, useState, ReactNode } from 'react';
 import { collection, query, where, Timestamp, serverTimestamp, getDocs, limit } from 'firebase/firestore';
-import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { useFirebase, useCollectionData, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
 import { Mood } from './types';
 import { useUI } from './UIProvider';
 import { defaultFeelings, defaultInfluences } from '@/lib/moods';
@@ -50,7 +49,7 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             where('date', '<', startOfNextMonth.toISOString().split('T')[0])
         );
     }, [user, firestore, currentMonth]);
-    const { data: moods, isLoading: moodsLoading } = useCollection(moodsQuery);
+    const { data: moods, isLoading: moodsLoading } = useCollectionData(moodsQuery, { withId: true });
 
     const todayMoodQuery = useMemo(() => {
         if (!user || !firestore) return null;
@@ -61,17 +60,13 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             limit(1)
         );
     }, [user, firestore]);
-    const { data: todayMoodData } = useCollection(todayMoodQuery);
+    const { data: todayMoodData } = useCollectionData(todayMoodQuery);
     
     const feelingsQuery = useMemo(() => user ? collection(firestore, 'users', user.uid, 'feelings') : null, [user, firestore]);
-    const { data: feelings, isLoading: feelingsLoading } = useCollection(feelingsQuery, {
-        fallbackData: defaultFeelings,
-    });
+    const { data: feelings, isLoading: feelingsLoading } = useCollectionData(feelingsQuery);
     
     const influencesQuery = useMemo(() => user ? collection(firestore, 'users', user.uid, 'influences') : null, [user, firestore]);
-    const { data: influences, isLoading: influencesLoading } = useCollection(influencesQuery, {
-        fallbackData: defaultInfluences,
-    });
+    const { data: influences, isLoading: influencesLoading } = useCollectionData(influencesQuery);
 
     // --- Actions ---
     const handleSaveMood = async (moodData: Mood) => {
@@ -109,9 +104,9 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         <MoodContext.Provider value={{
             moods,
             moodsLoading,
-            feelings,
+            feelings: feelings || defaultFeelings,
             feelingsLoading,
-            influences,
+            influences: influences || defaultInfluences,
             influencesLoading,
             currentMonth,
             setCurrentMonth,

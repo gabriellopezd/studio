@@ -1,9 +1,8 @@
-
 'use client';
 
 import React, { createContext, useContext, useMemo, ReactNode } from 'react';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
-import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useFirebase, useCollectionData, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useUI } from './UIProvider';
 
@@ -37,7 +36,7 @@ export const GoalsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         if (!user || !firestore) return null;
         return collection(firestore, `users/${user.uid}/goals`);
     }, [user, firestore]);
-    const { data: goals, isLoading: goalsLoading } = useCollection(goalsQuery);
+    const { data: goals, isLoading: goalsLoading } = useCollectionData(goalsQuery);
 
     const { savingsGoals, debtGoals, genericGoals } = useMemo(() => {
         return {

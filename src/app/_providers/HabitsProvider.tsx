@@ -1,9 +1,8 @@
-
 'use client';
 
 import React, { createContext, useContext, useMemo, useState, ReactNode, useEffect } from 'react';
 import { collection, doc, query, Timestamp, serverTimestamp, writeBatch } from 'firebase/firestore';
-import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useFirebase, useCollectionData, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { isHabitCompletedToday, calculateStreak, checkHabitStreak, resetStreak } from '@/lib/habits';
 import { useToast } from '@/hooks/use-toast';
 import { useUI } from './UIProvider';
@@ -60,13 +59,13 @@ export const HabitsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       if (!user || !firestore) return null;
       return collection(firestore, `users/${user.uid}/habits`);
     }, [user, firestore]);
-    const { data: allHabits, isLoading: habitsLoading } = useCollection(allHabitsQuery);
+    const { data: allHabits, isLoading: habitsLoading } = useCollectionData(allHabitsQuery);
 
     const routinesQuery = useMemo(() => {
       if (!user || !firestore) return null;
       return collection(firestore, `users/${user.uid}/routines`);
     }, [user, firestore]);
-    const { data: routines, isLoading: routinesLoading } = useCollection(routinesQuery);
+    const { data: routines, isLoading: routinesLoading } = useCollectionData(routinesQuery);
     
     // --- Streak Checking ---
     useEffect(() => {

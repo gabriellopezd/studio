@@ -1,9 +1,8 @@
-
 'use client';
 
 import React, { createContext, useContext, useMemo, ReactNode } from 'react';
 import { collection, doc, query, orderBy, Timestamp, serverTimestamp, writeBatch } from 'firebase/firestore';
-import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useFirebase, useCollectionData, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useUI } from './UIProvider';
 import { PRESET_TASK_CATEGORIES } from '@/lib/task-categories';
@@ -13,7 +12,6 @@ interface TasksContextState {
     tasksLoading: boolean;
     taskCategories: any[] | null;
     taskCategoriesLoading: boolean;
-    urgentTasks: any[] | null;
 
     // Derived State
     overdueTasks: any[];
@@ -59,15 +57,13 @@ export const TasksProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     // --- Data Fetching ---
     const tasksQuery = useMemo(() => user ? query(collection(firestore, `users/${user.uid}/tasks`), orderBy('createdAt', 'desc')) : null, [user, firestore]);
-    const { data: tasks, isLoading: tasksLoading } = useCollection(tasksQuery);
+    const { data: tasks, isLoading: tasksLoading } = useCollectionData(tasksQuery);
 
     const taskCategoriesQuery = useMemo(() => user ? query(collection(firestore, `users/${user.uid}/taskCategories`), orderBy('name')) : null, [user, firestore]);
-    const { data: taskCategories, isLoading: taskCategoriesLoading } = useCollection(taskCategoriesQuery, {
-      fallbackData: PRESET_TASK_CATEGORIES.map(name => ({ id: name, name, isActive: true }))
-    });
+    const { data: taskCategories, isLoading: taskCategoriesLoading } = useCollectionData(taskCategoriesQuery);
     
     const timeLogsQuery = useMemo(() => user ? collection(firestore, `users/${user.uid}/timeLogs`) : null, [user, firestore]);
-    const { data: timeLogs } = useCollection(timeLogsQuery);
+    const { data: timeLogs } = useCollectionData(timeLogsQuery);
 
     // --- Actions ---
     const handleToggleTask = (taskId: string, currentStatus: boolean) => {
@@ -191,9 +187,8 @@ export const TasksProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         <TasksContext.Provider value={{
             tasks,
             tasksLoading,
-            taskCategories,
+            taskCategories: taskCategories || PRESET_TASK_CATEGORIES.map(name => ({ id: name, name, isActive: true })),
             taskCategoriesLoading,
-            urgentTasks: null, // This can be derived or fetched separately if needed
             ...derivedState,
             handleToggleTask,
             handleSaveTask,

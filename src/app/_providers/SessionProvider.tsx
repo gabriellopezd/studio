@@ -1,9 +1,8 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { doc, Timestamp, serverTimestamp, writeBatch, increment, collection } from 'firebase/firestore';
-import { useFirebase, useCollection } from '@/firebase';
+import { useFirebase, useCollectionData } from '@/firebase';
 import { ActiveSession } from './types';
 import { Button } from '@/components/ui/button';
 import { Timer, X } from 'lucide-react';
@@ -59,13 +58,11 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
     const [elapsedTime, setElapsedTime] = useState(0);
 
-    // This provider needs access to habits to update streaks, but to avoid circular dependencies
-    // with HabitsProvider, it fetches its own data.
     const allHabitsQuery = useMemo(() => {
       if (!user || !firestore) return null;
       return collection(firestore, `users/${user.uid}/habits`);
     }, [user, firestore]);
-    const { data: allHabits } = useCollection<Habit>(allHabitsQuery);
+    const { data: allHabits } = useCollectionData<Habit>(allHabitsQuery);
 
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
