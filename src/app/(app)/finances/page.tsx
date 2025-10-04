@@ -108,6 +108,10 @@ export default function FinancesPage() {
     annualTotalExpense,
     annualNetSavings,
     annualSavingsRate,
+    annualProjectedIncome,
+    annualProjectedExpense,
+    annualProjectedSavings,
+    annualProjectedSavingsRate,
     handleSaveTransaction,
     handleDeleteTransaction,
     handleSaveBudget,
@@ -417,6 +421,34 @@ export default function FinancesPage() {
                         <CardContent><p className={cn("text-2xl font-bold", annualSavingsRate >= 0 ? "text-emerald-500" : "text-red-500")}>{annualSavingsRate.toFixed(1)}%</p></CardContent>
                     </Card>
                 </div>
+
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="bg-muted/30">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="text-emerald-600"/>Ingreso Proyectado</CardTitle>
+                        </CardHeader>
+                        <CardContent><p className="text-2xl font-bold">{formatCurrency(annualProjectedIncome)}</p></CardContent>
+                    </Card>
+                     <Card className="bg-muted/30">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-base"><TrendingDown className="text-red-600"/>Gasto Proyectado</CardTitle>
+                        </CardHeader>
+                        <CardContent><p className="text-2xl font-bold">{formatCurrency(annualProjectedExpense)}</p></CardContent>
+                    </Card>
+                     <Card className="bg-muted/30">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-base"><Scale className="text-blue-600"/>Ahorro Proyectado</CardTitle>
+                        </CardHeader>
+                        <CardContent><p className={cn("text-2xl font-bold", annualProjectedSavings >= 0 ? "text-emerald-600" : "text-red-600")}>{formatCurrency(annualProjectedSavings)}</p></CardContent>
+                    </Card>
+                     <Card className="bg-muted/30">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-base"><Percent/>Tasa Ahorro Proyectada</CardTitle>
+                        </CardHeader>
+                        <CardContent><p className={cn("text-2xl font-bold", annualProjectedSavingsRate >= 0 ? "text-emerald-600" : "text-red-600")}>{annualProjectedSavingsRate.toFixed(1)}%</p></CardContent>
+                    </Card>
+                </div>
+
 
                 {annualTransactionsLoading ? (
                     <p>Cargando análisis anual...</p>

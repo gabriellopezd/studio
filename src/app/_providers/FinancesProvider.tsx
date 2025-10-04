@@ -47,6 +47,10 @@ interface FinancesContextState {
     annualTotalExpense: number;
     annualNetSavings: number;
     annualSavingsRate: number;
+    annualProjectedIncome: number;
+    annualProjectedExpense: number;
+    annualProjectedSavings: number;
+    annualProjectedSavingsRate: number;
 
     // Actions
     handleSaveTransaction: () => Promise<void>;
@@ -219,8 +223,20 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             const gastos = annualFlowData[i].gastos;
             return { month: name, ingresos, gastos, balance: ingresos - gastos };
         });
+
+        // Projected Annual Analytics
+        const totalAnnualRecurringIncome = allRecurringIncomesData.reduce((total: number, item: any) => total + (item.amount * 12), 0);
+        const nonRecurringAnnualIncome = allAnnualTransactionsData.filter((t: any) => t.type === 'income' && !allRecurringIncomesData.some(ri => ri.name === t.description)).reduce((s: number, t: any) => s + t.amount, 0);
+        const annualProjectedIncome = totalAnnualRecurringIncome + nonRecurringAnnualIncome;
+
+        const totalAnnualRecurringExpense = allRecurringExpensesData.reduce((total: number, item: any) => total + (item.amount * 12), 0);
+        const nonRecurringAnnualExpense = allAnnualTransactionsData.filter((t: any) => t.type === 'expense' && !allRecurringExpensesData.some(re => re.name === t.description)).reduce((s: number, t: any) => s + t.amount, 0);
+        const annualProjectedExpense = totalAnnualRecurringExpense + nonRecurringAnnualExpense;
+
+        const annualProjectedSavings = annualProjectedIncome - annualProjectedExpense;
+        const annualProjectedSavingsRate = annualProjectedIncome > 0 ? (annualProjectedSavings / annualProjectedIncome) * 100 : 0;
         
-        return { monthlyIncome, monthlyExpenses, balance, budget503020, upcomingPayments, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, pendingIncomesTotal, expenseCategories: allExpenseCategoryNames, incomeCategories, categoriesWithoutBudget, sortedLists, annualFlowData, annualCategorySpending, monthlySummaryData, annualTotalIncome, annualTotalExpense, annualNetSavings, annualSavingsRate };
+        return { monthlyIncome, monthlyExpenses, balance, budget503020, upcomingPayments, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, pendingIncomesTotal, expenseCategories: allExpenseCategoryNames, incomeCategories, categoriesWithoutBudget, sortedLists, annualFlowData, annualCategorySpending, monthlySummaryData, annualTotalIncome, annualTotalExpense, annualNetSavings, annualSavingsRate, annualProjectedIncome, annualProjectedExpense, annualProjectedSavings, annualProjectedSavingsRate };
     }, [transactions, annualTransactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, currentMonth]);
 
     // --- Actions ---
