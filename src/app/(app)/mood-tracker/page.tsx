@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { moodLevels } from '@/lib/moods';
-import { useAppContext } from '@/app/_providers/AppProvider';
+import { useMood } from '@/app/_providers/MoodProvider';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -40,7 +40,7 @@ export default function MoodTrackerPage() {
     feelingStats,
     influenceStats,
     handleSaveMood,
-  } = useAppContext();
+  } = useMood();
 
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [step, setStep] = useState(1);
@@ -127,11 +127,8 @@ export default function MoodTrackerPage() {
 
 
   const getMoodForDay = (day: number) => {
-    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-    const moodEntry = moods?.find(
-      (mood) =>
-        new Date(mood.date).toDateString() === date.toDateString()
-    );
+    const dateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const moodEntry = moods?.find((mood) => mood.date === dateStr);
     return moodEntry;
   };
   
@@ -139,7 +136,10 @@ export default function MoodTrackerPage() {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + offset, 1));
   };
   
-  const todayEntry = moods?.find(m => new Date(m.date).toDateString() === new Date().toDateString());
+  const todayEntry = moods?.find(m => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    return m.date === todayStr;
+  });
 
   const activeFeelings = useMemo(() => (feelings || []).filter(f => f.isActive), [feelings]);
   const activeInfluences = useMemo(() => (influences || []).filter(i => i.isActive), [influences]);

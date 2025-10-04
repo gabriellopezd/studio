@@ -6,10 +6,24 @@ import { useFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { writeBatch, doc, collection, getDocs } from 'firebase/firestore';
 import { handleUserLogin, initializeDefaultBudgets, initializeDefaultTaskCategories } from '@/firebase/user-management';
-import { AppState } from './types';
+import { useHabits } from './HabitsProvider';
+import { useTasks } from './TasksProvider';
+import { useFinances } from './FinancesProvider';
+import { useGoals } from './GoalsProvider';
+import { useMood } from './MoodProvider';
+
+// This is a simplified AppState, focusing on actions that cross multiple domains.
+interface AppContextState {
+    firestore: any;
+    user: any;
+    handleResetAllData: () => Promise<void>;
+    handleResetTimeLogs: () => Promise<void>;
+    handleResetMoods: () => Promise<void>;
+    handleResetCategories: () => Promise<void>;
+}
 
 // --- Context Definition ---
-export const AppContext = createContext<AppState | undefined>(undefined);
+export const AppContext = createContext<AppContextState | undefined>(undefined);
 
 export const useAppContext = () => {
     const context = useContext(AppContext);
@@ -23,16 +37,12 @@ export const useAppContext = () => {
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { firestore, user } = useFirebase();
     const { toast } = useToast();
-    const [streaksChecked, setStreaksChecked] = useState(false);
     
-    // --- Centralized Actions that require multiple contexts ---
-
     const handleResetAllData = async () => {
         if (!user || !firestore) return;
         try {
             const batch = writeBatch(firestore);
             
-            // Define collections to delete
             const collectionsToDelete = ['habits', 'routines', 'tasks', 'taskCategories', 'goals', 'moods', 'feelings', 'influences', 'transactions', 'budgets', 'shoppingLists', 'recurringExpenses', 'recurringIncomes', 'timeLogs'];
             
             for (const col of collectionsToDelete) {
@@ -40,7 +50,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 snapshot.forEach(doc => batch.delete(doc.ref));
             }
             
-            // Re-initialize defaults
             await handleUserLogin(user, firestore, user.displayName || undefined, true);
 
             await batch.commit();
@@ -108,8 +117,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     };
 
-    // The root provider doesn't hold state itself, but provides central functions.
-    const value: AppState = {
+    const value: AppContextState = {
         firestore,
         user,
         handleResetAllData,

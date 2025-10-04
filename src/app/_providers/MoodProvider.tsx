@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useMemo, useState, ReactNode } from 'react';
-import { collection, query, where, Timestamp, serverTimestamp, getDocs } from 'firebase/firestore';
+import { collection, query, where, Timestamp, serverTimestamp, getDocs, limit } from 'firebase/firestore';
 import { useFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
 import { Mood } from './types';
 import { useUI } from './UIProvider';
@@ -18,7 +18,6 @@ interface MoodContextState {
     influencesLoading: boolean;
     feelingStats: [string, any][];
     influenceStats: [string, any][];
-    monthlyCompletionData: { day: number; value: number }[];
     handleSaveMood: (moodData: Mood) => Promise<void>;
     currentMonth: Date;
     setCurrentMonth: (date: Date | ((prev: Date) => Date)) => void;
@@ -45,16 +44,22 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const start = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
         const end = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
         end.setHours(23, 59, 59, 999);
-        return query(collection(firestore, 'users', user.uid, 'moods'), where('date', '>=', start.toISOString()), where('date', '<=', end.toISOString()));
+        return query(
+            collection(firestore, 'users', user.uid, 'moods'), 
+            where('date', '>=', start.toISOString().split('T')[0]), 
+            where('date', '<=', end.toISOString().split('T')[0])
+        );
     }, [user, firestore, currentMonth]);
     const { data: moods, isLoading: moodsLoading } = useCollection(moodsQuery);
 
     const todayMoodQuery = useMemo(() => {
         if (!user || !firestore) return null;
-        const today = new Date();
-        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
-        return query(collection(firestore, 'users', user.uid, 'moods'), where('date', '>=', startOfDay.toISOString()), where('date', '<=', endOfDay.toISOString()), where('limit', '==', 1));
+        const todayStr = new Date().toISOString().split('T')[0];
+        return query(
+            collection(firestore, 'users', user.uid, 'moods'), 
+            where('date', '==', todayStr), 
+            limit(1)
+        );
     }, [user, firestore]);
     const { data: todayMoodData } = useCollection(todayMoodQuery);
     
@@ -73,11 +78,11 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (!user || !firestore) return;
         const { date, ...dataToSave } = moodData;
         const dateToSave = date || new Date();
-        const startOfDay = new Date(dateToSave.getFullYear(), dateToSave.getMonth(), dateToSave.getDate());
-        const endOfDay = new Date(dateToSave.getFullYear(), dateToSave.getMonth(), dateToSave.getDate(), 23, 59, 59, 999);
-        const fullMoodData = { ...dataToSave, date: dateToSave.toISOString(), userId: user.uid };
+        const dateString = dateToSave.toISOString().split('T')[0]; // YYYY-MM-DD
+        
+        const fullMoodData = { ...dataToSave, date: dateString, userId: user.uid };
 
-        const q = query(collection(firestore, 'users', user.uid, 'moods'), where('date', '>=', startOfDay.toISOString()), where('date', '<=', endOfDay.toISOString()));
+        const q = query(collection(firestore, 'users', user.uid, 'moods'), where('date', '==', dateString), limit(1));
         const snapshot = await getDocs(q);
 
         if (!snapshot.empty) {
@@ -93,20 +98,12 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const feelingsCount = allMoodsData.flatMap((m: any) => m.feelings).reduce((acc: any, f: any) => { acc[f] = (acc[f] || 0) + 1; return acc; }, {} as Record<string, number>);
         const influencesCount = allMoodsData.flatMap((m: any) => m.influences).reduce((acc: any, i: any) => { acc[i] = (acc[i] || 0) + 1; return acc; }, {} as Record<string, number>);
 
-        const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
-        const monthlyCompletionData = Array.from({ length: daysInMonth }, (_, i) => {
-            const day = i + 1;
-            const mood = allMoodsData.find(m => new Date(m.date).getDate() === day);
-            return { day, value: mood ? (mood.moodLevel / 7) * 100 : 0 };
-        });
-
         return {
             todayMood: todayMoodData?.[0] || null,
             feelingStats: (Object.entries(feelingsCount) as [string, any][]).sort((a, b) => b[1] - a[1]).slice(0, 5),
             influenceStats: (Object.entries(influencesCount) as [string, any][]).sort((a, b) => b[1] - a[1]).slice(0, 5),
-            monthlyCompletionData,
         };
-    }, [moods, todayMoodData, currentMonth]);
+    }, [moods, todayMoodData]);
 
     return (
         <MoodContext.Provider value={{
