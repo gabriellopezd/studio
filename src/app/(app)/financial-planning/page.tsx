@@ -69,6 +69,7 @@ import {
 } from '@dnd-kit/sortable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFinances } from '@/app/_providers/FinancesProvider';
+import { useUI } from '@/app/_providers/UIProvider';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { writeBatch, doc } from 'firebase/firestore';
 
@@ -141,12 +142,15 @@ export default function FinancialPlanningPage() {
     handleConfirmPurchase,
     handleDeleteItem,
     handleRevertPurchase,
+  } = useFinances();
+
+  const {
     modalState,
     handleOpenModal,
     handleCloseModal,
     formState,
     setFormState,
-  } = useFinances();
+  } = useUI();
 
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [motivation, setMotivation] = useState('');
@@ -759,3 +763,4 @@ export default function FinancialPlanningPage() {
     </div>
   );
 }
+
