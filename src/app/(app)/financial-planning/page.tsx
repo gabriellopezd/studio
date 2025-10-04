@@ -41,6 +41,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
   Select,
@@ -67,7 +68,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAppContext } from '@/app/_providers/AppProvider';
+import { useFinances } from '@/app/_providers/FinancesProvider';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { writeBatch, doc } from 'firebase/firestore';
 
@@ -145,7 +146,7 @@ export default function FinancialPlanningPage() {
     handleCloseModal,
     formState,
     setFormState,
-  } = useAppContext();
+  } = useFinances();
 
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [motivation, setMotivation] = useState('');
@@ -758,5 +759,3 @@ export default function FinancialPlanningPage() {
     </div>
   );
 }
-
-    
