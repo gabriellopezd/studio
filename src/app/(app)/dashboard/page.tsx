@@ -28,12 +28,15 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { useAppContext } from '@/app/_providers/AppProvider';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useHabits } from '@/app/_providers/HabitsProvider';
+import { useTasks } from '@/app/_providers/TasksProvider';
+import { useFinances } from '@/app/_providers/FinancesProvider';
+import { useMood } from '@/app/_providers/MoodProvider';
 
 const motivationalQuotes = [
     "El progreso de hoy es el éxito de mañana.",
@@ -78,6 +81,9 @@ export default function DashboardPage() {
     longestCurrentStreak,
     topCurrentStreakHabits,
     habitsLoading,
+  } = useHabits();
+
+  const {
     overdueTasks, 
     todayTasks,
     upcomingTasks,
@@ -88,11 +94,18 @@ export default function DashboardPage() {
     totalDailyTasks,
     dailyTasksProgress,
     tasksLoading,
+  } = useTasks();
+
+  const {
     todayMood, 
     moodsLoading,
+  } = useMood();
+
+  const {
     upcomingPayments,
     recurringExpensesLoading
-  } = useAppContext();
+  } = useFinances();
+
 
   const dailyProgress = dailyHabits.length > 0 ? (completedDaily / dailyHabits.length) * 100 : 0;
   const weeklyProgress = weeklyHabits.length > 0 ? (completedWeekly / weeklyHabits.length) * 100 : 0;
