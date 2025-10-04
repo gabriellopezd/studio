@@ -615,6 +615,13 @@
             "items": {
                 "type": "number"
             }
+        },
+        "overriddenMonths": {
+            "type": "array",
+            "description": "A list of month identifiers (e.g., '2024-8') for which this recurring item has been manually skipped or overridden by the user.",
+            "items": {
+                "type": "string"
+            }
         }
       },
       "required": [
@@ -675,6 +682,13 @@
             "description": "The months of the year this income is active (0=Jan, 11=Dec). If not present, it's active for all months.",
             "items": {
                 "type": "number"
+            }
+        },
+         "overriddenMonths": {
+            "type": "array",
+            "description": "A list of month identifiers (e.g., '2024-8') for which this recurring item has been manually skipped or overridden by the user.",
+            "items": {
+                "type": "string"
             }
         }
       },

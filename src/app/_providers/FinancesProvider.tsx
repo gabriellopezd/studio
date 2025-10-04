@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useMemo, useState, ReactNode } from 'react';
-import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc, arrayUnion } from 'firebase/firestore';
 import { useFirebase, useCollectionData, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useUI } from './UIProvider';
@@ -62,6 +62,7 @@ interface FinancesContextState {
     handleDeleteRecurringItem: () => Promise<void>;
     handlePayRecurringItem: (item: any, type: 'income' | 'expense') => Promise<void>;
     handleRevertRecurringItem: (item: any, type: 'income' | 'expense') => Promise<void>;
+    handleOmitRecurringItem: (item: any, type: 'income' | 'expense') => Promise<void>;
     handleCreateList: () => Promise<void>;
     handleAddItem: (listId: string | null) => Promise<void>;
     handleConfirmPurchase: (listId: string | null) => Promise<void>;
@@ -147,7 +148,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         const allRecurringExpensesData = recurringExpenses || [];
         const allRecurringIncomesData = recurringIncomes || [];
 
-        const currentMonthYear = `${currentMonth.getFullYear()}-${currentMonth.getMonth() + 1}`;
+        const currentMonthIdentifier = `${currentMonth.getFullYear()}-${currentMonth.getMonth()}`;
         const today = new Date();
 
         const monthlyIncome = allTransactionsData.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + t.amount, 0);
@@ -156,15 +157,17 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         const activeMonthIndex = currentMonth.getMonth();
         
         const pendingRecurringExpenses = allRecurringExpensesData.filter((e: any) => 
-            e.lastInstanceCreated !== currentMonthYear &&
-            (!e.activeMonths || e.activeMonths.includes(activeMonthIndex))
+            e.lastInstanceCreated !== currentMonthIdentifier &&
+            (!e.activeMonths || e.activeMonths.includes(activeMonthIndex)) &&
+            !e.overriddenMonths?.includes(currentMonthIdentifier)
         );
-        const paidRecurringExpenses = allRecurringExpensesData.filter((e: any) => e.lastInstanceCreated === currentMonthYear);
+        const paidRecurringExpenses = allRecurringExpensesData.filter((e: any) => e.lastInstanceCreated === currentMonthIdentifier);
         const pendingRecurringIncomes = allRecurringIncomesData.filter((i: any) => 
-            i.lastInstanceCreated !== currentMonthYear &&
-            (!i.activeMonths || i.activeMonths.includes(activeMonthIndex))
+            i.lastInstanceCreated !== currentMonthIdentifier &&
+            (!i.activeMonths || i.activeMonths.includes(activeMonthIndex)) &&
+            !i.overriddenMonths?.includes(currentMonthIdentifier)
         );
-        const receivedRecurringIncomes = allRecurringIncomesData.filter((i: any) => i.lastInstanceCreated === currentMonthYear);
+        const receivedRecurringIncomes = allRecurringIncomesData.filter((i: any) => i.lastInstanceCreated === currentMonthIdentifier);
         
         const pendingIncomesTotal = pendingRecurringIncomes.reduce((s: number, i: any) => s + i.amount, 0);
         const pendingExpensesFromRecurring = pendingRecurringExpenses.reduce((s: number, e: any) => s + e.amount, 0);
@@ -189,7 +192,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
         
         const upcomingPayments = allRecurringExpensesData.filter((e: any) => {
-            if (!e.activeMonths || e.activeMonths.includes(activeMonthIndex)) {
+            if ((!e.activeMonths || e.activeMonths.includes(activeMonthIndex)) && !e.overriddenMonths?.includes(currentMonthIdentifier)) {
                 const dayOfMonth = e.dayOfMonth;
                 const currentDay = today.getDate();
                 const nextSevenDays = new Date();
@@ -397,7 +400,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
     const handlePayRecurringItem = async (item: any, type: 'income' | 'expense') => {
         if (!user || !firestore) return;
         const batch = writeBatch(firestore);
-        const currentMonthYear = `${currentMonth.getFullYear()}-${currentMonth.getMonth() + 1}`;
+        const currentMonthIdentifier = `${currentMonth.getFullYear()}-${currentMonth.getMonth()}`;
 
         const transactionData = { type, description: item.name, category: item.category, date: new Date(currentMonth.getFullYear(), currentMonth.getMonth(), item.dayOfMonth).toISOString(), amount: item.amount, budgetFocus: type === 'expense' ? item.budgetFocus : null, userId: user.uid, createdAt: serverTimestamp() };
         const newTransactionRef = doc(collection(firestore, 'users', user.uid, 'transactions'));
@@ -410,7 +413,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         
         const collectionName = type === 'income' ? 'recurringIncomes' : 'recurringExpenses';
         const itemRef = doc(firestore, 'users', user.uid, collectionName, item.id);
-        batch.update(itemRef, { lastInstanceCreated: currentMonthYear, lastTransactionId: newTransactionRef.id });
+        batch.update(itemRef, { lastInstanceCreated: currentMonthIdentifier, lastTransactionId: newTransactionRef.id });
 
         await batch.commit();
         toast({ title: `Registro exitoso`, description: `${item.name} ha sido registrado.` });
@@ -436,6 +439,20 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         batch.update(itemRef, { lastInstanceCreated: null, lastTransactionId: null });
         await batch.commit();
         toast({ title: 'Reversión exitosa', description: `Se ha deshecho el registro de ${item.name}.` });
+    };
+
+    const handleOmitRecurringItem = async (item: any, type: 'income' | 'expense') => {
+        if (!user || !firestore) return;
+        
+        const currentMonthIdentifier = `${currentMonth.getFullYear()}-${currentMonth.getMonth()}`;
+        const collectionName = type === 'income' ? 'recurringIncomes' : 'recurringExpenses';
+        const itemRef = doc(firestore, 'users', user.uid, collectionName, item.id);
+
+        await updateDocumentNonBlocking(itemRef, {
+            overriddenMonths: arrayUnion(currentMonthIdentifier)
+        });
+
+        toast({ title: 'Item Omitido', description: `${item.name} ha sido omitido para este mes.` });
     };
 
     const handleCreateList = async () => {
@@ -534,6 +551,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             handleDeleteRecurringItem,
             handlePayRecurringItem,
             handleRevertRecurringItem,
+            handleOmitRecurringItem,
             handleCreateList,
             handleAddItem,
             handleConfirmPurchase,

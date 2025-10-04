@@ -21,6 +21,7 @@ import {
   Undo2,
   MoreHorizontal,
   Pencil,
+  XCircle,
 } from 'lucide-react';
 import {
   Dialog,
@@ -70,7 +71,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFinances } from '@/app/_providers/FinancesProvider';
 import { useUI } from '@/app/_providers/UIProvider';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { writeBatch, doc } from 'firebase/firestore';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -138,6 +139,7 @@ export default function FinancialPlanningPage() {
     handleDeleteRecurringItem,
     handlePayRecurringItem,
     handleRevertRecurringItem,
+    handleOmitRecurringItem,
     handleCreateList,
     handleAddItem,
     handleConfirmPurchase,
@@ -572,7 +574,15 @@ export default function FinancialPlanningPage() {
                                         <p className="font-semibold">{income.name}</p>
                                         <p className="text-sm text-muted-foreground">{formatCurrency(income.amount)}</p>
                                     </div>
-                                    <Button onClick={() => handlePayRecurringItem(income, 'income')}><CheckCircle className="mr-2 h-4 w-4" />Recibir</Button>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild><Button variant="outline" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                            <DropdownMenuItem onClick={() => handlePayRecurringItem(income, 'income')}><CheckCircle className="mr-2 h-4 w-4" />Marcar como Recibido</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleOmitRecurringItem(income, 'income')}><XCircle className="mr-2 h-4 w-4" />Omitir este Mes</DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleOpenModal('deleteRecurring', { ...income, type: 'income' })} className="text-red-500"><Trash2 className="mr-2 h-4 w-4" />Eliminar Regla</DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </div>
                             )) : (
                                 !recurringIncomesLoading && <p className="text-sm text-center text-muted-foreground">No tienes ingresos pendientes este mes.</p>
@@ -638,7 +648,15 @@ export default function FinancialPlanningPage() {
                                         <p className="font-semibold">{expense.name}</p>
                                         <p className="text-sm text-muted-foreground">{formatCurrency(expense.amount)}</p>
                                     </div>
-                                    <Button onClick={() => handlePayRecurringItem(expense, 'expense')}><CheckCircle className="mr-2 h-4 w-4" />Pagar</Button>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild><Button variant="outline" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                            <DropdownMenuItem onClick={() => handlePayRecurringItem(expense, 'expense')}><CheckCircle className="mr-2 h-4 w-4" />Marcar como Pagado</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleOmitRecurringItem(expense, 'expense')}><XCircle className="mr-2 h-4 w-4" />Omitir este Mes</DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleOpenModal('deleteRecurring', { ...expense, type: 'expense' })} className="text-red-500"><Trash2 className="mr-2 h-4 w-4" />Eliminar Regla</DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </div>
                             )) : (
                                !recurringExpensesLoading && <p className="text-sm text-center text-muted-foreground">No tienes gastos pendientes este mes.</p>
@@ -773,7 +791,7 @@ export default function FinancialPlanningPage() {
             <AlertDialogHeader>
                 <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                 <AlertDialogDescription>
-                Esta acción no se puede deshacer. Se eliminará "{formState?.name}" permanentemente.
+                Esta acción no se puede deshacer. Se eliminará "{formState?.name}" permanentemente de todos los meses.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
