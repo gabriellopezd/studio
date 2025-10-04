@@ -608,6 +608,13 @@
             "type": "string",
             "description": "The budget focus of the expense.",
             "enum": ["Necesidades", "Deseos", "Ahorros y Deudas"]
+        },
+        "activeMonths": {
+            "type": "array",
+            "description": "The months of the year this expense is active (0=Jan, 11=Dec). If not present, it's active for all months.",
+            "items": {
+                "type": "number"
+            }
         }
       },
       "required": [
@@ -662,6 +669,13 @@
             "null"
           ],
           "description": "The ID of the last transaction created for this recurring income."
+        },
+        "activeMonths": {
+            "type": "array",
+            "description": "The months of the year this income is active (0=Jan, 11=Dec). If not present, it's active for all months.",
+            "items": {
+                "type": "number"
+            }
         }
       },
       "required": [

@@ -72,6 +72,7 @@ import { useFinances } from '@/app/_providers/FinancesProvider';
 import { useUI } from '@/app/_providers/UIProvider';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { writeBatch, doc } from 'firebase/firestore';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 function SortableListItem({
@@ -536,7 +537,7 @@ export default function FinancialPlanningPage() {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle>Ingresos Fijos</CardTitle>
-                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal('recurringItem', { type: 'income' })}>
+                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal('recurringItem', { type: 'income', activeMonths: [0,1,2,3,4,5,6,7,8,9,10,11] })}>
                                 <PlusCircle className="h-4 w-4" />
                             </Button>
                         </CardHeader>
@@ -602,7 +603,7 @@ export default function FinancialPlanningPage() {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle>Gastos Fijos</CardTitle>
-                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal('recurringItem', { type: 'expense' })}>
+                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal('recurringItem', { type: 'expense', activeMonths: [0,1,2,3,4,5,6,7,8,9,10,11] })}>
                                 <PlusCircle className="h-4 w-4" />
                             </Button>
                         </CardHeader>
@@ -691,11 +692,11 @@ export default function FinancialPlanningPage() {
 
         {/* Recurring Item Dialog */}
         <Dialog open={modalState.type === 'recurringItem'} onOpenChange={() => handleCloseModal('recurringItem')}>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle>{formState.id ? 'Editar' : 'Crear'} {formState.type === 'income' ? 'Ingreso' : 'Gasto'} Fijo</DialogTitle>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
+                <div className="grid gap-4 py-4 overflow-y-auto px-1">
                     <div className="space-y-2">
                         <Label htmlFor="recurring-name">Descripción</Label>
                         <Input id="recurring-name" value={formState.name || ''} onChange={(e) => setFormState(prev => ({...prev, name: e.target.value}))} />
@@ -734,6 +735,29 @@ export default function FinancialPlanningPage() {
                                 </Select>
                             </div>
                         )}
+                    </div>
+                    <div className="space-y-3">
+                        <Label>Meses Activos</Label>
+                        <div className="grid grid-cols-4 gap-2 rounded-md border p-4">
+                            {months.map(month => (
+                                <div key={month.value} className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id={`month-${month.value}`}
+                                        checked={(formState.activeMonths || []).includes(month.value)}
+                                        onCheckedChange={(checked) => {
+                                            const currentMonths = formState.activeMonths || [];
+                                            const newMonths = checked
+                                                ? [...currentMonths, month.value]
+                                                : currentMonths.filter((m: number) => m !== month.value);
+                                            setFormState((prev: any) => ({ ...prev, activeMonths: newMonths.sort((a:number,b:number) => a-b) }));
+                                        }}
+                                    />
+                                    <label htmlFor={`month-${month.value}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                        {month.label}
+                                    </label>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
                 <DialogFooter>

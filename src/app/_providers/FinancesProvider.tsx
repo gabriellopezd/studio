@@ -153,9 +153,17 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         const monthlyIncome = allTransactionsData.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + t.amount, 0);
         const monthlyExpenses = allTransactionsData.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + t.amount, 0);
 
-        const pendingRecurringExpenses = allRecurringExpensesData.filter((e: any) => e.lastInstanceCreated !== currentMonthYear);
+        const activeMonthIndex = currentMonth.getMonth();
+        
+        const pendingRecurringExpenses = allRecurringExpensesData.filter((e: any) => 
+            e.lastInstanceCreated !== currentMonthYear &&
+            (!e.activeMonths || e.activeMonths.includes(activeMonthIndex))
+        );
         const paidRecurringExpenses = allRecurringExpensesData.filter((e: any) => e.lastInstanceCreated === currentMonthYear);
-        const pendingRecurringIncomes = allRecurringIncomesData.filter((i: any) => i.lastInstanceCreated !== currentMonthYear);
+        const pendingRecurringIncomes = allRecurringIncomesData.filter((i: any) => 
+            i.lastInstanceCreated !== currentMonthYear &&
+            (!i.activeMonths || i.activeMonths.includes(activeMonthIndex))
+        );
         const receivedRecurringIncomes = allRecurringIncomesData.filter((i: any) => i.lastInstanceCreated === currentMonthYear);
         
         const pendingIncomesTotal = pendingRecurringIncomes.reduce((s: number, i: any) => s + i.amount, 0);
@@ -181,15 +189,17 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
         
         const upcomingPayments = allRecurringExpensesData.filter((e: any) => {
-            const dayOfMonth = e.dayOfMonth;
-            const currentDay = today.getDate();
-            const nextSevenDays = new Date();
-            nextSevenDays.setDate(today.getDate() + 7);
-            if (today.getMonth() === currentMonth.getMonth() && today.getFullYear() === currentMonth.getFullYear()) {
-                if (nextSevenDays.getMonth() !== today.getMonth()) {
-                    return (dayOfMonth >= currentDay) || (dayOfMonth <= nextSevenDays.getDate());
-                } else {
-                    return dayOfMonth >= currentDay && dayOfMonth <= nextSevenDays.getDate();
+            if (!e.activeMonths || e.activeMonths.includes(activeMonthIndex)) {
+                const dayOfMonth = e.dayOfMonth;
+                const currentDay = today.getDate();
+                const nextSevenDays = new Date();
+                nextSevenDays.setDate(today.getDate() + 7);
+                if (today.getMonth() === currentMonth.getMonth() && today.getFullYear() === currentMonth.getFullYear()) {
+                    if (nextSevenDays.getMonth() !== today.getMonth()) {
+                        return (dayOfMonth >= currentDay) || (dayOfMonth <= nextSevenDays.getDate());
+                    } else {
+                        return dayOfMonth >= currentDay && dayOfMonth <= nextSevenDays.getDate();
+                    }
                 }
             }
             return false;
@@ -234,11 +244,11 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         });
 
         // Projected Annual Analytics
-        const totalAnnualRecurringIncome = allRecurringIncomesData.reduce((total: number, item: any) => total + (item.amount * 12), 0);
+        const totalAnnualRecurringIncome = allRecurringIncomesData.reduce((total: number, item: any) => total + (item.amount * (item.activeMonths?.length ?? 12)), 0);
         const nonRecurringAnnualIncome = allAnnualTransactionsData.filter((t: any) => t.type === 'income' && !allRecurringIncomesData.some(ri => ri.name === t.description)).reduce((s: number, t: any) => s + t.amount, 0);
         const annualProjectedIncome = totalAnnualRecurringIncome + nonRecurringAnnualIncome;
 
-        const totalAnnualRecurringExpense = allRecurringExpensesData.reduce((total: number, item: any) => total + (item.amount * 12), 0);
+        const totalAnnualRecurringExpense = allRecurringExpensesData.reduce((total: number, item: any) => total + (item.amount * (item.activeMonths?.length ?? 12)), 0);
         const nonRecurringAnnualExpense = allAnnualTransactionsData.filter((t: any) => t.type === 'expense' && !allRecurringExpensesData.some(re => re.name === t.description)).reduce((s: number, t: any) => s + t.amount, 0);
         const annualProjectedExpense = totalAnnualRecurringExpense + nonRecurringAnnualExpense;
 
@@ -535,4 +545,3 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
     );
 };
 
-    
