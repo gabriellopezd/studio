@@ -32,7 +32,10 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect, useMemo } from 'react';
 import { isHabitCompletedToday } from '@/lib/habits';
 import { cn } from '@/lib/utils';
-import { useAppContext } from '@/app/_providers/AppProvider';
+import { useHabits } from '@/app/_providers/HabitsProvider';
+import { useTasks } from '@/app/_providers/TasksProvider';
+import { useFinances } from '@/app/_providers/FinancesProvider';
+import { useSession } from '@/app/_providers/SessionProvider';
 import { TodaysMoodCard } from './_components/TodaysMoodCard';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -98,19 +101,11 @@ function TaskListItem({ task, onToggle, onStartSession, onStopSession, activeSes
 export default function TodayPage() {
   const [isClient, setIsClient] = useState(false);
   const [motivation, setMotivation] = useState('');
-  const { 
-    allHabits, 
-    habitsLoading, 
-    overdueTasks,
-    todayTasks,
-    tasksLoading, 
-    activeSession, 
-    startSession, 
-    stopSession,
-    handleToggleTask,
-    pendingRecurringExpenses,
-    handlePayRecurringItem,
-  } = useAppContext();
+
+  const { allHabits, habitsLoading } = useHabits();
+  const { overdueTasks, todayTasks, tasksLoading, handleToggleTask } = useTasks();
+  const { activeSession, startSession, stopSession } = useSession();
+  const { pendingRecurringExpenses, handlePayRecurringItem } = useFinances();
 
   useEffect(() => {
     setIsClient(true);
@@ -305,3 +300,5 @@ export default function TodayPage() {
     </>
   );
 }
+
+    
