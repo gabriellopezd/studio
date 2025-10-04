@@ -127,8 +127,9 @@ export default function MoodTrackerPage() {
 
 
   const getMoodForDay = (day: number) => {
-    const dateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const moodEntry = moods?.find((mood) => mood.date === dateStr);
+    const targetDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+    const targetDateStr = targetDate.toISOString().split('T')[0];
+    const moodEntry = moods?.find((mood) => mood.date === targetDateStr);
     return moodEntry;
   };
   
@@ -136,10 +137,10 @@ export default function MoodTrackerPage() {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + offset, 1));
   };
   
-  const todayEntry = moods?.find(m => {
+  const todayEntry = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
-    return m.date === todayStr;
-  });
+    return moods?.find(m => m.date === todayStr);
+  }, [moods]);
 
   const activeFeelings = useMemo(() => (feelings || []).filter(f => f.isActive), [feelings]);
   const activeInfluences = useMemo(() => (influences || []).filter(i => i.isActive), [influences]);

@@ -41,13 +41,13 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // --- Data Fetching ---
     const moodsQuery = useMemo(() => {
         if (!user || !firestore) return null;
-        const start = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-        const end = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-        end.setHours(23, 59, 59, 999);
+        const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+        const startOfNextMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+
         return query(
             collection(firestore, 'users', user.uid, 'moods'), 
-            where('date', '>=', start.toISOString().split('T')[0]), 
-            where('date', '<=', end.toISOString().split('T')[0])
+            where('date', '>=', startOfMonth.toISOString().split('T')[0]), 
+            where('date', '<', startOfNextMonth.toISOString().split('T')[0])
         );
     }, [user, firestore, currentMonth]);
     const { data: moods, isLoading: moodsLoading } = useCollection(moodsQuery);
