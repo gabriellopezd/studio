@@ -34,6 +34,8 @@ import {
   Scale,
   Percent,
   Hourglass,
+  BadgePercent,
+  Calculator,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -95,7 +97,12 @@ export default function FinancesPage() {
     budgets,
     monthlyIncome,
     monthlyExpenses,
-    balance,
+    monthlyBalance,
+    monthlySavingsRate,
+    projectedMonthlyIncome,
+    projectedMonthlyExpense,
+    projectedMonthlyBalance,
+    projectedMonthlySavingsRate,
     budget503020,
     annualFlowData,
     annualCategorySpending,
@@ -113,6 +120,7 @@ export default function FinancesPage() {
     annualProjectedSavingsRate,
     annualIncomeCategorySpending,
     pendingExpensesTotal,
+    pendingIncomesTotal,
     handleSaveTransaction,
     handleDeleteTransaction,
     handleSaveBudget,
@@ -172,70 +180,47 @@ export default function FinancesPage() {
           </TabsList>
           
           <TabsContent value="transactions" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <Card>
-                    <CardHeader>
-                    <CardTitle>Ingresos del Mes</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                    <p className="text-2xl font-bold text-emerald-500">
-                        {formatCurrency(monthlyIncome)}
-                    </p>
-                    </CardContent>
+                    <CardHeader><CardTitle className="text-sm font-medium flex items-center gap-2"><TrendingUp className="text-emerald-500" />Ingreso del Mes</CardTitle></CardHeader>
+                    <CardContent><p className="text-2xl font-bold">{formatCurrency(monthlyIncome)}</p></CardContent>
                 </Card>
                 <Card>
-                    <CardHeader>
-                    <CardTitle>Gastos del Mes</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                    <p className="text-2xl font-bold text-red-500">
-                        {formatCurrency(monthlyExpenses)}
-                    </p>
-                    </CardContent>
+                    <CardHeader><CardTitle className="text-sm font-medium flex items-center gap-2"><TrendingDown className="text-red-500" />Gasto del Mes</CardTitle></CardHeader>
+                    <CardContent><p className="text-2xl font-bold">{formatCurrency(monthlyExpenses)}</p></CardContent>
                 </Card>
                 <Card>
-                    <CardHeader>
-                        <TooltipProvider>
-                            <UITooltip>
-                                <TooltipTrigger asChild>
-                                    <CardTitle>Gastos Pendientes</CardTitle>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                <p>Suma de gastos fijos y variables por pagar.</p>
-                                </TooltipContent>
-                            </UITooltip>
-                        </TooltipProvider>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-2xl font-bold text-amber-500">
-                            {formatCurrency(pendingExpensesTotal)}
-                        </p>
-                    </CardContent>
+                    <CardHeader><CardTitle className="text-sm font-medium flex items-center gap-2"><Scale className="text-blue-500"/>Balance Actual</CardTitle></CardHeader>
+                    <CardContent><p className={cn("text-2xl font-bold", monthlyBalance >= 0 ? 'text-foreground' : 'text-destructive')}>{formatCurrency(monthlyBalance)}</p></CardContent>
                 </Card>
                 <Card>
-                    <CardHeader>
-                        <TooltipProvider>
-                            <UITooltip>
-                                <TooltipTrigger asChild>
-                                    <CardTitle>Balance Proyectado</CardTitle>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                <p>Ingresos - (Gastos Registrados + Gastos Pendientes)</p>
-                                </TooltipContent>
-                            </UITooltip>
-                        </TooltipProvider>
-                    </CardHeader>
-                    <CardContent>
-                    <p className={cn("text-2xl font-bold", balance >= 0 ? "text-emerald-500" : "text-red-500")}>{formatCurrency(balance)}</p>
-                    </CardContent>
+                    <CardHeader><CardTitle className="text-sm font-medium flex items-center gap-2"><BadgePercent className="text-green-600"/>Tasa de Ahorro</CardTitle></CardHeader>
+                    <CardContent><p className={cn("text-2xl font-bold", monthlySavingsRate >= 0 ? 'text-foreground' : 'text-destructive')}>{monthlySavingsRate.toFixed(1)}%</p></CardContent>
+                </Card>
+
+                 <Card className="bg-muted/30">
+                    <CardHeader><CardTitle className="text-sm font-medium flex items-center gap-2"><Hourglass className="text-blue-600"/>Ingresos Pendientes</CardTitle></CardHeader>
+                    <CardContent><p className="text-2xl font-bold">{formatCurrency(pendingIncomesTotal)}</p></CardContent>
+                </Card>
+                <Card className="bg-muted/30">
+                    <CardHeader><CardTitle className="text-sm font-medium flex items-center gap-2"><Hourglass className="text-orange-600"/>Gastos Pendientes</CardTitle></CardHeader>
+                    <CardContent><p className="text-2xl font-bold">{formatCurrency(pendingExpensesTotal)}</p></CardContent>
+                </Card>
+                <Card className="bg-muted/30">
+                    <CardHeader><CardTitle className="text-sm font-medium flex items-center gap-2"><Calculator className="text-indigo-600"/>Balance Proyectado</CardTitle></CardHeader>
+                    <CardContent><p className={cn("text-2xl font-bold", projectedMonthlyBalance >= 0 ? 'text-foreground' : 'text-destructive')}>{formatCurrency(projectedMonthlyBalance)}</p></CardContent>
+                </Card>
+                <Card className="bg-muted/30">
+                    <CardHeader><CardTitle className="text-sm font-medium flex items-center gap-2"><BadgePercent className="text-green-700"/>Tasa Ahorro Proyectada</CardTitle></CardHeader>
+                    <CardContent><p className={cn("text-2xl font-bold", projectedMonthlySavingsRate >= 0 ? 'text-foreground' : 'text-destructive')}>{projectedMonthlySavingsRate.toFixed(1)}%</p></CardContent>
                 </Card>
             </div>
 
             {budget503020 && (
                 <Card className="mb-6">
                     <CardHeader>
-                        <CardTitle>Presupuesto 50/30/20</CardTitle>
-                        <CardDescription>Una guía para distribuir tus ingresos: 50% Necesidades, 30% Deseos, 20% Ahorros y Deudas.</CardDescription>
+                        <CardTitle>Presupuesto 50/30/20 (Proyectado)</CardTitle>
+                        <CardDescription>Una guía para distribuir tus ingresos proyectados: 50% Necesidades, 30% Deseos, 20% Ahorros y Deudas.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div>

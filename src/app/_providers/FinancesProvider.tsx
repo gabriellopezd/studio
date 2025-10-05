@@ -28,7 +28,12 @@ interface FinancesContextState {
     // Derived State
     monthlyIncome: number;
     monthlyExpenses: number;
-    balance: number;
+    monthlyBalance: number;
+    monthlySavingsRate: number;
+    projectedMonthlyIncome: number;
+    projectedMonthlyExpense: number;
+    projectedMonthlyBalance: number;
+    projectedMonthlySavingsRate: number;
     budget503020: any | null;
     upcomingPayments: any[];
     pendingRecurringExpenses: any[];
@@ -155,7 +160,9 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
 
         const monthlyIncome = allTransactionsData.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + t.amount, 0);
         const monthlyExpenses = allTransactionsData.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + t.amount, 0);
-
+        const monthlyBalance = monthlyIncome - monthlyExpenses;
+        const monthlySavingsRate = monthlyIncome > 0 ? (monthlyBalance / monthlyIncome) * 100 : 0;
+        
         const activeMonthIndex = currentMonth.getMonth();
         
         const pendingRecurringExpenses = allRecurringExpensesData.filter((e: any) => 
@@ -179,17 +186,20 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         }, 0);
         const pendingExpensesTotal = pendingExpensesFromRecurring + pendingShoppingListExpenses;
         
-        const balance = (monthlyIncome + pendingIncomesTotal) - (monthlyExpenses + pendingExpensesTotal);
-
+        const projectedMonthlyIncome = monthlyIncome + pendingIncomesTotal;
+        const projectedMonthlyExpense = monthlyExpenses + pendingExpensesTotal;
+        const projectedMonthlyBalance = projectedMonthlyIncome - projectedMonthlyExpense;
+        const projectedMonthlySavingsRate = projectedMonthlyIncome > 0 ? (projectedMonthlyBalance / projectedMonthlyIncome) * 100 : 0;
+        
         let budget503020 = null;
-        if (monthlyIncome > 0) {
+        if (projectedMonthlyIncome > 0) {
             const needsSpend = allTransactionsData.filter((t: any) => t.type === 'expense' && t.budgetFocus === 'Necesidades').reduce((s: number, t: any) => s + t.amount, 0);
             const wantsSpend = allTransactionsData.filter((t: any) => t.type === 'expense' && t.budgetFocus === 'Deseos').reduce((s: number, t: any) => s + t.amount, 0);
             const savingsSpend = allTransactionsData.filter((t: any) => t.type === 'expense' && t.budgetFocus === 'Ahorros y Deudas').reduce((s: number, t: any) => s + t.amount, 0);
             budget503020 = {
-                needs: { budget: monthlyIncome * 0.5, spend: needsSpend, progress: (needsSpend / (monthlyIncome * 0.5)) * 100 },
-                wants: { budget: monthlyIncome * 0.3, spend: wantsSpend, progress: (wantsSpend / (monthlyIncome * 0.3)) * 100 },
-                savings: { budget: monthlyIncome * 0.2, spend: savingsSpend, progress: (savingsSpend / (monthlyIncome * 0.2)) * 100 },
+                needs: { budget: projectedMonthlyIncome * 0.5, spend: needsSpend, progress: (needsSpend / (projectedMonthlyIncome * 0.5)) * 100 },
+                wants: { budget: projectedMonthlyIncome * 0.3, spend: wantsSpend, progress: (wantsSpend / (projectedMonthlyIncome * 0.3)) * 100 },
+                savings: { budget: projectedMonthlyIncome * 0.2, spend: savingsSpend, progress: (savingsSpend / (projectedMonthlyIncome * 0.2)) * 100 },
             };
         }
         
@@ -259,7 +269,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         const annualProjectedSavings = annualProjectedIncome - annualProjectedExpense;
         const annualProjectedSavingsRate = annualProjectedIncome > 0 ? (annualProjectedSavings / annualProjectedIncome) * 100 : 0;
         
-        return { monthlyIncome, monthlyExpenses, balance, budget503020, upcomingPayments, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, pendingIncomesTotal, expenseCategories: allExpenseCategoryNames, incomeCategories, categoriesWithoutBudget, annualFlowData, annualCategorySpending, monthlySummaryData, annualTotalIncome, annualTotalExpense, annualNetSavings, annualSavingsRate, annualProjectedIncome, annualProjectedExpense, annualProjectedSavings, annualProjectedSavingsRate, annualIncomeCategorySpending };
+        return { monthlyIncome, monthlyExpenses, monthlyBalance, monthlySavingsRate, projectedMonthlyIncome, projectedMonthlyExpense, projectedMonthlyBalance, projectedMonthlySavingsRate, budget503020, upcomingPayments, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, pendingIncomesTotal, expenseCategories: allExpenseCategoryNames, incomeCategories, categoriesWithoutBudget, annualFlowData, annualCategorySpending, monthlySummaryData, annualTotalIncome, annualTotalExpense, annualNetSavings, annualSavingsRate, annualProjectedIncome, annualProjectedExpense, annualProjectedSavings, annualProjectedSavingsRate, annualIncomeCategorySpending };
     }, [transactions, annualTransactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, currentMonth]);
 
     // --- Actions ---
