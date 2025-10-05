@@ -17,6 +17,7 @@ export interface Habit {
     previousLastCompletedAt?: any | null;
     lastTimeLogId?: string | null;
     isActive: boolean;
+    presetHabitId?: string | null;
 }
 
 export interface Task {
