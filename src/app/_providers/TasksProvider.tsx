@@ -7,6 +7,8 @@ import { useFirebase, useCollectionData, updateDocumentNonBlocking, addDocumentN
 import { useToast } from '@/hooks/use-toast';
 import { useUI } from './UIProvider';
 import { PRESET_TASK_CATEGORIES } from '@/lib/task-categories';
+import { endOfDay, startOfDay, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
+
 
 interface TasksContextState {
     tasks: any[] | null;
@@ -25,6 +27,12 @@ interface TasksContextState {
     completedTasksByCategory: { name: string; tareas: number }[];
     taskTimeAnalytics: { name: string; minutos: number }[];
     analyticsLoading: boolean;
+    dailyTasksProgress: number;
+    completedDailyTasks: number;
+    totalDailyTasks: number;
+    weeklyTasksProgress: number;
+    completedWeeklyTasks: number;
+    totalWeeklyTasks: number;
     
     // Actions
     handleToggleTask: (taskId: string, currentStatus: boolean) => void;
@@ -137,14 +145,16 @@ export const TasksProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         const analyticsLoading = tasksLoading || taskCategoriesLoading || timeLogsLoading;
 
         const today = new Date();
-        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const tomorrow = new Date(startOfDay); tomorrow.setDate(startOfDay.getDate() + 1);
-        const startOfWeek = getStartOfWeek(today);
-        const endOfWeek = new Date(startOfWeek); endOfWeek.setDate(startOfWeek.getDate() + 6); endOfWeek.setHours(23, 59, 59, 999);
+        const startOfTodayDate = startOfDay(today);
+        const endOfTodayDate = endOfDay(today);
+        const tomorrow = new Date(startOfTodayDate); tomorrow.setDate(startOfTodayDate.getDate() + 1);
+        
+        const startOfWeekDate = startOfWeek(today, { weekStartsOn: 1 });
+        const endOfWeekDate = endOfWeek(today, { weekStartsOn: 1 });
 
-        const overdueTasks = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() < startOfDay);
-        const todayTasks = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= startOfDay && t.dueDate.toDate() < tomorrow);
-        const upcomingTasks = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= tomorrow && t.dueDate.toDate() <= endOfWeek);
+        const overdueTasks = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() < startOfTodayDate);
+        const todayTasks = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= startOfTodayDate && t.dueDate.toDate() < tomorrow);
+        const upcomingTasks = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= tomorrow && t.dueDate.toDate() <= endOfWeekDate);
 
         const completed = allTasksData.filter((t: any) => t.isCompleted).length;
         const total = allTasksData.length;
@@ -162,10 +172,21 @@ export const TasksProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             }
             return acc;
         }, {} as Record<string, any>);
+        
+        const dailyTasks = allTasksData.filter((t: any) => t.dueDate && isWithinInterval(t.dueDate.toDate(), { start: startOfTodayDate, end: endOfTodayDate }));
+        const completedDailyTasks = dailyTasks.filter(t => t.isCompleted).length;
+        const totalDailyTasks = dailyTasks.length;
+        const dailyTasksProgress = totalDailyTasks > 0 ? (completedDailyTasks / totalDailyTasks) * 100 : 0;
+
+        const weeklyTasks = allTasksData.filter((t: any) => t.dueDate && isWithinInterval(t.dueDate.toDate(), { start: startOfWeekDate, end: endOfWeekDate }));
+        const completedWeeklyTasks = weeklyTasks.filter(t => t.isCompleted).length;
+        const totalWeeklyTasks = weeklyTasks.length;
+        const weeklyTasksProgress = totalWeeklyTasks > 0 ? (completedWeeklyTasks / totalWeeklyTasks) * 100 : 0;
+
 
         const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
         const dailyCompletionStats = weekDays.map((name, i) => {
-            const day = new Date(startOfWeek); day.setDate(startOfWeek.getDate() + i);
+            const day = new Date(startOfWeekDate); day.setDate(startOfWeekDate.getDate() + i);
             const dayStart = new Date(day); const dayEnd = new Date(day); dayEnd.setHours(23, 59, 59, 999);
             const dueTasks = allTasksData.filter((t: any) => t.dueDate && t.dueDate.toDate() >= dayStart && t.dueDate.toDate() <= dayEnd);
             const completedOnDay = allTasksData.filter((t: any) => t.isCompleted && t.completionDate && t.completionDate.toDate() >= dayStart && t.completionDate.toDate() <= dayEnd).length;
@@ -184,7 +205,7 @@ export const TasksProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }, {});
         const taskTimeAnalytics = Object.entries(taskTimeTotals).map(([name, value]) => ({ name, minutos: Math.round(value as number / 60) })).filter(item => item.minutos > 0);
 
-        return { analyticsLoading, overdueTasks, todayTasks, upcomingTasks, totalStats, categoryStats, onTimeCompletionRate, dailyCompletionStats, completedTasksByCategory, taskTimeAnalytics };
+        return { analyticsLoading, overdueTasks, todayTasks, upcomingTasks, totalStats, categoryStats, onTimeCompletionRate, dailyCompletionStats, completedTasksByCategory, taskTimeAnalytics, dailyTasksProgress, completedDailyTasks, totalDailyTasks, weeklyTasksProgress, completedWeeklyTasks, totalWeeklyTasks };
     }, [tasks, taskCategories, timeLogs, tasksLoading, taskCategoriesLoading, timeLogsLoading]);
 
     return (
