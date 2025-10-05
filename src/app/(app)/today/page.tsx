@@ -157,7 +157,7 @@ export default function TodayPage() {
         title="Mi Día"
         description={isClient ? `Tu centro de comando para hoy, ${todayString}.` : 'Tu centro de comando para hoy.'}
         motivation={motivation}
-        imageId="dashboard-header"
+        imageId="today-header"
       />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 flex flex-col gap-6">

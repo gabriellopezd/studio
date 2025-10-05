@@ -1,120 +1,60 @@
-
 'use client';
 
-import React, { createContext, useContext, useMemo } from 'react';
-import { useFirebase } from '@/firebase';
-import { useToast } from '@/hooks/use-toast';
-import { writeBatch, collection, getDocs } from 'firebase/firestore';
-import { initializeDefaultBudgets, initializeDefaultTaskCategories } from '@/firebase/user-management';
-import { useHabits } from './HabitsProvider';
-import { useTasks } from './TasksProvider';
-import { useFinances } from './FinancesProvider';
-import { useGoals } from './GoalsProvider';
-import { useMood } from './MoodProvider';
-import { useSession } from './SessionProvider';
+import { Smile } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
+import { useMood } from '@/app/_providers/MoodProvider';
 
-// This is a simplified AppState, focusing on what this provider directly manages
-// or aggregates. The individual feature providers hold their own detailed state.
-interface AppContextState {
-    firestore: any;
-    user: any;
-    handleResetTimeLogs: () => Promise<void>;
-    handleResetMoods: () => Promise<void>;
-    handleResetCategories: () => Promise<void>;
+export function TodaysMoodCard() {
+  const { todayMood } = useMood();
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Smile className="size-5" />
+            <span>¿Cómo te sientes?</span>
+          </CardTitle>
+          <CardDescription>Registra tu estado de ánimo de hoy.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild className="w-full mb-4">
+            <Link href="/mood-tracker">
+                {todayMood ? (
+                <>
+                    <span className="mr-2 text-lg">{todayMood.emoji}</span>
+                    Actualizar mi día
+                </>
+                ) : (
+                'Registrar mi día'
+                )}
+            </Link>
+          </Button>
+          {todayMood && (
+            <div className="space-y-4 text-sm">
+                <div>
+                    <h4 className="font-medium mb-2">Sentimientos:</h4>
+                    <div className="flex flex-wrap gap-1">
+                        {todayMood.feelings.map((feeling: string) => (
+                            <Badge key={feeling} variant="secondary">{feeling}</Badge>
+                        ))}
+                    </div>
+                </div>
+                 <div>
+                    <h4 className="font-medium mb-2">Influencias:</h4>
+                    <div className="flex flex-wrap gap-1">
+                        {todayMood.influences.map((influence: string) => (
+                            <Badge key={influence} variant="secondary">{influence}</Badge>
+                        ))}
+                    </div>
+                </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </>
+  );
 }
-
-export const AppContext = createContext<AppContextState | undefined>(undefined);
-
-export const useAppContext = () => {
-    const context = useContext(AppContext);
-    if (context === undefined) {
-        throw new Error('useAppContext must be used within an AppProvider');
-    }
-    // Now, we also combine the other hooks here for a single point of access
-    return {
-        ...context,
-        ...useHabits(),
-        ...useTasks(),
-        ...useFinances(),
-        ...useGoals(),
-        ...useMood(),
-        ...useSession(),
-    };
-};
-
-export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { firestore, user } = useFirebase();
-    const { toast } = useToast();
-    
-    const handleResetTimeLogs = async () => {
-        if (!user || !firestore) return;
-        try {
-            const batch = writeBatch(firestore);
-            const snapshot = await getDocs(collection(firestore, 'users', user.uid, 'timeLogs'));
-            snapshot.forEach((doc) => {
-                batch.delete(doc.ref);
-            });
-            await batch.commit();
-            toast({ title: 'Tiempo de enfoque reiniciado', description: 'Se han eliminado todos los registros de tiempo.' });
-        } catch (error) {
-            console.error("Error resetting time logs:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo reiniciar el tiempo de enfoque.' });
-        }
-    };
-    
-    const handleResetMoods = async () => {
-        if (!user || !firestore) return;
-        try {
-            const batch = writeBatch(firestore);
-            const snapshot = await getDocs(collection(firestore, 'users', user.uid, 'moods'));
-            snapshot.forEach((doc) => {
-                batch.delete(doc.ref);
-            });
-            await batch.commit();
-            toast({ title: 'Historial de ánimo reiniciado', description: 'Se han eliminado todos los registros de ánimo.' });
-        } catch (error) {
-            console.error("Error resetting moods:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo reiniciar el historial de ánimo.' });
-        }
-    };
-
-    const handleResetCategories = async () => {
-        if (!user || !firestore) return;
-        try {
-            const batch = writeBatch(firestore);
-
-            const collectionsToDelete = ['shoppingLists', 'budgets', 'taskCategories'];
-            for (const col of collectionsToDelete) {
-                const snapshot = await getDocs(collection(firestore, 'users', user.uid, col));
-                snapshot.forEach(doc => batch.delete(doc.ref));
-            }
-
-            const newBatch = writeBatch(firestore);
-            await initializeDefaultTaskCategories(user, firestore, newBatch);
-            await initializeDefaultBudgets(user, firestore, newBatch);
-
-            await batch.commit();
-            await newBatch.commit();
-            
-            toast({ title: 'Categorías Restauradas', description: 'Las categorías se han restaurado a los valores predefinidos.' });
-        } catch (error) {
-            console.error("Error resetting categories:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron restaurar las categorías.' });
-        }
-    };
-    
-
-    const value: AppContextState = {
-        firestore,
-        user,
-        handleResetTimeLogs,
-        handleResetMoods,
-        handleResetCategories,
-    };
-
-    return (
-        <AppContext.Provider value={value}>
-            {children}
-        </AppContext.Provider>
-    );
-};
