@@ -74,6 +74,7 @@ import { useUI } from '@/app/_providers/UIProvider';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { writeBatch, doc } from 'firebase/firestore';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ResponsiveCalendar } from '../tasks/_components/ResponsiveCalendar';
 
 
 function SortableListItem({
@@ -166,6 +167,7 @@ export default function FinancialPlanningPage() {
     handleConfirmPurchase,
     handleDeleteItem,
     handleRevertPurchase,
+    handleSaveTransaction,
   } = useFinances();
 
   const {
@@ -269,6 +271,10 @@ export default function FinancialPlanningPage() {
                     {months.map(month => <SelectItem key={month.value} value={String(month.value)}>{month.label}</SelectItem>)}
                 </SelectContent>
             </Select>
+            <Button onClick={() => handleOpenModal('transaction', { date: new Date() })}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Añadir Transacción
+            </Button>
         </div>
       </PageHeader>
         
@@ -785,6 +791,77 @@ export default function FinancialPlanningPage() {
             </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+
+       {/* Transaction Dialog */}
+        <Dialog open={modalState.type === 'transaction'} onOpenChange={() => handleCloseModal('transaction')}>
+            <DialogContent>
+            <DialogHeader>
+                <DialogTitle>{formState.id ? 'Editar' : 'Añadir'} Transacción</DialogTitle>
+            </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="type">Tipo</Label>
+                        <Select value={formState.type || 'expense'} onValueChange={(value) => setFormState(prev => ({...prev, type: value as 'income' | 'expense'}))}>
+                        <SelectTrigger><SelectValue/></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="expense">Gasto</SelectItem>
+                            <SelectItem value="income">Ingreso</SelectItem>
+                        </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="amount">Monto</Label>
+                        <Input id="amount" type="number" value={formState.amount || ''} onChange={(e) => setFormState(prev => ({...prev, amount: e.target.value}))}/>
+                    </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="description">Descripción</Label>
+                        <Input id="description" value={formState.description || ''} onChange={(e) => setFormState(prev => ({...prev, description: e.target.value}))} />
+                    </div>
+                <div className="space-y-2">
+                    <Label htmlFor="category">Categoría</Label>
+                    <Select value={formState.category || ''} onValueChange={(value) => setFormState(prev => ({...prev, category: value}))}>
+                    <SelectTrigger><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
+                    <SelectContent>
+                        {(formState.type === 'expense' ? expenseCategories : incomeCategories).map((cat) => (
+                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                    </SelectContent>
+                    </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="date">Fecha</Label>
+                        <ResponsiveCalendar
+                        id="date"
+                        value={formState.date ? new Date(formState.date) : undefined}
+                        onSelect={(date) =>
+                            setFormState(prev => ({...prev, date: date}))
+                        }
+                        />
+                    </div>
+                    {formState.type === 'expense' && (
+                        <div className="space-y-2">
+                        <Label htmlFor="budget-focus">Enfoque Presupuesto</Label>
+                        <Select value={formState.budgetFocus || ''} onValueChange={(value) => setFormState(prev => ({...prev, budgetFocus: value}))}>
+                            <SelectTrigger id="budget-focus"><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                            <SelectContent>
+                            <SelectItem value="Necesidades">Necesidades</SelectItem>
+                            <SelectItem value="Deseos">Deseos</SelectItem>
+                            <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        </div>
+                    )}
+                    </div>
+                </div>
+            <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => handleCloseModal('transaction')}>Cancelar</Button>
+                <Button type="submit" onClick={handleSaveTransaction}>Guardar Cambios</Button>
+            </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
