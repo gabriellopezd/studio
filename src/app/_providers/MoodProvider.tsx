@@ -53,10 +53,14 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const todayMoodQuery = useMemo(() => {
         if (!user || !firestore) return null;
-        const todayStr = new Date().toISOString().split('T')[0];
+        const today = new Date();
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).toISOString();
+        
         return query(
             collection(firestore, 'users', user.uid, 'moods'), 
-            where('date', '==', todayStr), 
+            where('date', '>=', startOfDay), 
+            where('date', '<=', endOfDay),
             limit(1)
         );
     }, [user, firestore]);
@@ -73,11 +77,20 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (!user || !firestore) return;
         const { date, ...dataToSave } = moodData;
         const dateToSave = date || new Date();
-        const dateString = dateToSave.toISOString().split('T')[0]; // YYYY-MM-DD
+        const dateString = dateToSave.toISOString().split('T')[0];
+        const fullDateISO = dateToSave.toISOString();
         
-        const fullMoodData = { ...dataToSave, date: dateString, userId: user.uid };
+        const fullMoodData = { ...dataToSave, date: fullDateISO, userId: user.uid };
 
-        const q = query(collection(firestore, 'users', user.uid, 'moods'), where('date', '==', dateString), limit(1));
+        const startOfDay = new Date(dateToSave.getFullYear(), dateToSave.getMonth(), dateToSave.getDate()).toISOString();
+        const endOfDay = new Date(dateToSave.getFullYear(), dateToSave.getMonth(), dateToSave.getDate(), 23, 59, 59, 999).toISOString();
+
+        const q = query(
+            collection(firestore, 'users', user.uid, 'moods'), 
+            where('date', '>=', startOfDay),
+            where('date', '<=', endOfDay),
+            limit(1)
+        );
         const snapshot = await getDocs(q);
 
         if (!snapshot.empty) {
