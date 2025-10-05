@@ -388,17 +388,17 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-3">
                         <Library className="size-5 text-destructive"/>
                         <div>
-                            <p className="font-semibold">Restaurar Categorías</p>
-                            <p className="text-xs text-muted-foreground">Vuelve a las categorías financieras iniciales.</p>
+                            <p className="font-semibold">Reiniciar Datos Financieros</p>
+                            <p className="text-xs text-muted-foreground">Restaura la configuración financiera inicial.</p>
                         </div>
                     </div>
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>¿Restaurar categorías financieras?</AlertDialogTitle>
+                    <AlertDialogTitle>¿Reiniciar datos financieros?</AlertDialogTitle>
                     <AlertDialogDescription>
-                       Esta acción no se puede deshacer. Se eliminarán **todas** tus listas de compra y presupuestos actuales, y se restaurarán las categorías predefinidas.
+                       Esta acción no se puede deshacer. Se eliminarán **todos** tus presupuestos, listas de compra e ingresos/gastos fijos. Las categorías de presupuesto predefinidas serán restauradas.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -407,7 +407,7 @@ export default function SettingsPage() {
                       onClick={handleRestoreDefaults}
                       className="bg-destructive hover:bg-destructive/90"
                     >
-                      Sí, restaurar
+                      Sí, reiniciar
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>

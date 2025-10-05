@@ -529,12 +529,12 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
     
     const handleRestoreDefaults = async () => {
         if (!user || !firestore) return;
-        
         handleCloseModal('restoreDefaults');
+        
         try {
             const batch = writeBatch(firestore);
             
-            const collectionsToDelete = ['shoppingLists', 'budgets'];
+            const collectionsToDelete = ['shoppingLists', 'budgets', 'recurringIncomes', 'recurringExpenses'];
             for (const col of collectionsToDelete) {
                 const snapshot = await getDocs(collection(firestore, 'users', user.uid, col));
                 snapshot.forEach(doc => batch.delete(doc.ref));
@@ -542,7 +542,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             
             PRESET_EXPENSE_CATEGORIES.forEach(categoryName => {
                 const newBudgetRef = doc(collection(firestore, 'users', user.uid, 'budgets'));
-                newBatch.set(newBudgetRef, {
+                batch.set(newBudgetRef, {
                     categoryName: categoryName,
                     monthlyLimit: 0,
                     currentSpend: 0,
@@ -552,10 +552,10 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
 
             await batch.commit();
 
-            toast({ title: 'Categorías Restauradas', description: 'Las categorías financieras se han restaurado a los valores predefinidos.' });
+            toast({ title: 'Configuración Restaurada', description: 'Tus datos financieros de planificación han sido reiniciados.' });
         } catch (error) {
             console.error("Error restoring defaults:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron restaurar las categorías.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo restaurar la configuración.' });
         }
     };
     
