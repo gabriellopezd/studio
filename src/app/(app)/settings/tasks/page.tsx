@@ -11,7 +11,6 @@ import {
   CardDescription
 } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { useAppContext } from '@/app/_providers/AppProvider';
 import {
   updateDocumentNonBlocking,
 } from '@/firebase';
@@ -38,21 +37,26 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { useFirebase } from '@/firebase';
+import { useTasks } from '@/app/_providers/TasksProvider';
+import { useUI } from '@/app/_providers/UIProvider';
 
 export default function TaskSettingsPage() {
+  const { firestore, user } = useFirebase();
   const { 
-    firestore, 
-    user, 
     taskCategories, 
     taskCategoriesLoading, 
     handleDeleteTaskCategory,
     handleSaveTaskCategory,
+  } = useTasks();
+
+  const {
     modalState,
     handleOpenModal,
     handleCloseModal,
     formState,
     setFormState,
-  } = useAppContext();
+  } = useUI();
 
   const handleToggleCategory = async (
     categoryId: string,
@@ -142,7 +146,7 @@ export default function TaskSettingsPage() {
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
                             <AlertDialogAction
-                            onClick={() => handleDeleteTaskCategory(formState.id, formState.name)}
+                            onClick={handleDeleteTaskCategory}
                             className="bg-destructive hover:bg-destructive/90"
                             >
                             Eliminar

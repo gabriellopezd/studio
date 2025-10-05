@@ -9,10 +9,8 @@ import {
   Card,
   CardHeader,
   CardTitle,
-  CardDescription
 } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { useAppContext } from '@/app/_providers/AppProvider';
 import {
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
@@ -26,7 +24,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
@@ -51,11 +48,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useFirebase } from '@/firebase';
+import { useMood } from '@/app/_providers/MoodProvider';
 
 const feelingTypes = ["Positivo Alta Energía", "Positivo Baja Energía", "Negativo Alta Energía", "Negativo Baja Energía"];
 
 export default function FeelingSettingsPage() {
-  const { firestore, user, feelings, feelingsLoading } = useAppContext();
+  const { firestore, user } = useFirebase();
+  const { feelings, feelingsLoading } = useMood();
   const { toast } = useToast();
 
   const [isDialogOpen, setDialogOpen] = useState(false);

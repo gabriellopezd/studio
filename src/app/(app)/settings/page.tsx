@@ -38,9 +38,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { useAppContext } from '@/app/_providers/AppProvider';
 import Link from 'next/link';
 import { doc } from 'firebase/firestore';
 
@@ -48,7 +46,6 @@ export default function SettingsPage() {
   const { user } = useUser();
   const { auth, firestore } = useFirebase();
   const { theme, setTheme } = useTheme();
-  const { handleResetAllStreaks, handleResetTimeLogs, handleResetMoods, handleResetCategories } = useAppContext();
   const userAvatar = PlaceHolderImages.find((img) => img.id === 'default-user-avatar');
   const { toast } = useToast();
 
@@ -66,7 +63,7 @@ export default function SettingsPage() {
   const handleProfileUpdate = async () => {
     if (!user || !auth || !auth.currentUser) return;
     try {
-      await updateProfile(auth.currentUser!, { displayName });
+      await updateProfile(auth.currentUser, { displayName });
       const userDocRef = doc(firestore, 'users', user.uid);
       await updateDocumentNonBlocking(userDocRef, { displayName });
       toast({ title: 'Perfil actualizado' });
@@ -84,13 +81,13 @@ export default function SettingsPage() {
 
     try {
       const credential = EmailAuthProvider.credential(user.email, currentPassword);
-      await reauthenticateWithCredential(auth.currentUser!, credential);
-      await updatePassword(auth.currentUser!, newPassword);
+      await reauthenticateWithCredential(auth.currentUser, credential);
+      await updatePassword(auth.currentUser, newPassword);
       toast({ title: 'Contraseña cambiada exitosamente' });
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (error: any) {
+    } catch (error: any) => {
       toast({ variant: 'destructive', title: 'Error al cambiar contraseña', description: error.message });
     }
   };
@@ -302,7 +299,6 @@ export default function SettingsPage() {
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
                     <AlertDialogAction
-                      onClick={handleResetAllStreaks}
                       className="bg-destructive hover:bg-destructive/90"
                     >
                       Sí, reiniciar todo
@@ -334,7 +330,6 @@ export default function SettingsPage() {
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
                     <AlertDialogAction
-                      onClick={handleResetTimeLogs}
                       className="bg-destructive hover:bg-destructive/90"
                     >
                       Sí, eliminar registros
@@ -366,7 +361,6 @@ export default function SettingsPage() {
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
                     <AlertDialogAction
-                      onClick={handleResetMoods}
                       className="bg-destructive hover:bg-destructive/90"
                     >
                       Sí, eliminar historial
@@ -397,7 +391,6 @@ export default function SettingsPage() {
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
                     <AlertDialogAction
-                      onClick={handleResetCategories}
                       className="bg-destructive hover:bg-destructive/90"
                     >
                       Sí, restaurar

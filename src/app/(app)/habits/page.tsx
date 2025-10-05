@@ -49,12 +49,14 @@ import {
 import { Check, MoreHorizontal, Pencil, PlusCircle, Trash2, Trophy, RotateCcw, Play, Square, CalendarDays, Settings, Flame } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { isHabitCompletedToday } from '@/lib/habits';
-import { useAppContext } from '@/app/_providers/AppProvider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { TooltipProvider, Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import Link from 'next/link';
+import { useHabits } from '@/app/_providers/HabitsProvider';
+import { useSession } from '@/app/_providers/SessionProvider';
+import { useUI } from '@/app/_providers/UIProvider';
 
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Salud", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
@@ -118,27 +120,29 @@ function MonthlyHabitHeatmap({ data }: { data: { day: number, value: number }[] 
 }
 
 export default function HabitsPage() {
-  const { 
-    groupedHabits, 
-    habitsLoading,
-    habitCategoryData,
-    topHabitsByStreak,
-    topHabitsByTime,
-    monthlyCompletionData,
-    analyticsLoading,
-    handleToggleHabit,
-    handleSaveHabit,
-    handleDeleteHabit,
-    handleResetHabitStreak,
-    activeSession, 
-    startSession, 
-    stopSession,
-    modalState,
-    handleOpenModal,
-    handleCloseModal,
-    formState,
-    setFormState,
-  } = useAppContext();
+    const { 
+        groupedHabits, 
+        habitsLoading,
+        habitCategoryData,
+        topHabitsByStreak,
+        topHabitsByTime,
+        monthlyCompletionData,
+        analyticsLoading,
+        handleToggleHabit,
+        handleSaveHabit,
+        handleDeleteHabit,
+        handleResetHabitStreak,
+    } = useHabits();
+    
+    const { activeSession, startSession, stopSession } = useSession();
+    
+    const {
+        modalState,
+        handleOpenModal,
+        handleCloseModal,
+        formState,
+        setFormState,
+    } = useUI();
   
   const [motivation, setMotivation] = useState('');
 

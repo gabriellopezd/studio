@@ -9,10 +9,8 @@ import {
   Card,
   CardHeader,
   CardTitle,
-  CardDescription
 } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { useAppContext } from '@/app/_providers/AppProvider';
 import {
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
@@ -26,7 +24,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
@@ -51,11 +48,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useFirebase } from '@/firebase';
+import { useMood } from '@/app/_providers/MoodProvider';
 
 const influenceCategories = ["Relaciones", "Trabajo y Crecimiento", "Bienestar", "Entorno y Ocio", "Interno"];
 
 export default function InfluenceSettingsPage() {
-  const { firestore, user, influences, influencesLoading } = useAppContext();
+  const { firestore, user } = useFirebase();
+  const { influences, influencesLoading } = useMood();
   const { toast } = useToast();
 
   const [isDialogOpen, setDialogOpen] = useState(false);

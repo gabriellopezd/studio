@@ -2,21 +2,23 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { useAppContext } from '@/app/_providers/AppProvider';
-import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { useFirebase } from '@/firebase';
+import { useHabits } from '@/app/_providers/HabitsProvider';
 
 const habitCategories = ["Productividad", "Conocimiento", "Social", "Salud", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
 
 export default function HabitSettingsPage() {
-  const { firestore, user, presetHabits, allHabits, habitsLoading, presetHabitsLoading } = useAppContext();
+  const { firestore, user } = useFirebase();
+  const { presetHabits, allHabits, habitsLoading, presetHabitsLoading } = useHabits();
 
   const combinedHabitTemplates = useMemo(() => {
     if (presetHabitsLoading || habitsLoading) return [];
@@ -58,20 +60,17 @@ export default function HabitSettingsPage() {
   const handleToggleHabit = async (habitTemplate: any, isActive: boolean) => {
     if (!user || !firestore || !allHabits) return;
   
-    // Find if a habit matching the template already exists for the user
     const existingHabit = allHabits.find(h => 
         (h.presetHabitId && h.presetHabitId === habitTemplate.id) ||
         (habitTemplate.isUserCreated && h.id === habitTemplate.originalId)
     );
   
     if (isActive) {
-      // Deactivating: If the habit exists, set isActive to false
       if (existingHabit) {
         const habitRef = doc(firestore, 'users', user.uid, 'habits', existingHabit.id);
         await updateDocumentNonBlocking(habitRef, { isActive: false });
       }
     } else {
-      // Activating: If the habit exists, set isActive to true. Otherwise, create it.
       if (existingHabit) {
         const habitRef = doc(firestore, 'users', user.uid, 'habits', existingHabit.id);
         await updateDocumentNonBlocking(habitRef, { isActive: true });
@@ -87,7 +86,7 @@ export default function HabitSettingsPage() {
           lastCompletedAt: null,
           userId: user.uid,
           presetHabitId: habitTemplate.isUserCreated ? null : habitTemplate.id,
-          isActive: true, // Always active on creation
+          isActive: true,
         };
         const habitsColRef = collection(firestore, 'users', user.uid, 'habits');
         await addDocumentNonBlocking(habitsColRef, newHabit);

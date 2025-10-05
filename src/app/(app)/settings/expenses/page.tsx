@@ -2,20 +2,21 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { useAppContext } from '@/app/_providers/AppProvider';
 import { updateDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import { PRESET_EXPENSE_CATEGORIES } from '@/lib/transaction-categories';
+import { useFirebase } from '@/firebase';
+import { useFinances } from '@/app/_providers/FinancesProvider';
 
 export default function ExpenseSettingsPage() {
-  const { firestore, user, shoppingLists, shoppingListsLoading } = useAppContext();
+  const { firestore, user } = useFirebase();
+  const { shoppingLists, shoppingListsLoading } = useFinances();
 
   const handleToggleList = async (listId: string, currentStatus: boolean) => {
     if (!user || !firestore) return;
@@ -49,9 +50,6 @@ export default function ExpenseSettingsPage() {
          <Card className="mt-4 flex flex-col items-center justify-center p-10 text-center">
             <CardHeader>
                 <CardTitle className="mt-4">No hay categorías de compra</CardTitle>
-                <CardDescription>
-                    Crea una categoría desde la página de Listas de Compra para empezar.
-                </CardDescription>
             </CardHeader>
         </Card>
       )}
