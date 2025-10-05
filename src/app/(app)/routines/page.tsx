@@ -56,6 +56,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useHabits } from '@/app/_providers/HabitsProvider';
 import { useSession } from '@/app/_providers/SessionProvider';
+import { useUI } from '@/app/_providers/UIProvider';
 
 const motivationalQuotes = [
     "La disciplina es el puente entre las metas y los logros.",
