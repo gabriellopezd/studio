@@ -252,7 +252,7 @@ export default function TasksPage() {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleOpenModal('task', task)}>
+                                    <DropdownMenuItem onClick={() => handleOpenModal('task', { ...task, dueDate: task.dueDate?.toDate() })}>
                                     <Pencil className="mr-2 h-4 w-4" />
                                     Editar
                                     </DropdownMenuItem>

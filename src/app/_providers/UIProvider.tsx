@@ -26,11 +26,8 @@ export const UIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [formState, setFormState] = useState<any>({});
 
     const handleOpenModal = useCallback((type: string, data: any = {}) => {
-        const initialFormState = data 
-          ? { ...data, dueDate: data.dueDate?.toDate ? data.dueDate.toDate() : (data.dueDate || '') } 
-          : {};
-        setFormState(initialFormState);
-        setModalState({ type, data: initialFormState });
+        setFormState(data);
+        setModalState({ type, data });
     }, []);
 
     const handleCloseModal = useCallback((type: string) => {

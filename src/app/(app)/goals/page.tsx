@@ -24,7 +24,6 @@ import {
   PiggyBank,
   CalendarClock,
 } from 'lucide-react';
-import { Timestamp } from 'firebase/firestore';
 import {
   Dialog,
   DialogContent,
@@ -153,7 +152,7 @@ export default function GoalsPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleOpenModal('goal', goal)}>
+                    <DropdownMenuItem onClick={() => handleOpenModal('goal', { ...goal, dueDate: goal.dueDate?.toDate() })}>
                       <Pencil className="mr-2 h-4 w-4" />
                       Editar
                     </DropdownMenuItem>
@@ -330,7 +329,7 @@ export default function GoalsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="goal-due-date">Fecha de Vencimiento</Label>
-                <Input id="goal-due-date" type="date" value={formState.dueDate || ''} onChange={(e) => setFormState(p => ({...p, dueDate: e.target.value}))} disabled={formState.type !== 'generic'} />
+                <Input id="goal-due-date" type="date" value={formState.dueDate ? new Date(formState.dueDate).toISOString().split('T')[0] : ''} onChange={(e) => setFormState(p => ({...p, dueDate: e.target.value}))} disabled={formState.type !== 'generic'} />
               </div>
             </div>
           </div>
