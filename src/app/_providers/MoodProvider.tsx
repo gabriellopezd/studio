@@ -96,6 +96,7 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } else {
             const newDocRef = doc(collection(firestore, 'users', user.uid, 'moods'));
             const fullMoodData = { ...dataToSave, date: dateString, userId: user.uid, createdAt: serverTimestamp(), id: newDocRef.id };
+            // Use setDoc with the new reference, not addDoc on the collection
             await addDocumentNonBlocking(newDocRef, fullMoodData);
         }
     };
