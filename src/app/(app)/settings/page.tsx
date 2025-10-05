@@ -116,12 +116,6 @@ export default function SettingsPage() {
         description: 'Crea y gestiona las categorías para tus tareas.' 
     },
     { 
-        href: '/settings/expenses', 
-        icon: ShoppingCart, 
-        title: 'Categorías de Compras', 
-        description: 'Gestiona qué categorías aparecen como listas de compra.' 
-    },
-    { 
         href: '/settings/mood', 
         icon: Smile, 
         title: 'Personalizar Ánimo', 

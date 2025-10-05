@@ -81,8 +81,8 @@ export default function TaskSettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Categorías de Tareas"
-        description="Gestiona las categorías para organizar tus tareas."
+        title="Categorías de Tareas y Gastos"
+        description="Gestiona las categorías para organizar tus tareas y presupuestos."
         imageId="settings-sub-header"
       >
         <div className="flex items-center gap-2">
@@ -106,7 +106,7 @@ export default function TaskSettingsPage() {
             <CardHeader>
                 <CardTitle className="mt-4">No hay categorías</CardTitle>
                 <CardDescription>
-                    Crea tu primera categoría para empezar a organizar tus tareas.
+                    Crea tu primera categoría para empezar a organizar tus tareas y gastos.
                 </CardDescription>
             </CardHeader>
         </Card>
@@ -130,17 +130,15 @@ export default function TaskSettingsPage() {
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleOpenModal('taskCategory', cat)}>
                         <Pencil className="h-4 w-4" />
                     </Button>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleOpenModal('deleteTaskCategory', cat)}>
+                    <AlertDialog open={modalState.type === 'deleteTaskCategory' && modalState.data?.id === cat.id} onOpenChange={(open) => !open && handleCloseModal('deleteTaskCategory')}>
+                        <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleOpenModal('deleteTaskCategory', cat)}>
                             <Trash2 className="h-4 w-4" />
                         </Button>
-                        </AlertDialogTrigger>
                         <AlertDialogContent>
                         <AlertDialogHeader>
                             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Esta acción no se puede deshacer. Se eliminará la categoría "{formState.name}" y todas las tareas existentes se moverán a la categoría "Otro".
+                                Esta acción no se puede deshacer. Se eliminará la categoría "{cat.name}" y todas las tareas existentes se moverán a la categoría "Otro".
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

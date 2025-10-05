@@ -7,6 +7,7 @@ import { useFirebase, useCollectionData, updateDocumentNonBlocking, addDocumentN
 import { useToast } from '@/hooks/use-toast';
 import { useUI } from './UIProvider';
 import { PRESET_EXPENSE_CATEGORIES } from '@/lib/transaction-categories';
+import { useTasks } from './TasksProvider';
 
 interface FinancesContextState {
     transactions: any[] | null;
@@ -93,6 +94,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
     const { firestore, user } = useFirebase();
     const { toast } = useToast();
     const { formState, handleCloseModal } = useUI();
+    const { taskCategories } = useTasks();
     const [currentMonth, setCurrentMonth] = useState(new Date());
 
     // --- Data Fetching ---
@@ -156,6 +158,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         const allShoppingListsData = shoppingLists || [];
         const allRecurringExpensesData = recurringExpenses || [];
         const allRecurringIncomesData = recurringIncomes || [];
+        const allTaskCategories = taskCategories || [];
 
         const currentMonthIdentifier = `${currentMonth.getFullYear()}-${currentMonth.getMonth()}`;
         const today = new Date();
@@ -222,9 +225,9 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             return false;
         });
 
-        const allExpenseCategoryNames = [...new Set([...allBudgetsData.map((b: any) => b.categoryName), ...allShoppingListsData.map((l: any) => l.name), ...allTransactionsData.filter((t: any) => t.type === 'expense').map((t: any) => t.category)])].filter(Boolean);
+        const expenseCategories = [...new Set(allTaskCategories.map((c:any) => c.name))];
         const incomeCategories = [...new Set(["Salario", "Bonificación", "Otro", ...allTransactionsData.filter((t: any) => t.type === 'income').map((t: any) => t.category)])].filter(Boolean);
-        const categoriesWithoutBudget = allExpenseCategoryNames.filter(cat => !allBudgetsData.some((b: any) => b.categoryName === cat));
+        const categoriesWithoutBudget = expenseCategories.filter(cat => !allBudgetsData.some((b: any) => b.categoryName === cat));
 
         // Annual Analytics
         const annualTotalIncome = allAnnualTransactionsData.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + t.amount, 0);
@@ -271,8 +274,8 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         const annualProjectedSavings = annualProjectedIncome - annualProjectedExpense;
         const annualProjectedSavingsRate = annualProjectedIncome > 0 ? (annualProjectedSavings / annualProjectedIncome) * 100 : 0;
         
-        return { monthlyIncome, monthlyExpenses, monthlyBalance, monthlySavingsRate, projectedMonthlyIncome, projectedMonthlyExpense, projectedMonthlyBalance, projectedMonthlySavingsRate, budget503020, upcomingPayments, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, pendingIncomesTotal, expenseCategories: allExpenseCategoryNames, incomeCategories, categoriesWithoutBudget, annualFlowData, annualCategorySpending, monthlySummaryData, annualTotalIncome, annualTotalExpense, annualNetSavings, annualSavingsRate, annualProjectedIncome, annualProjectedExpense, annualProjectedSavings, annualProjectedSavingsRate, annualIncomeCategorySpending };
-    }, [transactions, annualTransactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, currentMonth]);
+        return { monthlyIncome, monthlyExpenses, monthlyBalance, monthlySavingsRate, projectedMonthlyIncome, projectedMonthlyExpense, projectedMonthlyBalance, projectedMonthlySavingsRate, budget503020, upcomingPayments, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, pendingIncomesTotal, expenseCategories, incomeCategories, categoriesWithoutBudget, annualFlowData, annualCategorySpending, monthlySummaryData, annualTotalIncome, annualTotalExpense, annualNetSavings, annualSavingsRate, annualProjectedIncome, annualProjectedExpense, annualProjectedSavings, annualProjectedSavingsRate, annualIncomeCategorySpending };
+    }, [transactions, annualTransactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, currentMonth, taskCategories]);
 
     // --- Actions ---
 
