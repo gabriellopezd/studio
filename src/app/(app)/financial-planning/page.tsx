@@ -80,6 +80,8 @@ function SortableListItem({
   list,
   selectedListId,
   setSelectedListId,
+  handleOpenDeleteDialog,
+  handleOpenListDialog,
   children,
 }: any) {
   const { attributes, listeners, setNodeRef, transform, transition } =
@@ -91,16 +93,33 @@ function SortableListItem({
   };
 
   return (
-    <li ref={setNodeRef} style={style} className="flex items-center">
+    <li ref={setNodeRef} style={style} className="flex items-center group">
       <Button
         variant={list.id === selectedListId ? 'secondary' : 'ghost'}
-        className="w-full justify-start"
+        className="w-full justify-start h-auto py-2"
         onClick={() => setSelectedListId(list.id)}
       >
         {children}
       </Button>
-      <div {...attributes} {...listeners} className="cursor-grab p-2 touch-none">
-        <GripVertical className="h-5 w-5 text-muted-foreground" />
+      <div className="flex items-center">
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                    <MoreHorizontal className="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleOpenListDialog(list)}>
+                    <Pencil className="mr-2 h-4 w-4" /> Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleOpenDeleteDialog(list)} className="text-destructive">
+                    <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+        <div {...attributes} {...listeners} className="cursor-grab p-2 touch-none">
+            <GripVertical className="h-5 w-5 text-muted-foreground" />
+        </div>
       </div>
     </li>
   );
@@ -141,6 +160,8 @@ export default function FinancialPlanningPage() {
     handleRevertRecurringItem,
     handleOmitRecurringItem,
     handleCreateList,
+    handleUpdateList,
+    handleDeleteList,
     handleAddItem,
     handleConfirmPurchase,
     handleDeleteItem,
@@ -207,31 +228,13 @@ export default function FinancialPlanningPage() {
   const pendingItems = useMemo(() => selectedList?.items.filter((i: any) => !i.isPurchased) || [], [selectedList]);
   const purchasedItems = useMemo(() => selectedList?.items.filter((i: any) => i.isPurchased) || [], [selectedList]);
   
-  const handleDeleteList = async (listId: string) => {
-    if (!user || !firestore) return;
-
-    const listToDelete = shoppingLists?.find((l) => l.id === listId);
-    if (!listToDelete) return;
-    
-    const batch = writeBatch(firestore);
-    
-    const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
-    batch.delete(listRef);
-    
-    try {
-        await batch.commit();
-        if (selectedListId === listId) {
-          setSelectedListId(sortedLists?.[0]?.id ?? null);
-        }
-    } catch(error) {
-        console.error("Error deleting list:", error);
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "No se pudo eliminar la categoría.",
-        });
+  const onListDelete = async () => {
+    if (!formState.id) return;
+    await handleDeleteList(formState.id);
+    if(selectedListId === formState.id){
+      setSelectedListId(sortedLists?.[0]?.id ?? null);
     }
-  };
+  }
 
 
   useEffect(() => {
@@ -307,8 +310,15 @@ export default function FinancialPlanningPage() {
                             { !shoppingListsLoading && sortedLists.length > 0 && (
                             <Card>
                             <CardHeader>
-                                <CardTitle>Categorías de Compra</CardTitle>
-                                <CardDescription>Arrastra para reordenar.</CardDescription>
+                                <div className='flex items-center justify-between'>
+                                    <div>
+                                        <CardTitle>Categorías de Compra</CardTitle>
+                                        <CardDescription>Arrastra para reordenar.</CardDescription>
+                                    </div>
+                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal('list')}>
+                                        <PlusCircle className="h-4 w-4" />
+                                    </Button>
+                                </div>
                             </CardHeader>
                             <CardContent className="p-2">
                                 <DndContext
@@ -327,9 +337,13 @@ export default function FinancialPlanningPage() {
                                         list={list}
                                         selectedListId={selectedListId}
                                         setSelectedListId={setSelectedListId}
+                                        handleOpenDeleteDialog={(l: any) => handleOpenModal('deleteList', l)}
+                                        handleOpenListDialog={(l: any) => handleOpenModal('list', l)}
                                         >
-                                        <ShoppingCart className="mr-2 h-4 w-4" />
-                                        {list.name}
+                                            <div className="flex items-center gap-2">
+                                                <ShoppingCart className="mr-2 h-4 w-4" />
+                                                <span className="flex-1 text-left">{list.name}</span>
+                                            </div>
                                         </SortableListItem>
                                     ))}
                                     </ul>
@@ -350,68 +364,9 @@ export default function FinancialPlanningPage() {
                                     {selectedList.items?.length || 0} artículos en la lista
                                 </CardDescription>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Dialog>
-                                        <DialogTrigger asChild>
-                                            <Button variant="outline" onClick={() => handleOpenModal('list')}><PlusCircle className="mr-2 h-4 w-4" />Crear Categoría</Button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogHeader>
-                                                <DialogTitle>Crear Nueva Categoría de Compra</DialogTitle>
-                                            </DialogHeader>
-                                            <div className="space-y-4">
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="listName">Nombre de la categoría</Label>
-                                                    <Input id="listName" value={formState.listName || ''} onChange={(e) => setFormState(p => ({...p, listName: e.target.value}))} placeholder="Ej: Supermercado, Farmacia..." />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="list-budget-focus">Enfoque Presupuesto</Label>
-                                                    <Select value={formState.listBudgetFocus || 'Deseos'} onValueChange={(val) => setFormState(p => ({...p, listBudgetFocus: val}))}>
-                                                        <SelectTrigger id="list-budget-focus"><SelectValue /></SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="Necesidades">Necesidades</SelectItem>
-                                                            <SelectItem value="Deseos">Deseos</SelectItem>
-                                                            <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                            </div>
-                                            <DialogFooter>
-                                                <DialogClose asChild><Button type="button" onClick={handleCreateList} disabled={!formState.listName}>Crear Categoría</Button></DialogClose>
-                                            </DialogFooter>
-                                        </DialogContent>
-                                    </Dialog>
-                                    <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="text-muted-foreground hover:text-destructive"
-                                        >
-                                        <Trash2 className="h-5 w-5" />
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            Esta acción no se puede deshacer. Esto eliminará
-                                            permanentemente la categoría "{selectedList.name}"
-                                            y todos sus artículos.
-                                        </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction
-                                            onClick={() => handleDeleteList(selectedList.id)}
-                                            className="bg-destructive hover:bg-destructive/90"
-                                        >
-                                            Eliminar
-                                        </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                    </AlertDialog>
-                                </div>
+                                 <div className="md:hidden">
+                                     <Button variant="outline" size="sm" onClick={() => handleOpenModal('list')}><PlusCircle className="mr-2 h-4 w-4" />Crear</Button>
+                                 </div>
                             </CardHeader>
                             <CardContent>
                                 <div className="mb-6 space-y-4 rounded-lg border bg-muted/50 p-4">
@@ -497,32 +452,7 @@ export default function FinancialPlanningPage() {
                                 </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                     <Dialog>
-                                        <DialogTrigger asChild><Button><PlusCircle className="mr-2 h-4 w-4" />Crear Categoría</Button></DialogTrigger>
-                                        <DialogContent>
-                                            <DialogHeader><DialogTitle>Crear Nueva Categoría de Compra</DialogTitle></DialogHeader>
-                                             <div className="space-y-4">
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="listName">Nombre de la categoría</Label>
-                                                    <Input id="listName" value={formState.listName || ''} onChange={(e) => setFormState(p => ({...p, listName: e.target.value}))} placeholder="Ej: Supermercado, Farmacia..." />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="list-budget-focus">Enfoque Presupuesto</Label>
-                                                    <Select value={formState.listBudgetFocus || 'Deseos'} onValueChange={(val) => setFormState(p => ({...p, listBudgetFocus: val}))}>
-                                                        <SelectTrigger id="list-budget-focus"><SelectValue /></SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="Necesidades">Necesidades</SelectItem>
-                                                            <SelectItem value="Deseos">Deseos</SelectItem>
-                                                            <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                            </div>
-                                            <DialogFooter>
-                                                <DialogClose asChild><Button type="button" onClick={handleCreateList} disabled={!formState.listName}>Crear Categoría</Button></DialogClose>
-                                            </DialogFooter>
-                                        </DialogContent>
-                                    </Dialog>
+                                     <Button onClick={() => handleOpenModal('list')}><PlusCircle className="mr-2 h-4 w-4" />Crear Categoría</Button>
                                 </CardContent>
                             </Card>
                             )
@@ -684,6 +614,59 @@ export default function FinancialPlanningPage() {
             </div>
           </TabsContent>
         </Tabs>
+        
+        {/* MODALS */}
+        
+        <Dialog open={modalState.type === 'list'} onOpenChange={(open) => !open && handleCloseModal('list')}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{formState.id ? "Editar Categoría" : "Crear Nueva Categoría"}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="listName">Nombre de la categoría</Label>
+                        <Input id="listName" value={formState.name || ''} onChange={(e) => setFormState(p => ({...p, name: e.target.value}))} placeholder="Ej: Supermercado, Farmacia..." />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="list-budget-focus">Enfoque Presupuesto</Label>
+                        <Select value={formState.budgetFocus || 'Deseos'} onValueChange={(val) => setFormState(p => ({...p, budgetFocus: val}))}>
+                            <SelectTrigger id="list-budget-focus"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Necesidades">Necesidades</SelectItem>
+                                <SelectItem value="Deseos">Deseos</SelectItem>
+                                <SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="outline" onClick={() => handleCloseModal('list')}>Cancelar</Button></DialogClose>
+                    <Button type="button" onClick={formState.id ? handleUpdateList : handleCreateList} disabled={!formState.name}>
+                        {formState.id ? "Guardar Cambios" : "Crear Categoría"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        
+        <AlertDialog open={modalState.type === 'deleteList'} onOpenChange={(open) => !open && handleCloseModal('deleteList')}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Esta acción no se puede deshacer. Se eliminará la categoría "{formState.name}" permanentemente, pero las transacciones asociadas no se borrarán.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => handleCloseModal('deleteList')}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                        onClick={onListDelete}
+                        className="bg-destructive hover:bg-destructive/90"
+                    >
+                        Eliminar
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
 
         <Dialog open={modalState.type === 'purchaseItem'} onOpenChange={() => handleCloseModal('purchaseItem')}>
             <DialogContent>

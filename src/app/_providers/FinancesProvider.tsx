@@ -69,6 +69,8 @@ interface FinancesContextState {
     handleRevertRecurringItem: (item: any, type: 'income' | 'expense') => Promise<void>;
     handleOmitRecurringItem: (item: any, type: 'income' | 'expense') => Promise<void>;
     handleCreateList: () => Promise<void>;
+    handleUpdateList: () => Promise<void>;
+    handleDeleteList: (listId: string) => Promise<void>;
     handleAddItem: (listId: string | null) => Promise<void>;
     handleConfirmPurchase: (listId: string | null) => Promise<void>;
     handleDeleteItem: (listId: string, itemId: string) => Promise<void>;
@@ -467,14 +469,29 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
 
     const handleCreateList = async () => {
-        if (!user || !firestore || !formState.listName) return;
-        if (shoppingLists?.some(l => l.name.toLowerCase() === formState.listName.toLowerCase()) || budgets?.some(b => b.categoryName.toLowerCase() === formState.listName.toLowerCase())) {
-            toast({ variant: "destructive", title: "Categoría Duplicada", description: `La categoría "${formState.listName}" ya existe.` });
+        if (!user || !firestore || !formState.name) return;
+        if (shoppingLists?.some(l => l.name.toLowerCase() === formState.name.toLowerCase()) || budgets?.some(b => b.categoryName.toLowerCase() === formState.name.toLowerCase())) {
+            toast({ variant: "destructive", title: "Categoría Duplicada", description: `La categoría "${formState.name}" ya existe.` });
             return;
         }
-        await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'shoppingLists'), { name: formState.listName, budgetFocus: formState.listBudgetFocus || 'Deseos', items: [], order: shoppingLists?.length || 0, isActive: true, createdAt: serverTimestamp(), userId: user.uid });
+        await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'shoppingLists'), { name: formState.name, budgetFocus: formState.budgetFocus || 'Deseos', items: [], order: shoppingLists?.length || 0, isActive: true, createdAt: serverTimestamp(), userId: user.uid });
         handleCloseModal('list');
     };
+    
+    const handleUpdateList = async () => {
+        if (!user || !firestore || !formState.id || !formState.name) return;
+        const { id, name, budgetFocus } = formState;
+        await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'shoppingLists', id), { name, budgetFocus });
+        handleCloseModal('list');
+    };
+
+    const handleDeleteList = async (listId: string) => {
+        if (!listId || !user || !firestore) return;
+        await deleteDocumentNonBlocking(doc(firestore, 'users', user.uid, 'shoppingLists', listId));
+        toast({ title: 'Categoría Eliminada' });
+        handleCloseModal('deleteList');
+    };
+
 
     const handleAddItem = async (listId: string | null) => {
         if (!listId || !user || !firestore || !formState.itemName || !formState.itemAmount) return;
@@ -618,6 +635,8 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             handleRevertRecurringItem,
             handleOmitRecurringItem,
             handleCreateList,
+            handleUpdateList,
+            handleDeleteList,
             handleAddItem,
             handleConfirmPurchase,
             handleDeleteItem,
