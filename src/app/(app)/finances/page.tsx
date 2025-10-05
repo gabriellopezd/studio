@@ -70,9 +70,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ResponsiveCalendar } from '@/app/(app)/tasks/_components/ResponsiveCalendar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { ResponsiveCalendar } from '@/app/(app)/tasks/_components/ResponsiveCalendar';
 
 const motivationalQuotes = [
     "Tus finanzas son el reflejo de tus hábitos. ¡Constrúyelos sabiamente!",
@@ -541,3 +541,5 @@ export default function FinancesPage() {
     </>
   );
 }
+
+    
