@@ -53,8 +53,9 @@ import { Progress } from '@/components/ui/progress';
 import { isHabitCompletedToday } from '@/lib/habits';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAppContext } from '@/app/_providers/AppProvider';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { useHabits } from '@/app/_providers/HabitsProvider';
+import { useSession } from '@/app/_providers/SessionProvider';
 
 const motivationalQuotes = [
     "La disciplina es el puente entre las metas y los logros.",
@@ -74,18 +75,20 @@ export default function RoutinesPage() {
     routineCompletionAnalytics,
     analyticsLoading,
     handleToggleHabit,
-    activeSession,
-    startSession, 
-    stopSession,
     handleSaveRoutine,
     handleDeleteRoutine,
     handleCompleteRoutine,
+  } = useHabits();
+
+  const { activeSession, startSession, stopSession } = useSession();
+
+  const {
     modalState,
     handleOpenModal,
     handleCloseModal,
     formState,
     setFormState,
-  } = useAppContext();
+  } = useUI();
 
   const [motivation, setMotivation] = useState('');
 

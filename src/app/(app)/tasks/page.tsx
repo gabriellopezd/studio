@@ -52,9 +52,11 @@ import {
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { useAppContext } from '@/app/_providers/AppProvider';
 import { ResponsiveCalendar } from './_components/ResponsiveCalendar';
 import Link from 'next/link';
+import { useTasks } from '@/app/_providers/TasksProvider';
+import { useSession } from '@/app/_providers/SessionProvider';
+import { useUI } from '@/app/_providers/UIProvider';
 
 const motivationalQuotes = [
     "Una tarea completada es un paso más hacia tu meta.",
@@ -83,15 +85,16 @@ export default function TasksPage() {
     handleToggleTask,
     handleSaveTask,
     handleDeleteTask,
-    activeSession, 
-    startSession, 
-    stopSession,
+  } = useTasks();
+
+  const { activeSession, startSession, stopSession } = useSession();
+  const {
     modalState,
     handleOpenModal,
     handleCloseModal,
     formState,
     setFormState,
-  } = useAppContext();
+  } = useUI();
   
   useEffect(() => {
     setIsClient(true);
