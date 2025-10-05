@@ -49,7 +49,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Logo } from '@/components/icons';
 import { useUser, useAuth } from '@/firebase';
-import { AppProvider } from '@/app/_providers/AppProvider';
 import { UIProvider } from '@/app/_providers/UIProvider';
 import { SessionProvider } from '@/app/_providers/SessionProvider';
 import { HabitsProvider } from '@/app/_providers/HabitsProvider';
@@ -257,9 +256,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         <FinancesProvider>
                             <GoalsProvider>
                                 <MoodProvider>
-                                    <AppProvider>
-                                        <AppLayoutContent>{children}</AppLayoutContent>
-                                    </AppProvider>
+                                    <AppLayoutContent>{children}</AppLayoutContent>
                                 </MoodProvider>
                             </GoalsProvider>
                         </FinancesProvider>

@@ -1,11 +1,11 @@
 
 'use client';
 
-import React, { createContext, useContext, useMemo, useState, useEffect } from 'react';
+import React, { createContext, useContext, useMemo } from 'react';
 import { useFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { writeBatch, collection, getDocs, doc } from 'firebase/firestore';
-import { handleUserLogin, initializeDefaultBudgets, initializeDefaultTaskCategories } from '@/firebase/user-management';
+import { writeBatch, collection, getDocs } from 'firebase/firestore';
+import { initializeDefaultBudgets, initializeDefaultTaskCategories } from '@/firebase/user-management';
 import { useHabits } from './HabitsProvider';
 import { useTasks } from './TasksProvider';
 import { useFinances } from './FinancesProvider';
@@ -18,7 +18,6 @@ import { useSession } from './SessionProvider';
 interface AppContextState {
     firestore: any;
     user: any;
-    handleResetAllData: () => Promise<void>;
     handleResetTimeLogs: () => Promise<void>;
     handleResetMoods: () => Promise<void>;
     handleResetCategories: () => Promise<void>;
@@ -47,27 +46,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { firestore, user } = useFirebase();
     const { toast } = useToast();
     
-    const handleResetAllData = async () => {
-        if (!user || !firestore) return;
-        try {
-            const batch = writeBatch(firestore);
-            const collectionsToDelete = ['habits', 'routines', 'tasks', 'taskCategories', 'goals', 'moods', 'feelings', 'influences', 'transactions', 'budgets', 'shoppingLists', 'recurringExpenses', 'recurringIncomes', 'timeLogs'];
-            
-            for (const col of collectionsToDelete) {
-                const snapshot = await getDocs(collection(firestore, 'users', user.uid, col));
-                snapshot.forEach(doc => batch.delete(doc.ref));
-            }
-            
-            await handleUserLogin(user, firestore, user.displayName || undefined);
-
-            await batch.commit();
-            toast({ title: 'Datos restaurados', description: 'Todos tus datos se han reiniciado a los valores predeterminados.' });
-        } catch (error) {
-            console.error("Error resetting all data:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron reiniciar los datos.' });
-        }
-    };
-
     const handleResetTimeLogs = async () => {
         if (!user || !firestore) return;
         try {
@@ -129,7 +107,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const value: AppContextState = {
         firestore,
         user,
-        handleResetAllData,
         handleResetTimeLogs,
         handleResetMoods,
         handleResetCategories,

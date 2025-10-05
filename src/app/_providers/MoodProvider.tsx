@@ -49,18 +49,16 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             where('date', '<', startOfNextMonth.toISOString().split('T')[0])
         );
     }, [user, firestore, currentMonth]);
-    const { data: moods, isLoading: moodsLoading } = useCollectionData(moodsQuery, { withId: true });
+    const { data: moods, isLoading: moodsLoading } = useCollectionData(moodsQuery);
 
     const todayMoodQuery = useMemo(() => {
         if (!user || !firestore) return null;
         const today = new Date();
-        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
-        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).toISOString();
+        const todayString = today.toISOString().split('T')[0];
         
         return query(
             collection(firestore, 'users', user.uid, 'moods'), 
-            where('date', '>=', startOfDay), 
-            where('date', '<=', endOfDay),
+            where('date', '==', todayString),
             limit(1)
         );
     }, [user, firestore]);
@@ -78,17 +76,12 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const { date, ...dataToSave } = moodData;
         const dateToSave = date || new Date();
         const dateString = dateToSave.toISOString().split('T')[0];
-        const fullDateISO = dateToSave.toISOString();
         
-        const fullMoodData = { ...dataToSave, date: fullDateISO, userId: user.uid };
-
-        const startOfDay = new Date(dateToSave.getFullYear(), dateToSave.getMonth(), dateToSave.getDate()).toISOString();
-        const endOfDay = new Date(dateToSave.getFullYear(), dateToSave.getMonth(), dateToSave.getDate(), 23, 59, 59, 999).toISOString();
+        const fullMoodData = { ...dataToSave, date: dateString, userId: user.uid };
 
         const q = query(
             collection(firestore, 'users', user.uid, 'moods'), 
-            where('date', '>=', startOfDay),
-            where('date', '<=', endOfDay),
+            where('date', '==', dateString),
             limit(1)
         );
         const snapshot = await getDocs(q);
