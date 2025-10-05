@@ -16,6 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { moodLevels } from '@/lib/moods';
 import { useMood } from '@/app/_providers/MoodProvider';
+import { useUI } from '@/app/_providers/UIProvider';
 import { cn } from '@/lib/utils';
 import { format, toDate } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -48,14 +49,16 @@ export default function MoodTrackerPage() {
     influenceStats,
     handleSaveMood,
   } = useMood();
-
-  const [isDialogOpen, setDialogOpen] = useState(false);
-  const [step, setStep] = useState(1);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   
-  const [selectedMood, setSelectedMood] = useState<{ level: number; emoji: string; label: string } | null>(null);
-  const [selectedFeelings, setSelectedFeelings] = useState<string[]>([]);
-  const [selectedInfluences, setSelectedInfluences] = useState<string[]>([]);
+  const {
+    modalState,
+    handleOpenModal,
+    handleCloseModal,
+    formState,
+    setFormState,
+  } = useUI();
+
+  const [step, setStep] = useState(1);
   const [motivation, setMotivation] = useState('');
 
   useEffect(() => {
@@ -80,62 +83,42 @@ export default function MoodTrackerPage() {
     const moodEntry = moods?.find((mood) => mood.date === targetDateStr);
     return moodEntry;
   };
-
-  const resetForm = () => {
-    setStep(1);
-    setSelectedMood(null);
-    setSelectedFeelings([]);
-    setSelectedInfluences([]);
-    setSelectedDate(null);
-    setDialogOpen(false);
-  };
   
   const handleDayClick = (day: number) => {
     const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
     const existingMood = getMoodForDay(day);
     
-    setSelectedDate(date);
-    
-    if (existingMood) {
-        setSelectedMood(moodLevels.find(m => m.level === existingMood.moodLevel) || null);
-        setSelectedFeelings(existingMood.feelings || []);
-        setSelectedInfluences(existingMood.influences || []);
-    } else {
-        setSelectedMood(null);
-        setSelectedFeelings([]);
-        setSelectedInfluences([]);
+    const moodData = {
+        date,
+        ...(existingMood 
+            ? { 
+                moodLevel: existingMood.moodLevel,
+                moodLabel: existingMood.moodLabel,
+                emoji: existingMood.emoji,
+                feelings: existingMood.feelings || [],
+                influences: existingMood.influences || [],
+              }
+            : { feelings: [], influences: [] }
+        ),
     }
-
+    handleOpenModal('mood', moodData);
     setStep(1);
-    setDialogOpen(true);
-  };
-
-  const handleMoodSelect = (mood: {level: number; emoji: string; label: string}) => {
-    setSelectedMood(mood);
-    setStep(2);
   };
   
   const handleToggleSelection = (
     item: string,
-    selection: string[],
-    setSelection: React.Dispatch<React.SetStateAction<string[]>>
+    field: 'feelings' | 'influences',
   ) => {
-    setSelection(prev =>
-      prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]
-    );
+    const currentSelection = formState[field] || [];
+    const newSelection = currentSelection.includes(item)
+        ? currentSelection.filter((i: string) => i !== item)
+        : [...currentSelection, item];
+    setFormState({ ...formState, [field]: newSelection });
   };
 
   const onSaveMood = async () => {
-    if (!selectedMood || !selectedDate) return;
-    await handleSaveMood({
-      moodLevel: selectedMood.level,
-      moodLabel: selectedMood.label,
-      emoji: selectedMood.emoji,
-      feelings: selectedFeelings,
-      influences: selectedInfluences,
-      date: selectedDate,
-    });
-    resetForm();
+    await handleSaveMood(formState);
+    handleCloseModal('mood');
   };
 
   const changeMonth = (offset: number) => {
@@ -149,7 +132,7 @@ export default function MoodTrackerPage() {
 
   const activeFeelings = useMemo(() => (feelings || []).filter(f => f.isActive), [feelings]);
   const activeInfluences = useMemo(() => (influences || []).filter(i => i.isActive), [influences]);
-
+  
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -268,11 +251,11 @@ export default function MoodTrackerPage() {
             </Card>
         </div>
       </div>
-      <Dialog open={isDialogOpen} onOpenChange={(open) => !open && resetForm()}>
+      <Dialog open={modalState.type === 'mood'} onOpenChange={(open) => !open && handleCloseModal('mood')}>
           <DialogContent className="max-w-lg">
               <DialogHeader>
               <DialogTitle>
-                  {step === 1 && `¿Cómo te sentiste el ${selectedDate ? format(selectedDate, "d 'de' LLLL", { locale: es }) : ''}?`}
+                  {step === 1 && `¿Cómo te sentiste el ${formState.date ? format(formState.date, "d 'de' LLLL", { locale: es }) : ''}?`}
                   {step === 2 && '¿Qué características describen mejor lo que sentiste?'}
                   {step === 3 && '¿Qué es lo que más influyó en tu ánimo?'}
               </DialogTitle>
@@ -283,9 +266,12 @@ export default function MoodTrackerPage() {
                   {moodLevels.map((mood) => (
                       <Button
                       key={mood.level}
-                      variant={selectedMood?.level === mood.level ? 'secondary' : 'ghost'}
+                      variant={formState.moodLevel === mood.level ? 'secondary' : 'ghost'}
                       size="icon"
-                      onClick={() => handleMoodSelect(mood)}
+                      onClick={() => {
+                        setFormState({...formState, moodLevel: mood.level, emoji: mood.emoji, moodLabel: mood.label});
+                        setStep(2);
+                      }}
                       className="h-24 w-full rounded-lg"
                       >
                       <div className="flex flex-col items-center gap-1">
@@ -304,8 +290,8 @@ export default function MoodTrackerPage() {
                   {activeFeelings.map((feeling) => (
                       <Button 
                           key={feeling.id} 
-                          variant={selectedFeelings.includes(feeling.name) ? 'secondary' : 'outline'}
-                          onClick={() => handleToggleSelection(feeling.name, selectedFeelings, setSelectedFeelings)}
+                          variant={formState.feelings?.includes(feeling.name) ? 'secondary' : 'outline'}
+                          onClick={() => handleToggleSelection(feeling.name, 'feelings')}
                           className="gap-2"
                       >
                           <span>{feeling.icon}</span>
@@ -320,8 +306,8 @@ export default function MoodTrackerPage() {
                   {activeInfluences.map((influence) => (
                       <Button 
                           key={influence.id} 
-                          variant={selectedInfluences.includes(influence.name) ? 'secondary' : 'outline'}
-                          onClick={() => handleToggleSelection(influence.name, selectedInfluences, setSelectedInfluences)}
+                          variant={formState.influences?.includes(influence.name) ? 'secondary' : 'outline'}
+                          onClick={() => handleToggleSelection(influence.name, 'influences')}
                           className="gap-2"
                       >
                           <span>{influence.icon}</span>
@@ -338,12 +324,12 @@ export default function MoodTrackerPage() {
                   </Button>
               )}
               {step < 3 && (
-                  <Button onClick={() => setStep(s => s + 1)} disabled={(step === 1 && !selectedMood) || (step === 2 && selectedFeelings.length === 0)}>
+                  <Button onClick={() => setStep(s => s + 1)} disabled={(step === 1 && !formState.moodLevel) || (step === 2 && formState.feelings?.length === 0)}>
                       Siguiente
                   </Button>
               )}
                   {step === 3 && (
-                  <Button onClick={onSaveMood} disabled={selectedInfluences.length === 0}>
+                  <Button onClick={onSaveMood} disabled={formState.influences?.length === 0}>
                       Guardar Registro
                   </Button>
               )}
@@ -353,3 +339,5 @@ export default function MoodTrackerPage() {
     </div>
   );
 }
+
+    

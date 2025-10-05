@@ -26,6 +26,7 @@ export const UIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [formState, setFormState] = useState<any>({});
 
     const handleOpenModal = useCallback((type: string, data: any = {}) => {
+        // Just store the data as-is. Conversion will happen in the specific provider.
         setFormState(data);
         setModalState({ type, data });
     }, []);
@@ -33,7 +34,7 @@ export const UIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const handleCloseModal = useCallback((type: string) => {
         if (modalState.type === type) {
             setModalState({ type: null });
-            setFormState({});
+            setFormState({}); // Always clear form state on close
         }
     }, [modalState.type]);
 
@@ -49,3 +50,5 @@ export const UIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         </UIContext.Provider>
     );
 };
+
+    
