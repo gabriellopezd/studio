@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { moodLevels } from '@/lib/moods';
 import { useMood } from '@/app/_providers/MoodProvider';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, toDate } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
 
@@ -28,6 +28,13 @@ const motivationalQuotes = [
     "Reconocer cómo te sientes es un acto de valentía.",
     "El autoconocimiento emocional es una superpotencia."
 ];
+
+// Helper to get date as YYYY-MM-DD string, adjusted for timezone
+const toYYYYMMDD = (date: Date): string => {
+    const d = new Date(date);
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().split('T')[0];
+};
 
 export default function MoodTrackerPage() {
   const { 
@@ -67,6 +74,12 @@ export default function MoodTrackerPage() {
   const allCalendarDays = [...emptyDays, ...calendarDays];
   const weekDays = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
+  const getMoodForDay = (day: number) => {
+    const targetDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+    const targetDateStr = toYYYYMMDD(targetDate);
+    const moodEntry = moods?.find((mood) => mood.date === targetDateStr);
+    return moodEntry;
+  };
 
   const resetForm = () => {
     setStep(1);
@@ -125,20 +138,12 @@ export default function MoodTrackerPage() {
     resetForm();
   };
 
-
-  const getMoodForDay = (day: number) => {
-    const targetDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-    const targetDateStr = targetDate.toISOString().split('T')[0];
-    const moodEntry = moods?.find((mood) => mood.date === targetDateStr);
-    return moodEntry;
-  };
-  
   const changeMonth = (offset: number) => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + offset, 1));
   };
   
   const todayEntry = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = toYYYYMMDD(new Date());
     return moods?.find(m => m.date === todayStr);
   }, [moods]);
 
@@ -175,7 +180,7 @@ export default function MoodTrackerPage() {
                     <ChevronLeft className="h-4 w-4" />
                     </Button>
                     <h2 className="text-center font-bold text-lg capitalize">
-                        {currentMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+                        {format(currentMonth, 'LLLL yyyy', { locale: es })}
                     </h2>
                     <Button variant="outline" size="icon" onClick={() => changeMonth(1)}>
                     <ChevronRight className="h-4 w-4" />

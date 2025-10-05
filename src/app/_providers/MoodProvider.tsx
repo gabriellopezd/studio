@@ -1,16 +1,25 @@
+
 'use client';
 
 import React, { createContext, useContext, useMemo, useState, ReactNode } from 'react';
-import { collection, query, where, Timestamp, serverTimestamp, getDocs, limit } from 'firebase/firestore';
+import { collection, query, where, Timestamp, serverTimestamp, getDocs, limit, doc } from 'firebase/firestore';
 import { useFirebase, useCollectionData, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
-import { Mood } from './types';
 import { useUI } from './UIProvider';
 import { defaultFeelings, defaultInfluences } from '@/lib/moods';
+import type { Mood } from './types';
+
+// Helper to get date as YYYY-MM-DD string, adjusted for timezone
+const toYYYYMMDD = (date: Date): string => {
+    const d = new Date(date);
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().split('T')[0];
+};
 
 interface MoodContextState {
     moods: any[] | null;
     moodsLoading: boolean;
     todayMood: any | null;
+    todayMoodLoading: boolean;
     feelings: any[] | null;
     feelingsLoading: boolean;
     influences: any[] | null;
@@ -34,35 +43,32 @@ export const useMood = () => {
 
 export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { firestore, user } = useFirebase();
-    const { handleCloseModal } = useUI();
     const [currentMonth, setCurrentMonth] = useState(new Date());
 
     // --- Data Fetching ---
     const moodsQuery = useMemo(() => {
         if (!user || !firestore) return null;
-        const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-        const startOfNextMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+        const startOfMonth = toYYYYMMDD(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1));
+        const endOfMonth = toYYYYMMDD(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0));
 
         return query(
             collection(firestore, 'users', user.uid, 'moods'), 
-            where('date', '>=', startOfMonth.toISOString().split('T')[0]), 
-            where('date', '<', startOfNextMonth.toISOString().split('T')[0])
+            where('date', '>=', startOfMonth), 
+            where('date', '<=', endOfMonth)
         );
     }, [user, firestore, currentMonth]);
     const { data: moods, isLoading: moodsLoading } = useCollectionData(moodsQuery);
 
     const todayMoodQuery = useMemo(() => {
         if (!user || !firestore) return null;
-        const today = new Date();
-        const todayString = today.toISOString().split('T')[0];
-        
+        const todayString = toYYYYMMDD(new Date());
         return query(
             collection(firestore, 'users', user.uid, 'moods'), 
             where('date', '==', todayString),
             limit(1)
         );
     }, [user, firestore]);
-    const { data: todayMoodData } = useCollectionData(todayMoodQuery);
+    const { data: todayMoodData, isLoading: todayMoodLoading } = useCollectionData(todayMoodQuery);
     
     const feelingsQuery = useMemo(() => user ? collection(firestore, 'users', user.uid, 'feelings') : null, [user, firestore]);
     const { data: feelings, isLoading: feelingsLoading } = useCollectionData(feelingsQuery);
@@ -75,7 +81,7 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (!user || !firestore) return;
         const { date, ...dataToSave } = moodData;
         const dateToSave = date || new Date();
-        const dateString = dateToSave.toISOString().split('T')[0];
+        const dateString = toYYYYMMDD(dateToSave);
         
         const fullMoodData = { ...dataToSave, date: dateString, userId: user.uid };
 
@@ -89,7 +95,8 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (!snapshot.empty) {
             await updateDocumentNonBlocking(snapshot.docs[0].ref, fullMoodData);
         } else {
-            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'moods'), { ...fullMoodData, createdAt: serverTimestamp() });
+            const newDocRef = doc(collection(firestore, 'users', user.uid, 'moods'));
+            await addDocumentNonBlocking(newDocRef, { ...fullMoodData, createdAt: serverTimestamp(), id: newDocRef.id });
         }
     };
 
@@ -110,13 +117,16 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         <MoodContext.Provider value={{
             moods,
             moodsLoading,
+            todayMood: derivedState.todayMood,
+            todayMoodLoading,
             feelings: feelings || defaultFeelings,
             feelingsLoading,
             influences: influences || defaultInfluences,
             influencesLoading,
             currentMonth,
             setCurrentMonth,
-            ...derivedState,
+            feelingStats: derivedState.feelingStats,
+            influenceStats: derivedState.influenceStats,
             handleSaveMood,
         }}>
             {children}

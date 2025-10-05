@@ -1,9 +1,15 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
+import { UIProvider } from '@/app/_providers/UIProvider';
+import { SessionProvider } from '@/app/_providers/SessionProvider';
+import { HabitsProvider } from '@/app/_providers/HabitsProvider';
+import { TasksProvider } from '@/app/_providers/TasksProvider';
+import { FinancesProvider } from '@/app/_providers/FinancesProvider';
+import { GoalsProvider } from '@/app/_providers/GoalsProvider';
+import { MoodProvider } from '@/app/_providers/MoodProvider';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Bell,
@@ -49,13 +55,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Logo } from '@/components/icons';
 import { useUser, useAuth } from '@/firebase';
-import { UIProvider } from '@/app/_providers/UIProvider';
-import { SessionProvider } from '@/app/_providers/SessionProvider';
-import { HabitsProvider } from '@/app/_providers/HabitsProvider';
-import { TasksProvider } from '@/app/_providers/TasksProvider';
-import { FinancesProvider } from '@/app/_providers/FinancesProvider';
-import { GoalsProvider } from '@/app/_providers/GoalsProvider';
-import { MoodProvider } from '@/app/_providers/MoodProvider';
 
 const navItems = {
   planning: [
@@ -88,7 +87,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     (img) => img.id === 'default-user-avatar'
   );
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/login');
     }
@@ -264,5 +263,5 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </HabitsProvider>
             </SessionProvider>
         </UIProvider>
-    )
+    );
 }
