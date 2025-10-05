@@ -83,8 +83,6 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const dateToSave = date || new Date();
         const dateString = toYYYYMMDD(dateToSave);
         
-        const fullMoodData = { ...dataToSave, date: dateString, userId: user.uid };
-
         const q = query(
             collection(firestore, 'users', user.uid, 'moods'), 
             where('date', '==', dateString),
@@ -93,10 +91,12 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const snapshot = await getDocs(q);
 
         if (!snapshot.empty) {
-            await updateDocumentNonBlocking(snapshot.docs[0].ref, fullMoodData);
+            const existingDocRef = snapshot.docs[0].ref;
+            await updateDocumentNonBlocking(existingDocRef, dataToSave);
         } else {
             const newDocRef = doc(collection(firestore, 'users', user.uid, 'moods'));
-            await addDocumentNonBlocking(newDocRef, { ...fullMoodData, createdAt: serverTimestamp(), id: newDocRef.id });
+            const fullMoodData = { ...dataToSave, date: dateString, userId: user.uid, createdAt: serverTimestamp(), id: newDocRef.id };
+            await addDocumentNonBlocking(newDocRef, fullMoodData);
         }
     };
 
