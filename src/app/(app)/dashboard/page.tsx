@@ -33,10 +33,7 @@ import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { useHabits } from '@/app/_providers/HabitsProvider';
-import { useTasks } from '@/app/_providers/TasksProvider';
-import { useFinances } from '@/app/_providers/FinancesProvider';
-import { useMood } from '@/app/_providers/MoodProvider';
+import { useAppContext } from '@/app/_providers/AppProvider';
 
 const motivationalQuotes = [
     "El progreso de hoy es el éxito de mañana.",
@@ -80,24 +77,15 @@ export default function DashboardPage() {
     topLongestStreakHabits,
     longestCurrentStreak,
     topCurrentStreakHabits,
-  } = useHabits();
-
-  const {
     overdueTasks, 
     todayTasks,
     upcomingTasks,
     totalStats,
-  } = useTasks();
-
-  const {
     todayMood, 
     moodsLoading,
-  } = useMood();
-
-  const {
     upcomingPayments,
     recurringExpensesLoading
-  } = useFinances();
+  } = useAppContext();
 
 
   const dailyProgress = dailyHabits.length > 0 ? (completedDaily / dailyHabits.length) * 100 : 0;

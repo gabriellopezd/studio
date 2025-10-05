@@ -6,10 +6,10 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { useMood } from '@/app/_providers/MoodProvider';
+import { useAppContext } from '@/app/_providers/AppProvider';
 
 export function TodaysMoodCard() {
-  const { todayMood } = useMood();
+  const { todayMood } = useAppContext();
 
   return (
     <>

@@ -1,12 +1,20 @@
 
 'use client';
 
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, useMemo, useState, useEffect } from 'react';
 import { useFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { writeBatch, collection, getDocs } from 'firebase/firestore';
+import { writeBatch, collection, getDocs, doc } from 'firebase/firestore';
 import { handleUserLogin, initializeDefaultBudgets, initializeDefaultTaskCategories } from '@/firebase/user-management';
+import { useHabits } from './HabitsProvider';
+import { useTasks } from './TasksProvider';
+import { useFinances } from './FinancesProvider';
+import { useGoals } from './GoalsProvider';
+import { useMood } from './MoodProvider';
+import { useSession } from './SessionProvider';
 
+// This is a simplified AppState, focusing on what this provider directly manages
+// or aggregates. The individual feature providers hold their own detailed state.
 interface AppContextState {
     firestore: any;
     user: any;
@@ -23,10 +31,19 @@ export const useAppContext = () => {
     if (context === undefined) {
         throw new Error('useAppContext must be used within an AppProvider');
     }
-    return context;
+    // Now, we also combine the other hooks here for a single point of access
+    return {
+        ...context,
+        ...useHabits(),
+        ...useTasks(),
+        ...useFinances(),
+        ...useGoals(),
+        ...useMood(),
+        ...useSession(),
+    };
 };
 
-export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { firestore, user } = useFirebase();
     const { toast } = useToast();
     
@@ -50,7 +67,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron reiniciar los datos.' });
         }
     };
-    
+
     const handleResetTimeLogs = async () => {
         if (!user || !firestore) return;
         try {
@@ -66,7 +83,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo reiniciar el tiempo de enfoque.' });
         }
     };
-
+    
     const handleResetMoods = async () => {
         if (!user || !firestore) return;
         try {
@@ -107,6 +124,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron restaurar las categorías.' });
         }
     };
+    
 
     const value: AppContextState = {
         firestore,

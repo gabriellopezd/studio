@@ -250,25 +250,22 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
-        <AppProvider>
-          <UIProvider>
+        <UIProvider>
             <SessionProvider>
                 <HabitsProvider>
                     <TasksProvider>
                         <FinancesProvider>
                             <GoalsProvider>
                                 <MoodProvider>
-                                    <AppLayoutContent>{children}</AppLayoutContent>
+                                    <AppProvider>
+                                        <AppLayoutContent>{children}</AppLayoutContent>
+                                    </AppProvider>
                                 </MoodProvider>
                             </GoalsProvider>
                         </FinancesProvider>
                     </TasksProvider>
                 </HabitsProvider>
             </SessionProvider>
-          </UIProvider>
-        </AppProvider>
+        </UIProvider>
     )
 }
-    
-
-    
