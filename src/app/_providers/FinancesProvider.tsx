@@ -562,4 +562,3 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         </FinancesContext.Provider>
     );
 };
-

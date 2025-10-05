@@ -356,7 +356,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Mood",
       "type": "object",
-      "description": "Represents a mood entry for a specific day.",
+      "description": "Represents a mood entry.",
       "properties": {
         "id": {
           "type": "string",
@@ -368,8 +368,8 @@
         },
         "date": {
           "type": "string",
-          "description": "The date of the mood entry in YYYY-MM-DD format.",
-          "format": "date"
+          "description": "Timestamp indicating the date of the mood entry.",
+          "format": "date-time"
         },
         "moodLevel": {
           "type": "number",
@@ -871,5 +871,3 @@
   },
   "reasoning": "This architecture adheres to the 'Aislamiento Total por Propietario' principle by nesting all user-specific data under a `/users/{userId}` path, linking data ownership directly to the document path for simple, robust security. It also follows the 'Las Reglas Documentan el Acceso' principle by explicitly separating collection-level `list` rules from document-level `get`, `create`, `update`, and `delete` rules for every entity. This creates a clear contract for the client-side code: to read a list of items, it MUST query the specific collection path (e.g., `/users/{userId}/tasks`), which the `list` rule permits. To interact with a single document, it MUST reference the specific document path (e.g., `/users/{userId}/tasks/{taskId}`). This structural separation prevents insecure queries and makes 'Missing or insufficient permissions' errors a matter of incorrect code paths rather than complex rule logic, thus building a secure and predictable foundation."
 }
-
-    

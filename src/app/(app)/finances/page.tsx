@@ -689,7 +689,3 @@ export default function FinancesPage() {
     </>
   );
 }
-
-    
-
-    
