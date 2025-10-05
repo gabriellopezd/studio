@@ -274,11 +274,11 @@ export default function RoutinesPage() {
           <div className="grid gap-4 py-4 overflow-y-auto px-1">
             <div className="space-y-2">
               <Label htmlFor="routine-name">Nombre</Label>
-              <Input id="routine-name" value={formState.name || ''} onChange={(e) => setFormState(p => ({...p, name: e.target.value}))} />
+              <Input id="routine-name" value={formState.name || ''} onChange={(e) => setFormState((p: any) => ({...p, name: e.target.value}))} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="routine-desc">Descripción</Label>
-              <Textarea id="routine-desc" value={formState.description || ''} onChange={(e) => setFormState(p => ({...p, description: e.target.value}))} />
+              <Textarea id="routine-desc" value={formState.description || ''} onChange={(e) => setFormState((p: any) => ({...p, description: e.target.value}))} />
             </div>
             <div className="space-y-2">
               <Label>Hábitos</Label>
@@ -291,7 +291,7 @@ export default function RoutinesPage() {
                         onCheckedChange={(checked) => {
                           const currentIds = formState.habitIds || [];
                           const newIds = checked ? [...currentIds, habit.id] : currentIds.filter((id: string) => id !== habit.id);
-                          setFormState(p => ({...p, habitIds: newIds}));
+                          setFormState((p: any) => ({...p, habitIds: newIds}));
                         }}
                       />
                       <Label htmlFor={`habit-${habit.id}`} className="flex items-center gap-2 font-normal cursor-pointer">
