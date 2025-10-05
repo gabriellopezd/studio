@@ -1,16 +1,15 @@
 
 'use client';
 
-import { useState } from 'react';
 import { Smile } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useAppContext } from '@/app/_providers/AppProvider';
 import Link from 'next/link';
+import { useMood } from '@/app/_providers/MoodProvider';
 
 export function TodaysMoodCard() {
-  const { todayMood } = useAppContext();
+  const { todayMood } = useMood();
 
   return (
     <>

@@ -80,20 +80,13 @@ export default function DashboardPage() {
     topLongestStreakHabits,
     longestCurrentStreak,
     topCurrentStreakHabits,
-    habitsLoading,
   } = useHabits();
 
   const {
     overdueTasks, 
     todayTasks,
     upcomingTasks,
-    completedWeeklyTasks, 
-    totalWeeklyTasks, 
-    weeklyTasksProgress,
-    completedDailyTasks,
-    totalDailyTasks,
-    dailyTasksProgress,
-    tasksLoading,
+    totalStats,
   } = useTasks();
 
   const {
@@ -193,12 +186,12 @@ export default function DashboardPage() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                     <SquareCheck className="size-5"/>
-                    Tareas Diarias
+                    Tareas del Día
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <Progress value={dailyTasksProgress} className="mb-2 h-3"/>
-                <p className="text-sm text-muted-foreground">{completedDailyTasks} de {totalDailyTasks} completadas.</p>
+                 <Progress value={totalStats.completionRate} className="mb-2 h-3"/>
+                <p className="text-sm text-muted-foreground">{totalStats.completed} de {totalStats.total} completadas.</p>
             </CardContent>
         </Card>
         <Card>
@@ -221,8 +214,8 @@ export default function DashboardPage() {
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <Progress value={weeklyTasksProgress} className="mb-2 h-3"/>
-                <p className="text-sm text-muted-foreground">{completedWeeklyTasks} de {totalWeeklyTasks} tareas completadas esta semana.</p>
+                 <Progress value={totalStats.completionRate} className="mb-2 h-3"/>
+                <p className="text-sm text-muted-foreground">{totalStats.completed} de {totalStats.total} tareas completadas esta semana.</p>
             </CardContent>
         </Card>
       </div>
@@ -237,8 +230,7 @@ export default function DashboardPage() {
                  <CardDescription>Tu plan de acción para los próximos días.</CardDescription>
             </CardHeader>
             <CardContent>
-                {tasksLoading && <p>Cargando tareas...</p>}
-                {!tasksLoading && overdueTasks.length === 0 && todayTasks.length === 0 && upcomingTasks.length === 0 && (
+                {overdueTasks.length === 0 && todayTasks.length === 0 && upcomingTasks.length === 0 && (
                     <p className="text-sm text-muted-foreground text-center py-4">No tienes tareas pendientes para esta semana.</p>
                 )}
                 <div className="space-y-4">

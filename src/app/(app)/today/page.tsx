@@ -102,7 +102,7 @@ export default function TodayPage() {
   const [isClient, setIsClient] = useState(false);
   const [motivation, setMotivation] = useState('');
 
-  const { allHabits, habitsLoading } = useHabits();
+  const { allHabits, habitsLoading, handleToggleHabit } = useHabits();
   const { overdueTasks, todayTasks, tasksLoading, handleToggleTask } = useTasks();
   const { activeSession, startSession, stopSession } = useSession();
   const { pendingRecurringExpenses, handlePayRecurringItem } = useFinances();
@@ -212,6 +212,14 @@ export default function TodayPage() {
                                             >
                                                 {isSessionActive ? <Square className="h-4 w-4"/> : <Play className="h-4 w-4"/>}
                                             </Button>
+                                             <Button
+                                                variant="outline"
+                                                size="icon"
+                                                onClick={() => handleToggleHabit(habit.id)}
+                                                className="h-9 w-9"
+                                            >
+                                                <Check className="h-4 w-4" />
+                                            </Button>
                                         </div>
                                     </div>
                                     );
@@ -300,5 +308,3 @@ export default function TodayPage() {
     </>
   );
 }
-
-    
