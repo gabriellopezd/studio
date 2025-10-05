@@ -33,6 +33,7 @@ import {
   TrendingDown,
   Scale,
   Percent,
+  Hourglass,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -111,6 +112,7 @@ export default function FinancesPage() {
     annualProjectedSavings,
     annualProjectedSavingsRate,
     annualIncomeCategorySpending,
+    pendingExpensesTotal,
     handleSaveTransaction,
     handleDeleteTransaction,
     handleSaveBudget,
@@ -196,10 +198,29 @@ export default function FinancesPage() {
                         <TooltipProvider>
                             <UITooltip>
                                 <TooltipTrigger asChild>
-                                    <CardTitle>Balance del Mes</CardTitle>
+                                    <CardTitle>Gastos Pendientes</CardTitle>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                <p>Ingresos - Gastos</p>
+                                <p>Suma de gastos fijos y variables por pagar.</p>
+                                </TooltipContent>
+                            </UITooltip>
+                        </TooltipProvider>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-2xl font-bold text-amber-500">
+                            {formatCurrency(pendingExpensesTotal)}
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <TooltipProvider>
+                            <UITooltip>
+                                <TooltipTrigger asChild>
+                                    <CardTitle>Balance Proyectado</CardTitle>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                <p>Ingresos - (Gastos Registrados + Gastos Pendientes)</p>
                                 </TooltipContent>
                             </UITooltip>
                         </TooltipProvider>
