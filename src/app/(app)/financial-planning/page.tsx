@@ -427,7 +427,7 @@ export default function FinancialPlanningPage() {
                                                         <p className="font-medium line-through text-muted-foreground">{item.name}</p>
                                                         <p className="text-sm font-semibold">{formatCurrency(item.price)} (Final)</p>
                                                     </div>
-                                                    <Button variant="ghost" size="sm" onClick={() => handleRevertPurchase(selectedListId, item)}>
+                                                    <Button variant="ghost" size="sm" onClick={() => selectedListId && handleRevertPurchase(selectedListId, item)}>
                                                         <Undo2 className="mr-2 h-4 w-4" />
                                                         Revertir
                                                     </Button>
@@ -864,5 +864,3 @@ export default function FinancialPlanningPage() {
     </div>
   );
 }
-
-    
