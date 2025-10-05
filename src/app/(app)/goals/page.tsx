@@ -285,7 +285,7 @@ export default function GoalsPage() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
                 <Label htmlFor="goal-type">Tipo de Meta</Label>
-                <Select value={formState.type || 'generic'} onValueChange={(v) => setFormState(p => ({...p, type: v}))}>
+                <Select value={formState.type || 'generic'} onValueChange={(v) => setFormState((p: any) => ({...p, type: v}))}>
                     <SelectTrigger id="goal-type">
                         <SelectValue placeholder="Selecciona un tipo" />
                     </SelectTrigger>
@@ -298,38 +298,38 @@ export default function GoalsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="goal-name">Nombre</Label>
-              <Input id="goal-name" value={formState.name || ''} onChange={(e) => setFormState(p => ({...p, name: e.target.value}))} />
+              <Input id="goal-name" value={formState.name || ''} onChange={(e) => setFormState((p: any) => ({...p, name: e.target.value}))} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="goal-desc">Descripción</Label>
-              <Textarea id="goal-desc" value={formState.description || ''} onChange={(e) => setFormState(p => ({...p, description: e.target.value}))} />
+              <Textarea id="goal-desc" value={formState.description || ''} onChange={(e) => setFormState((p: any) => ({...p, description: e.target.value}))} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="goal-target">Valor Objetivo</Label>
-                <Input id="goal-target" type="number" value={formState.targetValue || ''} onChange={(e) => setFormState(p => ({...p, targetValue: e.target.value}))} />
+                <Input id="goal-target" type="number" value={formState.targetValue || ''} onChange={(e) => setFormState((p: any) => ({...p, targetValue: e.target.value}))} />
               </div>
                <div className="space-y-2">
                 <Label htmlFor="goal-current">Valor Inicial</Label>
-                <Input id="goal-current" type="number" value={formState.currentValue || '0'} onChange={(e) => setFormState(p => ({...p, currentValue: e.target.value}))} disabled={!!formState.id}/>
+                <Input id="goal-current" type="number" value={formState.currentValue || '0'} onChange={(e) => setFormState((p: any) => ({...p, currentValue: e.target.value}))} disabled={!!formState.id}/>
               </div>
             </div>
 
             {formState.type !== 'generic' && (
                  <div className="space-y-2">
                     <Label htmlFor="goal-contribution">Aportación Mensual</Label>
-                    <Input id="goal-contribution" type="number" value={formState.monthlyContribution || ''} onChange={(e) => setFormState(p => ({...p, monthlyContribution: e.target.value}))} placeholder="Ej: 50000"/>
+                    <Input id="goal-contribution" type="number" value={formState.monthlyContribution || ''} onChange={(e) => setFormState((p: any) => ({...p, monthlyContribution: e.target.value}))} placeholder="Ej: 50000"/>
                 </div>
             )}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="goal-unit">Unidad</Label>
-                <Input id="goal-unit" value={formState.type === 'generic' ? (formState.unit || '') : 'COP'} onChange={(e) => setFormState(p => ({...p, unit: e.target.value}))} placeholder={formState.type === 'generic' ? "Ej: Kms, Libros" : 'COP'} disabled={formState.type !== 'generic'}/>
+                <Input id="goal-unit" value={formState.type === 'generic' ? (formState.unit || '') : 'COP'} onChange={(e) => setFormState((p: any) => ({...p, unit: e.target.value}))} placeholder={formState.type === 'generic' ? "Ej: Kms, Libros" : 'COP'} disabled={formState.type !== 'generic'}/>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="goal-due-date">Fecha de Vencimiento</Label>
-                <Input id="goal-due-date" type="date" value={formState.dueDate ? new Date(formState.dueDate).toISOString().split('T')[0] : ''} onChange={(e) => setFormState(p => ({...p, dueDate: e.target.value}))} disabled={formState.type !== 'generic'} />
+                <Input id="goal-due-date" type="date" value={formState.dueDate ? new Date(formState.dueDate).toISOString().split('T')[0] : ''} onChange={(e) => setFormState((p: any) => ({...p, dueDate: e.target.value}))} disabled={formState.type !== 'generic'} />
               </div>
             </div>
           </div>
@@ -348,7 +348,7 @@ export default function GoalsPage() {
           </DialogHeader>
            <div className="space-y-2 py-4">
               <Label htmlFor="goal-progress">Nuevo Valor Actual</Label>
-              <Input id="goal-progress" type="number" value={formState.progressValue || ''} onChange={(e) => setFormState(p => ({...p, progressValue: e.target.value}))} />
+              <Input id="goal-progress" type="number" value={formState.progressValue || ''} onChange={(e) => setFormState((p: any) => ({...p, progressValue: e.target.value}))} />
             </div>
           <DialogFooter>
              <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
