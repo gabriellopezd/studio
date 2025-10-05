@@ -10,9 +10,6 @@ import { useUI } from './UIProvider';
 interface GoalsContextState {
     goals: any[] | null;
     goalsLoading: boolean;
-    savingsGoals: any[];
-    debtGoals: any[];
-    genericGoals: any[];
     handleSaveGoal: () => Promise<void>;
     handleDeleteGoal: () => Promise<void>;
     handleUpdateGoalProgress: () => Promise<void>;
@@ -38,14 +35,6 @@ export const GoalsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         return collection(firestore, `users/${user.uid}/goals`);
     }, [user, firestore]);
     const { data: goals, isLoading: goalsLoading } = useCollectionData(goalsQuery);
-
-    const { savingsGoals, debtGoals, genericGoals } = useMemo(() => {
-        return {
-            savingsGoals: goals?.filter(g => g.type === 'savings') || [],
-            debtGoals: goals?.filter(g => g.type === 'debt') || [],
-            genericGoals: goals?.filter(g => g.type === 'generic' || !g.type) || [],
-        }
-    }, [goals]);
 
     const handleSaveGoal = async () => {
         if (!user || !firestore || !formState.name || !formState.targetValue) return;
@@ -96,9 +85,6 @@ export const GoalsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         <GoalsContext.Provider value={{ 
             goals, 
             goalsLoading,
-            savingsGoals,
-            debtGoals,
-            genericGoals,
             handleSaveGoal, 
             handleDeleteGoal, 
             handleUpdateGoalProgress 

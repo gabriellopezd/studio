@@ -24,6 +24,7 @@ interface TasksContextState {
     dailyCompletionStats: { name: string; completadas: number; pendientes: number }[];
     completedTasksByCategory: { name: string; tareas: number }[];
     taskTimeAnalytics: { name: string; minutos: number }[];
+    analyticsLoading: boolean;
     
     // Actions
     handleToggleTask: (taskId: string, currentStatus: boolean) => void;
@@ -64,7 +65,7 @@ export const TasksProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const { data: taskCategories, isLoading: taskCategoriesLoading } = useCollectionData(taskCategoriesQuery);
     
     const timeLogsQuery = useMemo(() => user ? collection(firestore, `users/${user.uid}/timeLogs`) : null, [user, firestore]);
-    const { data: timeLogs } = useCollectionData(timeLogsQuery);
+    const { data: timeLogs, isLoading: timeLogsLoading } = useCollectionData(timeLogsQuery);
 
     // --- Actions ---
     const handleToggleTask = (taskId: string, currentStatus: boolean) => {
@@ -133,6 +134,8 @@ export const TasksProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         const allTaskCategoriesData = taskCategories || [];
         const allTimeLogsData = timeLogs || [];
 
+        const analyticsLoading = tasksLoading || taskCategoriesLoading || timeLogsLoading;
+
         const today = new Date();
         const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
         const tomorrow = new Date(startOfDay); tomorrow.setDate(startOfDay.getDate() + 1);
@@ -181,8 +184,8 @@ export const TasksProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }, {});
         const taskTimeAnalytics = Object.entries(taskTimeTotals).map(([name, value]) => ({ name, minutos: Math.round(value as number / 60) })).filter(item => item.minutos > 0);
 
-        return { overdueTasks, todayTasks, upcomingTasks, totalStats, categoryStats, onTimeCompletionRate, dailyCompletionStats, completedTasksByCategory, taskTimeAnalytics };
-    }, [tasks, taskCategories, timeLogs]);
+        return { analyticsLoading, overdueTasks, todayTasks, upcomingTasks, totalStats, categoryStats, onTimeCompletionRate, dailyCompletionStats, completedTasksByCategory, taskTimeAnalytics };
+    }, [tasks, taskCategories, timeLogs, tasksLoading, taskCategoriesLoading, timeLogsLoading]);
 
     return (
         <TasksContext.Provider value={{
