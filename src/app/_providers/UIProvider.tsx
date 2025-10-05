@@ -50,5 +50,3 @@ export const UIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         </UIContext.Provider>
     );
 };
-
-    
