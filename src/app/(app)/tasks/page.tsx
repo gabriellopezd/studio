@@ -94,7 +94,7 @@ export default function TasksPage() {
     totalStats,
     categoryStats,
     dailyCompletionStats,
-    completedTasksByCategory,
+    onTimeCompletionRate,
     taskTimeAnalytics,
     analyticsLoading,
     handleToggleTask,

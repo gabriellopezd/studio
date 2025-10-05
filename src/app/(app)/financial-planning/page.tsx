@@ -378,11 +378,11 @@ export default function FinancialPlanningPage() {
                                     <h4 className="font-medium">Planificar Nuevo Artículo</h4>
                                     <div className="space-y-2">
                                     <Label htmlFor="new-item-name">Descripción</Label>
-                                    <Input id="new-item-name" placeholder="Leche, pan, etc." value={formState.itemName || ''} onChange={(e) => setFormState(p => ({...p, itemName: e.target.value}))} />
+                                    <Input id="new-item-name" placeholder="Leche, pan, etc." value={formState.itemName || ''} onChange={(e) => setFormState((p: any) => ({...p, itemName: e.target.value}))} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="new-item-amount">Monto Estimado</Label>
-                                        <Input id="new-item-amount" type="number" placeholder="5000" value={formState.itemAmount || ''} onChange={(e) => setFormState(p => ({...p, itemAmount: e.target.value}))} />
+                                        <Input id="new-item-amount" type="number" placeholder="5000" value={formState.itemAmount || ''} onChange={(e) => setFormState((p: any) => ({...p, itemAmount: e.target.value}))} />
                                     </div>
                                     <Button onClick={() => handleAddItem(selectedListId)} disabled={!formState.itemName || !formState.itemAmount} className="w-full sm:w-auto">
                                         <PlusCircle className="mr-2 h-4 w-4"/> Añadir a la Lista
@@ -630,11 +630,11 @@ export default function FinancialPlanningPage() {
                 <div className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="listName">Nombre de la categoría</Label>
-                        <Input id="listName" value={formState.name || ''} onChange={(e) => setFormState(p => ({...p, name: e.target.value}))} placeholder="Ej: Supermercado, Farmacia..." />
+                        <Input id="listName" value={formState.name || ''} onChange={(e) => setFormState((p: any) => ({...p, name: e.target.value}))} placeholder="Ej: Supermercado, Farmacia..." />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="list-budget-focus">Enfoque Presupuesto</Label>
-                        <Select value={formState.budgetFocus || 'Deseos'} onValueChange={(val) => setFormState(p => ({...p, budgetFocus: val}))}>
+                        <Select value={formState.budgetFocus || 'Deseos'} onValueChange={(val) => setFormState((p: any) => ({...p, budgetFocus: val}))}>
                             <SelectTrigger id="list-budget-focus"><SelectValue /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="Necesidades">Necesidades</SelectItem>
@@ -684,7 +684,7 @@ export default function FinancialPlanningPage() {
                         id="purchase-price"
                         type="number"
                         value={formState.purchasePrice || ''}
-                        onChange={(e) => setFormState(p => ({...p, purchasePrice: e.target.value}))}
+                        onChange={(e) => setFormState((p: any) => ({...p, purchasePrice: e.target.value}))}
                         placeholder="Introduce el precio final"
                     />
                 </div>
@@ -705,15 +705,15 @@ export default function FinancialPlanningPage() {
                 <div className="grid gap-4 py-4 overflow-y-auto px-1">
                     <div className="space-y-2">
                         <Label htmlFor="recurring-name">Descripción</Label>
-                        <Input id="recurring-name" value={formState.name || ''} onChange={(e) => setFormState(prev => ({...prev, name: e.target.value}))} />
+                        <Input id="recurring-name" value={formState.name || ''} onChange={(e) => setFormState((prev: any) => ({...prev, name: e.target.value}))} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="recurring-amount">Monto</Label>
-                        <Input id="recurring-amount" type="number" value={formState.amount as string || ''} onChange={(e) => setFormState(prev => ({...prev, amount: e.target.value}))} />
+                        <Input id="recurring-amount" type="number" value={formState.amount as string || ''} onChange={(e) => setFormState((prev: any) => ({...prev, amount: e.target.value}))} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="recurring-category">Categoría</Label>
-                        <Select value={formState.category || ''} onValueChange={(value) => setFormState(prev => ({...prev, category: value}))}>
+                        <Select value={formState.category || ''} onValueChange={(value) => setFormState((prev: any) => ({...prev, category: value}))}>
                             <SelectTrigger><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
                             <SelectContent>
                                 {formState.type === 'expense'
@@ -726,12 +726,12 @@ export default function FinancialPlanningPage() {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="recurring-day">Día del Mes (1-31)</Label>
-                            <Input id="recurring-day" type="number" min="1" max="31" value={formState.dayOfMonth || ''} onChange={(e) => setFormState(prev => ({...prev, dayOfMonth: e.target.value}))} />
+                            <Input id="recurring-day" type="number" min="1" max="31" value={formState.dayOfMonth || ''} onChange={(e) => setFormState((prev: any) => ({...prev, dayOfMonth: e.target.value}))} />
                         </div>
                         {formState.type === 'expense' && (
                             <div className="space-y-2">
                                 <Label htmlFor="recurring-budget-focus">Enfoque Presupuesto</Label>
-                                <Select value={formState.budgetFocus || ''} onValueChange={(value) => setFormState(prev => ({...prev, budgetFocus: value}))}>
+                                <Select value={formState.budgetFocus || ''} onValueChange={(value) => setFormState((prev: any) => ({...prev, budgetFocus: value}))}>
                                 <SelectTrigger><SelectValue placeholder="Selecciona enfoque" /></SelectTrigger>
                                 <SelectContent>
                                         <SelectItem value="Necesidades">Necesidades</SelectItem>
@@ -801,7 +801,7 @@ export default function FinancialPlanningPage() {
                     <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="type">Tipo</Label>
-                        <Select value={formState.type || 'expense'} onValueChange={(value) => setFormState(prev => ({...prev, type: value as 'income' | 'expense'}))}>
+                        <Select value={formState.type || 'expense'} onValueChange={(value) => setFormState((prev: any) => ({...prev, type: value as 'income' | 'expense'}))}>
                         <SelectTrigger><SelectValue/></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="expense">Gasto</SelectItem>
@@ -811,16 +811,16 @@ export default function FinancialPlanningPage() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="amount">Monto</Label>
-                        <Input id="amount" type="number" value={formState.amount || ''} onChange={(e) => setFormState(prev => ({...prev, amount: e.target.value}))}/>
+                        <Input id="amount" type="number" value={formState.amount || ''} onChange={(e) => setFormState((prev: any) => ({...prev, amount: e.target.value}))}/>
                     </div>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="description">Descripción</Label>
-                        <Input id="description" value={formState.description || ''} onChange={(e) => setFormState(prev => ({...prev, description: e.target.value}))} />
+                        <Input id="description" value={formState.description || ''} onChange={(e) => setFormState((prev: any) => ({...prev, description: e.target.value}))} />
                     </div>
                 <div className="space-y-2">
                     <Label htmlFor="category">Categoría</Label>
-                    <Select value={formState.category || ''} onValueChange={(value) => setFormState(prev => ({...prev, category: value}))}>
+                    <Select value={formState.category || ''} onValueChange={(value) => setFormState((prev: any) => ({...prev, category: value}))}>
                     <SelectTrigger><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
                     <SelectContent>
                         {(formState.type === 'expense' ? expenseCategories : incomeCategories).map((cat) => (
@@ -836,14 +836,14 @@ export default function FinancialPlanningPage() {
                         id="date"
                         value={formState.date ? new Date(formState.date) : undefined}
                         onSelect={(date) =>
-                            setFormState(prev => ({...prev, date: date}))
+                            setFormState((prev: any) => ({...prev, date: date}))
                         }
                         />
                     </div>
                     {formState.type === 'expense' && (
                         <div className="space-y-2">
                         <Label htmlFor="budget-focus">Enfoque Presupuesto</Label>
-                        <Select value={formState.budgetFocus || ''} onValueChange={(value) => setFormState(prev => ({...prev, budgetFocus: value}))}>
+                        <Select value={formState.budgetFocus || ''} onValueChange={(value) => setFormState((prev: any) => ({...prev, budgetFocus: value}))}>
                             <SelectTrigger id="budget-focus"><SelectValue placeholder="Selecciona" /></SelectTrigger>
                             <SelectContent>
                             <SelectItem value="Necesidades">Necesidades</SelectItem>
@@ -864,3 +864,5 @@ export default function FinancialPlanningPage() {
     </div>
   );
 }
+
+    
