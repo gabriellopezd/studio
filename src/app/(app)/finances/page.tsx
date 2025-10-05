@@ -96,8 +96,6 @@ export default function FinancesPage() {
     monthlyExpenses,
     balance,
     budget503020,
-    pendingExpensesTotal,
-    pendingIncomesTotal,
     annualFlowData,
     annualCategorySpending,
     monthlySummaryData,
@@ -158,7 +156,7 @@ export default function FinancesPage() {
                         {months.map(month => <SelectItem key={month.value} value={String(month.value)}>{month.label}</SelectItem>)}
                     </SelectContent>
                 </Select>
-                <Button onClick={() => handleOpenModal('transaction')}>
+                <Button onClick={() => handleOpenModal('transaction', { date: new Date() })}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Añadir Transacción
                 </Button>
@@ -172,7 +170,7 @@ export default function FinancesPage() {
           </TabsList>
           
           <TabsContent value="transactions" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <Card>
                     <CardHeader>
                     <CardTitle>Ingresos del Mes</CardTitle>
@@ -195,39 +193,19 @@ export default function FinancesPage() {
                 </Card>
                 <Card>
                     <CardHeader>
-                    <CardTitle>Ingresos Pendientes</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-2xl font-bold text-emerald-500/80">
-                            {formatCurrency(pendingIncomesTotal)}
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                    <CardTitle>Gastos Pendientes</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-2xl font-bold text-amber-500">
-                            {formatCurrency(pendingExpensesTotal)}
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
                         <TooltipProvider>
                             <UITooltip>
                                 <TooltipTrigger asChild>
-                                    <CardTitle>Balance Proyectado</CardTitle>
+                                    <CardTitle>Balance del Mes</CardTitle>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                <p>(Ingresos + Pendientes) - (Gastos + Pendientes)</p>
+                                <p>Ingresos - Gastos</p>
                                 </TooltipContent>
                             </UITooltip>
                         </TooltipProvider>
                     </CardHeader>
                     <CardContent>
-                    <p className="text-2xl font-bold">{formatCurrency(balance)}</p>
+                    <p className={cn("text-2xl font-bold", balance >= 0 ? "text-emerald-500" : "text-red-500")}>{formatCurrency(balance)}</p>
                     </CardContent>
                 </Card>
             </div>
@@ -588,7 +566,7 @@ export default function FinancesPage() {
                         <Label htmlFor="date">Fecha</Label>
                         <ResponsiveCalendar
                         id="date"
-                        value={formState.date ? new Date(formState.date) : new Date()}
+                        value={formState.date ? new Date(formState.date) : undefined}
                         onSelect={(date) =>
                             setFormState(prev => ({...prev, date: date}))
                         }
