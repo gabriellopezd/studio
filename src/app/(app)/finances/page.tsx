@@ -42,7 +42,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFinances } from '@/app/_providers/FinancesProvider';
 import { useUI } from '@/app/_providers/UIProvider';
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, Legend, XAxis, YAxis } from 'recharts';
-import { TooltipProvider, Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -71,7 +70,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ResponsiveCalendar } from '../tasks/_components/ResponsiveCalendar';
+import { ResponsiveCalendar } from '@/app/(app)/tasks/_components/ResponsiveCalendar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 

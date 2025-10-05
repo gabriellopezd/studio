@@ -4,12 +4,19 @@
 import type { User } from 'firebase/auth';
 
 export interface Habit {
-    id?: string;
+    id: string;
     name: string;
     icon: string;
     frequency: string;
     category: string;
+    currentStreak: number;
+    longestStreak: number;
+    lastCompletedAt: any;
+    previousStreak?: number;
+    previousLongestStreak?: number;
+    previousLastCompletedAt?: any | null;
     lastTimeLogId?: string | null;
+    isActive: boolean;
 }
 
 export interface Task {

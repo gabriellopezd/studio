@@ -12,9 +12,10 @@ interface ResponsiveCalendarProps {
 // Helper function to format a Date object to a 'yyyy-mm-dd' string
 function formatDateToInput(date: Date | undefined): string {
   if (!date) return '';
-  // Adjust for timezone offset to prevent off-by-one-day errors
-  const adjustedDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return adjustedDate.toISOString().split('T')[0];
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export function ResponsiveCalendar({
@@ -26,7 +27,7 @@ export function ResponsiveCalendar({
     const dateValue = event.target.value;
     if (dateValue) {
       // The input value is a string 'YYYY-MM-DD'. The Date constructor
-      // correctly interprets this in the local timezone if we add T00:00:00
+      // correctly interprets this in the local timezone.
       const newDate = new Date(dateValue + 'T00:00:00');
       onSelect(newDate);
     } else {
@@ -38,7 +39,7 @@ export function ResponsiveCalendar({
     <Input
       id={id}
       type="date"
-      value={value ? formatDateToInput(value) : ''}
+      value={formatDateToInput(value)}
       onChange={handleChange}
       className="w-full"
     />

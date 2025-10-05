@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useMemo, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useMemo, useState, ReactNode, useCallback } from 'react';
 import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc, arrayUnion, collectionGroup } from 'firebase/firestore';
 import { useFirebase, useCollectionData, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +10,8 @@ import { PRESET_EXPENSE_CATEGORIES } from '@/lib/transaction-categories';
 import { useTasks } from './TasksProvider';
 
 interface FinancesContextState {
+    firestore: any;
+    user: any;
     transactions: any[] | null;
     transactionsLoading: boolean;
     annualTransactions: any[] | null;
@@ -279,7 +281,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     // --- Actions ---
 
-    const handleSaveTransaction = async () => {
+    const handleSaveTransaction = useCallback(async () => {
         if (!user || !firestore || !formState.description || !formState.amount || !formState.category || !formState.date) return;
         
         const { id, ...data } = formState;
@@ -327,9 +329,9 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
 
         await batch.commit();
         handleCloseModal('transaction');
-    };
+    }, [user, firestore, formState, transactions, budgets, handleCloseModal]);
 
-    const handleDeleteTransaction = async () => {
+    const handleDeleteTransaction = useCallback(async () => {
         if (!formState?.id || !user || !firestore) return;
       
         const batch = writeBatch(firestore);
@@ -359,9 +361,9 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         await batch.commit();
         toast({ title: 'Transacción eliminada' });
         handleCloseModal('deleteTransaction');
-    };
+    }, [user, firestore, formState, transactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, handleCloseModal, toast]);
 
-    const handleSaveBudget = async () => {
+    const handleSaveBudget = useCallback(async () => {
         if (!user || !firestore || !formState.categoryName || !formState.monthlyLimit) return;
         const { id, categoryName, monthlyLimit } = formState;
         const limit = parseFloat(monthlyLimit);
@@ -378,9 +380,9 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'budgets'), { categoryName, monthlyLimit: limit, currentSpend: 0, userId: user.uid });
         }
         handleCloseModal('budget');
-    };
+    }, [user, firestore, formState, budgets, handleCloseModal, toast]);
 
-    const handleSaveRecurringItem = async () => {
+    const handleSaveRecurringItem = useCallback(async () => {
         if (!user || !firestore || !formState.name || !formState.amount || !formState.category || !formState.dayOfMonth || !formState.type) {
             toast({ variant: "destructive", title: "Datos inválidos", description: "Todos los campos son obligatorios." });
             return;
@@ -404,16 +406,16 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             await addDocumentNonBlocking(collection(firestore, 'users', user.uid, collectionName), serializableData);
         }
         handleCloseModal('recurringItem');
-    };
+    }, [user, firestore, formState, handleCloseModal, toast]);
 
-    const handleDeleteRecurringItem = async () => {
+    const handleDeleteRecurringItem = useCallback(async () => {
         if (!formState.id || !user || !firestore) return;
         const collectionName = formState.type === 'income' ? 'recurringIncomes' : 'recurringExpenses';
         await deleteDocumentNonBlocking(doc(firestore, 'users', user.uid, collectionName, formState.id));
         handleCloseModal('deleteRecurring');
-    };
+    }, [user, firestore, formState, handleCloseModal]);
 
-    const handlePayRecurringItem = async (item: any, type: 'income' | 'expense') => {
+    const handlePayRecurringItem = useCallback(async (item: any, type: 'income' | 'expense') => {
         if (!user || !firestore) return;
         const batch = writeBatch(firestore);
         const currentMonthIdentifier = `${currentMonth.getFullYear()}-${currentMonth.getMonth()}`;
@@ -433,9 +435,9 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
 
         await batch.commit();
         toast({ title: `Registro exitoso`, description: `${item.name} ha sido registrado.` });
-    };
+    }, [user, firestore, currentMonth, budgets, toast]);
 
-    const handleRevertRecurringItem = async (item: any, type: 'income' | 'expense') => {
+    const handleRevertRecurringItem = useCallback(async (item: any, type: 'income' | 'expense') => {
         if (!user || !item.lastTransactionId || !firestore) return;
         const batch = writeBatch(firestore);
         const transactionRef = doc(firestore, 'users', user.uid, 'transactions', item.lastTransactionId);
@@ -455,9 +457,9 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         batch.update(itemRef, { lastInstanceCreated: null, lastTransactionId: null });
         await batch.commit();
         toast({ title: 'Reversión exitosa', description: `Se ha deshecho el registro de ${item.name}.` });
-    };
+    }, [user, firestore, budgets, toast]);
 
-    const handleOmitRecurringItem = async (item: any, type: 'income' | 'expense') => {
+    const handleOmitRecurringItem = useCallback(async (item: any, type: 'income' | 'expense') => {
         if (!user || !firestore) return;
         
         const currentMonthIdentifier = `${currentMonth.getFullYear()}-${currentMonth.getMonth()}`;
@@ -469,9 +471,9 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         });
 
         toast({ title: 'Item Omitido', description: `${item.name} ha sido omitido para este mes.` });
-    };
+    }, [user, firestore, currentMonth, toast]);
 
-    const handleCreateList = async () => {
+    const handleCreateList = useCallback(async () => {
         if (!user || !firestore || !formState.name) return;
         if (shoppingLists?.some(l => l.name.toLowerCase() === formState.name.toLowerCase()) || budgets?.some(b => b.categoryName.toLowerCase() === formState.name.toLowerCase())) {
             toast({ variant: "destructive", title: "Categoría Duplicada", description: `La categoría "${formState.name}" ya existe.` });
@@ -479,33 +481,33 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
         await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'shoppingLists'), { name: formState.name, budgetFocus: formState.budgetFocus || 'Deseos', items: [], order: shoppingLists?.length || 0, isActive: true, createdAt: serverTimestamp(), userId: user.uid });
         handleCloseModal('list');
-    };
+    }, [user, firestore, formState, shoppingLists, budgets, handleCloseModal, toast]);
     
-    const handleUpdateList = async () => {
+    const handleUpdateList = useCallback(async () => {
         if (!user || !firestore || !formState.id || !formState.name) return;
         const { id, name, budgetFocus } = formState;
         await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'shoppingLists', id), { name, budgetFocus });
         handleCloseModal('list');
-    };
+    }, [user, firestore, formState, handleCloseModal]);
 
-    const handleDeleteList = async (listId: string) => {
+    const handleDeleteList = useCallback(async (listId: string) => {
         if (!listId || !user || !firestore) return;
         await deleteDocumentNonBlocking(doc(firestore, 'users', user.uid, 'shoppingLists', listId));
         toast({ title: 'Categoría Eliminada' });
         handleCloseModal('deleteList');
-    };
+    }, [user, firestore, handleCloseModal, toast]);
 
 
-    const handleAddItem = async (listId: string | null) => {
+    const handleAddItem = useCallback(async (listId: string | null) => {
         if (!listId || !user || !firestore || !formState.itemName || !formState.itemAmount) return;
         const list = shoppingLists?.find(l => l.id === listId);
         if (!list) return;
         const newItem = { itemId: doc(collection(firestore, 'dummy')).id, name: formState.itemName, amount: parseFloat(formState.itemAmount), isPurchased: false, price: null, transactionId: null };
         await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'shoppingLists', listId), { items: [...(list.items || []), newItem] });
         handleCloseModal('item');
-    };
+    }, [user, firestore, formState, shoppingLists, handleCloseModal]);
 
-    const handleConfirmPurchase = async (listId: string | null) => {
+    const handleConfirmPurchase = useCallback(async (listId: string | null) => {
         if (!listId || !user || !firestore || !formState.itemId || !formState.purchasePrice) return;
         const list = shoppingLists?.find(l => l.id === listId);
         if (!list) return;
@@ -523,9 +525,9 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         
         await batch.commit();
         handleCloseModal('purchaseItem');
-    };
+    }, [user, firestore, formState, shoppingLists, budgets, handleCloseModal]);
 
-    const handleDeleteItem = async (listId: string, itemId: string) => {
+    const handleDeleteItem = useCallback(async (listId: string, itemId: string) => {
         if (!listId || !itemId || !user || !firestore) return;
         const list = shoppingLists?.find(l => l.id === listId);
         if (!list) return;
@@ -540,9 +542,9 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             if (budget && itemToDelete.price) batch.update(doc(firestore, 'users', user.uid, 'budgets', budget.id), { currentSpend: increment(-itemToDelete.price) });
         }
         await batch.commit();
-    };
+    }, [user, firestore, shoppingLists, budgets]);
 
-    const handleRevertPurchase = async (listId: string, itemToRevert: any) => {
+    const handleRevertPurchase = useCallback(async (listId: string, itemToRevert: any) => {
         if (!listId || !itemToRevert || !user || !firestore) return;
         const list = shoppingLists?.find(l => l.id === listId);
         if (!list) return;
@@ -556,9 +558,9 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             if (budget && itemToRevert.price) batch.update(doc(firestore, 'users', user.uid, 'budgets', budget.id), { currentSpend: increment(-itemToRevert.price) });
         }
         await batch.commit();
-    };
+    }, [user, firestore, shoppingLists, budgets]);
     
-    const handleResetVariableData = async () => {
+    const handleResetVariableData = useCallback(async () => {
         if (!user || !firestore) return;
         handleCloseModal('resetVariableFinance');
         
@@ -588,9 +590,9 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             console.error("Error resetting variable data:", error);
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo reiniciar la planificación variable.' });
         }
-    };
+    }, [user, firestore, handleCloseModal, toast]);
     
-    const handleResetFixedData = async () => {
+    const handleResetFixedData = useCallback(async () => {
         if (!user || !firestore) return;
         handleCloseModal('resetFixedFinance');
         
@@ -610,10 +612,12 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             console.error("Error resetting fixed data:", error);
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron reiniciar los datos fijos.' });
         }
-    };
+    }, [user, firestore, handleCloseModal, toast]);
     
     return (
         <FinancesContext.Provider value={{
+            firestore,
+            user,
             transactions,
             transactionsLoading,
             annualTransactions,

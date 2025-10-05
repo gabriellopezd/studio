@@ -4,7 +4,7 @@ import { PRESET_EXPENSE_CATEGORIES } from '@/lib/transaction-categories';
 import { defaultFeelings, defaultInfluences } from '@/lib/moods';
 import { PRESET_TASK_CATEGORIES } from '@/lib/task-categories';
 
-async function initializeDefaultTaskCategories(user: User, firestore: any, batch: any) {
+export async function initializeDefaultTaskCategories(user: User, firestore: any, batch: any) {
     const taskCategoriesRef = collection(firestore, 'users', user.uid, 'taskCategories');
     const categoriesSnapshot = await getDocs(query(taskCategoriesRef, limit(1)));
 
@@ -45,7 +45,7 @@ async function initializeDefaultMoodOptions(user: User, firestore: any, batch: a
     }
 }
 
-async function initializeDefaultBudgets(user: User, firestore: any, batch: any) {
+export async function initializeDefaultBudgets(user: User, firestore: any, batch: any) {
     const budgetsRef = collection(firestore, 'users', user.uid, 'budgets');
     const budgetsSnapshot = await getDocs(query(budgetsRef, limit(1)));
 

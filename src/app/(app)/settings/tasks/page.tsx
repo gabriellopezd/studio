@@ -73,6 +73,11 @@ export default function TaskSettingsPage() {
     await updateDocumentNonBlocking(categoryRef, { isActive: !currentStatus });
   };
 
+  const onDelete = () => {
+    if (!modalState.data?.id || !modalState.data?.name) return;
+    handleDeleteTaskCategory();
+  }
+
   const sortedCategories = useMemo(() => {
     if (!taskCategories) return [];
     return [...taskCategories].sort((a, b) => a.name.localeCompare(b.name));
@@ -81,7 +86,7 @@ export default function TaskSettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Categorías de Tareas y Gastos"
+        title="Categorías de Tareas"
         description="Gestiona las categorías para organizar tus tareas y presupuestos."
         imageId="settings-sub-header"
       >
@@ -144,7 +149,7 @@ export default function TaskSettingsPage() {
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
                             <AlertDialogAction
-                            onClick={handleDeleteTaskCategory}
+                            onClick={onDelete}
                             className="bg-destructive hover:bg-destructive/90"
                             >
                             Eliminar

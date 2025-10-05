@@ -50,7 +50,7 @@ export default function SettingsPage() {
   const { auth, firestore } = useFirebase();
   const { theme, setTheme } = useTheme();
   const { handleResetAllStreaks, handleResetTimeLogs, handleResetMoods } = useHabits();
-  const { handleResetFixedData, handleResetVariableData } = useFinances();
+  const { handleResetVariableData, handleResetFixedData } = useFinances();
   const { handleOpenModal, handleCloseModal, modalState } = useUI();
   const userAvatar = PlaceHolderImages.find((img) => img.id === 'default-user-avatar');
   const { toast } = useToast();

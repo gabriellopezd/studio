@@ -42,7 +42,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
   Select,
@@ -74,7 +73,7 @@ import { useUI } from '@/app/_providers/UIProvider';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { writeBatch, doc } from 'firebase/firestore';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ResponsiveCalendar } from '../tasks/_components/ResponsiveCalendar';
+import { ResponsiveCalendar } from '@/app/(app)/tasks/_components/ResponsiveCalendar';
 
 
 function SortableListItem({
