@@ -393,7 +393,7 @@ export default function HabitsPage() {
               <Input
                 id="habit-name"
                 value={formState.name || ''}
-                onChange={(e) => setFormState(p => ({...p, name: e.target.value}))}
+                onChange={(e) => setFormState((p: any) => ({...p, name: e.target.value}))}
                 placeholder="Ej: Leer 30 minutos"
               />
             </div>
@@ -402,7 +402,7 @@ export default function HabitsPage() {
               <Input
                 id="habit-icon"
                 value={formState.icon || ''}
-                onChange={(e) => setFormState(p => ({...p, icon: e.target.value}))}
+                onChange={(e) => setFormState((p: any) => ({...p, icon: e.target.value}))}
                 placeholder="Ej: 📚"
               />
             </div>
@@ -410,7 +410,7 @@ export default function HabitsPage() {
               <Label htmlFor="habit-frequency">Frecuencia</Label>
               <Select
                 value={formState.frequency || 'Diario'}
-                onValueChange={(v) => setFormState(p => ({...p, frequency: v}))}
+                onValueChange={(v) => setFormState((p: any) => ({...p, frequency: v}))}
               >
                 <SelectTrigger id="habit-frequency">
                   <SelectValue placeholder="Selecciona una frecuencia" />
@@ -425,7 +425,7 @@ export default function HabitsPage() {
               <Label htmlFor="habit-category">Categoría</Label>
               <Select
                 value={formState.category || ''}
-                onValueChange={(v) => setFormState(p => ({...p, category: v}))}
+                onValueChange={(v) => setFormState((p: any) => ({...p, category: v}))}
               >
                 <SelectTrigger id="habit-category">
                   <SelectValue placeholder="Selecciona una categoría" />
