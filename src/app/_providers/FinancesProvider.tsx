@@ -68,7 +68,8 @@ interface FinancesContextState {
     handleConfirmPurchase: (listId: string | null) => Promise<void>;
     handleDeleteItem: (listId: string, itemId: string) => Promise<void>;
     handleRevertPurchase: (listId: string, itemToRevert: any) => Promise<void>;
-    handleRestoreDefaults: () => Promise<void>;
+    handleResetVariableData: () => Promise<void>;
+    handleResetFixedData: () => Promise<void>;
 }
 
 const FinancesContext = createContext<FinancesContextState | undefined>(undefined);
@@ -527,14 +528,14 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         await batch.commit();
     };
     
-    const handleRestoreDefaults = async () => {
+    const handleResetVariableData = async () => {
         if (!user || !firestore) return;
-        handleCloseModal('restoreDefaults');
+        handleCloseModal('resetVariableFinance');
         
         try {
             const batch = writeBatch(firestore);
             
-            const collectionsToDelete = ['shoppingLists', 'budgets', 'recurringIncomes', 'recurringExpenses'];
+            const collectionsToDelete = ['shoppingLists', 'budgets'];
             for (const col of collectionsToDelete) {
                 const snapshot = await getDocs(collection(firestore, 'users', user.uid, col));
                 snapshot.forEach(doc => batch.delete(doc.ref));
@@ -552,10 +553,32 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
 
             await batch.commit();
 
-            toast({ title: 'Configuración Restaurada', description: 'Tus datos financieros de planificación han sido reiniciados.' });
+            toast({ title: 'Planificación Variable Reiniciada', description: 'Tus listas de compra y presupuestos han sido reiniciados.' });
         } catch (error) {
-            console.error("Error restoring defaults:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo restaurar la configuración.' });
+            console.error("Error resetting variable data:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo reiniciar la planificación variable.' });
+        }
+    };
+    
+    const handleResetFixedData = async () => {
+        if (!user || !firestore) return;
+        handleCloseModal('resetFixedFinance');
+        
+        try {
+            const batch = writeBatch(firestore);
+            
+            const collectionsToDelete = ['recurringIncomes', 'recurringExpenses'];
+            for (const col of collectionsToDelete) {
+                const snapshot = await getDocs(collection(firestore, 'users', user.uid, col));
+                snapshot.forEach(doc => batch.delete(doc.ref));
+            }
+
+            await batch.commit();
+
+            toast({ title: 'Datos Fijos Reiniciados', description: 'Tus ingresos y gastos fijos han sido eliminados.' });
+        } catch (error) {
+            console.error("Error resetting fixed data:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron reiniciar los datos fijos.' });
         }
     };
     
@@ -589,7 +612,8 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             handleConfirmPurchase,
             handleDeleteItem,
             handleRevertPurchase,
-            handleRestoreDefaults,
+            handleResetVariableData,
+            handleResetFixedData,
         }}>
             {children}
         </FinancesContext.Provider>

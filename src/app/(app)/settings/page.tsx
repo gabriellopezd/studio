@@ -50,7 +50,7 @@ export default function SettingsPage() {
   const { auth, firestore } = useFirebase();
   const { theme, setTheme } = useTheme();
   const { handleResetAllStreaks, handleResetTimeLogs, handleResetMoods } = useHabits();
-  const { handleRestoreDefaults } = useFinances();
+  const { handleResetFixedData, handleResetVariableData } = useFinances();
   const { handleOpenModal, handleCloseModal, modalState } = useUI();
   const userAvatar = PlaceHolderImages.find((img) => img.id === 'default-user-avatar');
   const { toast } = useToast();
@@ -382,29 +382,60 @@ export default function SettingsPage() {
                 </AlertDialogContent>
               </AlertDialog>
 
-               <AlertDialog open={modalState.type === 'restoreDefaults'} onOpenChange={(open) => !open && handleCloseModal('restoreDefaults')}>
+              <AlertDialog open={modalState.type === 'resetVariableFinance'} onOpenChange={(open) => !open && handleCloseModal('resetVariableFinance')}>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left h-auto py-2" onClick={() => handleOpenModal('restoreDefaults')}>
+                  <Button variant="outline" className="w-full justify-start text-left h-auto py-2" onClick={() => handleOpenModal('resetVariableFinance')}>
                     <div className="flex items-center gap-3">
-                        <Library className="size-5 text-destructive"/>
+                        <ShoppingCart className="size-5 text-destructive"/>
                         <div>
-                            <p className="font-semibold">Reiniciar Datos Financieros</p>
-                            <p className="text-xs text-muted-foreground">Restaura la configuración financiera inicial.</p>
+                            <p className="font-semibold">Reiniciar Planificación Variable</p>
+                            <p className="text-xs text-muted-foreground">Borra listas de compra y presupuestos.</p>
                         </div>
                     </div>
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>¿Reiniciar datos financieros?</AlertDialogTitle>
+                    <AlertDialogTitle>¿Reiniciar planificación variable?</AlertDialogTitle>
                     <AlertDialogDescription>
-                       Esta acción no se puede deshacer. Se eliminarán **todos** tus presupuestos, listas de compra e ingresos/gastos fijos. Las categorías de presupuesto predefinidas serán restauradas.
+                       Esta acción no se puede deshacer. Se eliminarán **todas** tus listas de compra y presupuestos. Las categorías de presupuesto predefinidas serán restauradas.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
                     <AlertDialogAction
-                      onClick={handleRestoreDefaults}
+                      onClick={handleResetVariableData}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      Sí, reiniciar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              <AlertDialog open={modalState.type === 'resetFixedFinance'} onOpenChange={(open) => !open && handleCloseModal('resetFixedFinance')}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left h-auto py-2" onClick={() => handleOpenModal('resetFixedFinance')}>
+                    <div className="flex items-center gap-3">
+                        <Repeat className="size-5 text-destructive"/>
+                        <div>
+                            <p className="font-semibold">Reiniciar Ingresos/Gastos Fijos</p>
+                            <p className="text-xs text-muted-foreground">Borra todos los movimientos recurrentes.</p>
+                        </div>
+                    </div>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Reiniciar ingresos y gastos fijos?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                       Esta acción no se puede deshacer. Se eliminarán **todos** tus ingresos y gastos fijos (recurrentes) que hayas configurado.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleResetFixedData}
                       className="bg-destructive hover:bg-destructive/90"
                     >
                       Sí, reiniciar
