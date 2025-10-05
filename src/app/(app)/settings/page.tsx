@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import PageHeader from '@/components/page-header';
@@ -38,6 +37,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
 import { doc } from 'firebase/firestore';
