@@ -2,10 +2,11 @@
 'use client';
 
 import React, { createContext, useContext, useMemo, useState, ReactNode } from 'react';
-import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc, arrayUnion } from 'firebase/firestore';
+import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc, arrayUnion, collectionGroup } from 'firebase/firestore';
 import { useFirebase, useCollectionData, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useUI } from './UIProvider';
+import { PRESET_EXPENSE_CATEGORIES } from '@/lib/transaction-categories';
 
 interface FinancesContextState {
     transactions: any[] | null;
@@ -39,7 +40,6 @@ interface FinancesContextState {
     expenseCategories: string[];
     incomeCategories: string[];
     categoriesWithoutBudget: string[];
-    sortedLists: any[];
     
     annualFlowData: any[];
     annualCategorySpending: any[];
@@ -68,6 +68,7 @@ interface FinancesContextState {
     handleConfirmPurchase: (listId: string | null) => Promise<void>;
     handleDeleteItem: (listId: string, itemId: string) => Promise<void>;
     handleRevertPurchase: (listId: string, itemToRevert: any) => Promise<void>;
+    handleRestoreDefaults: () => Promise<void>;
 }
 
 const FinancesContext = createContext<FinancesContextState | undefined>(undefined);
@@ -211,7 +212,6 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         const allExpenseCategoryNames = [...new Set([...allBudgetsData.map((b: any) => b.categoryName), ...allShoppingListsData.map((l: any) => l.name), ...allTransactionsData.filter((t: any) => t.type === 'expense').map((t: any) => t.category)])].filter(Boolean);
         const incomeCategories = [...new Set(["Salario", "Bonificación", "Otro", ...allTransactionsData.filter((t: any) => t.type === 'income').map((t: any) => t.category)])].filter(Boolean);
         const categoriesWithoutBudget = allExpenseCategoryNames.filter(cat => !allBudgetsData.some((b: any) => b.categoryName === cat));
-        const sortedLists = [...(allShoppingListsData || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
         // Annual Analytics
         const annualTotalIncome = allAnnualTransactionsData.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + t.amount, 0);
@@ -258,7 +258,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         const annualProjectedSavings = annualProjectedIncome - annualProjectedExpense;
         const annualProjectedSavingsRate = annualProjectedIncome > 0 ? (annualProjectedSavings / annualProjectedIncome) * 100 : 0;
         
-        return { monthlyIncome, monthlyExpenses, balance, budget503020, upcomingPayments, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, pendingIncomesTotal, expenseCategories: allExpenseCategoryNames, incomeCategories, categoriesWithoutBudget, sortedLists, annualFlowData, annualCategorySpending, monthlySummaryData, annualTotalIncome, annualTotalExpense, annualNetSavings, annualSavingsRate, annualProjectedIncome, annualProjectedExpense, annualProjectedSavings, annualProjectedSavingsRate, annualIncomeCategorySpending };
+        return { monthlyIncome, monthlyExpenses, balance, budget503020, upcomingPayments, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, pendingIncomesTotal, expenseCategories: allExpenseCategoryNames, incomeCategories, categoriesWithoutBudget, annualFlowData, annualCategorySpending, monthlySummaryData, annualTotalIncome, annualTotalExpense, annualNetSavings, annualSavingsRate, annualProjectedIncome, annualProjectedExpense, annualProjectedSavings, annualProjectedSavingsRate, annualIncomeCategorySpending };
     }, [transactions, annualTransactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, currentMonth]);
 
     // --- Actions ---
@@ -527,6 +527,41 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         await batch.commit();
     };
     
+    const handleRestoreDefaults = async () => {
+        if (!user || !firestore) return;
+        
+        try {
+            const batch = writeBatch(firestore);
+            
+            const collectionsToDelete = ['shoppingLists', 'budgets'];
+            for (const col of collectionsToDelete) {
+                const snapshot = await getDocs(collection(firestore, 'users', user.uid, col));
+                snapshot.forEach(doc => batch.delete(doc.ref));
+            }
+            
+            await batch.commit();
+
+            const newBatch = writeBatch(firestore);
+            PRESET_EXPENSE_CATEGORIES.forEach(categoryName => {
+                const newBudgetRef = doc(collection(firestore, 'users', user.uid, 'budgets'));
+                newBatch.set(newBudgetRef, {
+                    categoryName: categoryName,
+                    monthlyLimit: 0,
+                    currentSpend: 0,
+                    userId: user.uid,
+                });
+            });
+
+            await newBatch.commit();
+
+            toast({ title: 'Categorías Restauradas', description: 'Las categorías financieras se han restaurado a los valores predefinidos.' });
+        } catch (error) {
+            console.error("Error restoring defaults:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron restaurar las categorías.' });
+        }
+        handleCloseModal('restoreDefaults');
+    };
+    
     return (
         <FinancesContext.Provider value={{
             transactions,
@@ -557,6 +592,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             handleConfirmPurchase,
             handleDeleteItem,
             handleRevertPurchase,
+            handleRestoreDefaults,
         }}>
             {children}
         </FinancesContext.Provider>

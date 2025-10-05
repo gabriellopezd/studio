@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useMemo, useState, ReactNode, useEffect } from 'react';
-import { collection, doc, query, Timestamp, serverTimestamp, writeBatch, where } from 'firebase/firestore';
+import { collection, doc, query, Timestamp, serverTimestamp, writeBatch, where, getDocs } from 'firebase/firestore';
 import { useFirebase, useCollectionData, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { isHabitCompletedToday, calculateStreak, checkHabitStreak, resetStreak } from '@/lib/habits';
 import { useToast } from '@/hooks/use-toast';
@@ -40,7 +40,10 @@ interface HabitsContextState {
     handleToggleHabit: (habitId: string) => void;
     handleSaveHabit: () => Promise<void>;
     handleDeleteHabit: () => Promise<void>;
+    handleResetAllStreaks: () => Promise<void>;
     handleResetHabitStreak: () => Promise<void>;
+    handleResetTimeLogs: () => Promise<void>;
+    handleResetMoods: () => Promise<void>;
     handleSaveRoutine: () => Promise<void>;
     handleDeleteRoutine: () => Promise<void>;
     handleCompleteRoutine: (routine: any) => Promise<void>;
@@ -135,11 +138,57 @@ export const HabitsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         handleCloseModal('deleteHabit');
     };
     
+    const handleResetAllStreaks = async () => {
+        if (!user || !firestore || !allHabits) return;
+        try {
+            const batch = writeBatch(firestore);
+            allHabits.forEach((habit) => {
+                batch.update(doc(firestore, 'users', user.uid, 'habits', habit.id), resetStreak());
+            });
+            await batch.commit();
+            toast({ title: 'Rachas reiniciadas' });
+        } catch (error) {
+            console.error("Error resetting streaks:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron reiniciar las rachas.' });
+        }
+        handleCloseModal('resetStreaks');
+    };
+    
     const handleResetHabitStreak = async () => {
         if (!formState?.id || !user || !firestore) return;
         await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'habits', formState.id), resetStreak());
         handleCloseModal('resetHabit');
     };
+
+    const handleResetTimeLogs = async () => {
+        if (!user || !firestore || !timeLogs) return;
+        try {
+            const batch = writeBatch(firestore);
+            timeLogs.forEach(log => batch.delete(doc(firestore, 'users', user.uid, 'timeLogs', log.id)));
+            await batch.commit();
+            toast({ title: 'Registros de tiempo eliminados' });
+        } catch (error) {
+            console.error("Error resetting time logs:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron eliminar los registros.' });
+        }
+        handleCloseModal('resetTimeLogs');
+    };
+
+    const handleResetMoods = async () => {
+        if (!user || !firestore) return;
+        try {
+            const batch = writeBatch(firestore);
+            const moodsSnapshot = await getDocs(collection(firestore, 'users', user.uid, 'moods'));
+            moodsSnapshot.forEach(moodDoc => batch.delete(moodDoc.ref));
+            await batch.commit();
+            toast({ title: 'Historial de ánimo eliminado' });
+        } catch (error) {
+            console.error("Error resetting moods:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo eliminar el historial.' });
+        }
+        handleCloseModal('resetMoods');
+    };
+
 
     const handleSaveRoutine = async () => {
         if (!user || !firestore || !formState.name) return;
@@ -320,7 +369,10 @@ export const HabitsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             handleToggleHabit,
             handleSaveHabit,
             handleDeleteHabit,
+            handleResetAllStreaks,
             handleResetHabitStreak,
+            handleResetTimeLogs,
+            handleResetMoods,
             handleSaveRoutine,
             handleDeleteRoutine,
             handleCompleteRoutine,

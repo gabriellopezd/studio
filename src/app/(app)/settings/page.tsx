@@ -41,11 +41,17 @@ import {
 } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
 import { doc } from 'firebase/firestore';
+import { useHabits } from '@/app/_providers/HabitsProvider';
+import { useFinances } from '@/app/_providers/FinancesProvider';
+import { useUI } from '@/app/_providers/UIProvider';
 
 export default function SettingsPage() {
   const { user } = useUser();
   const { auth, firestore } = useFirebase();
   const { theme, setTheme } = useTheme();
+  const { handleResetAllStreaks, handleResetTimeLogs, handleResetMoods } = useHabits();
+  const { handleRestoreDefaults } = useFinances();
+  const { handleOpenModal, handleCloseModal, modalState } = useUI();
   const userAvatar = PlaceHolderImages.find((img) => img.id === 'default-user-avatar');
   const { toast } = useToast();
 
@@ -78,6 +84,10 @@ export default function SettingsPage() {
       toast({ variant: 'destructive', title: 'Las contraseñas no coinciden' });
       return;
     }
+    if (!currentPassword) {
+        toast({ variant: 'destructive', title: 'Contraseña actual requerida' });
+        return;
+    }
 
     try {
       const credential = EmailAuthProvider.credential(user.email, currentPassword);
@@ -87,8 +97,8 @@ export default function SettingsPage() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (error: any) => {
-      toast({ variant: 'destructive', title: 'Error al cambiar contraseña', description: error.message });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error al cambiar contraseña', description: "Verifica tu contraseña actual. " + error.message });
     }
   };
   
@@ -276,9 +286,9 @@ export default function SettingsPage() {
                 </div>
             </CardHeader>
             <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <AlertDialog>
+              <AlertDialog open={modalState.type === 'resetStreaks'} onOpenChange={(open) => !open && handleCloseModal('resetStreaks')}>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left h-auto py-2">
+                  <Button variant="outline" className="w-full justify-start text-left h-auto py-2" onClick={() => handleOpenModal('resetStreaks')}>
                     <div className="flex items-center gap-3">
                         <RotateCcw className="size-5 text-destructive"/>
                         <div>
@@ -299,6 +309,7 @@ export default function SettingsPage() {
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
                     <AlertDialogAction
+                      onClick={handleResetAllStreaks}
                       className="bg-destructive hover:bg-destructive/90"
                     >
                       Sí, reiniciar todo
@@ -307,9 +318,9 @@ export default function SettingsPage() {
                 </AlertDialogContent>
               </AlertDialog>
               
-               <AlertDialog>
+               <AlertDialog open={modalState.type === 'resetTimeLogs'} onOpenChange={(open) => !open && handleCloseModal('resetTimeLogs')}>
                 <AlertDialogTrigger asChild>
-                   <Button variant="outline" className="w-full justify-start text-left h-auto py-2">
+                   <Button variant="outline" className="w-full justify-start text-left h-auto py-2" onClick={() => handleOpenModal('resetTimeLogs')}>
                     <div className="flex items-center gap-3">
                         <TimerOff className="size-5 text-destructive"/>
                         <div>
@@ -330,6 +341,7 @@ export default function SettingsPage() {
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
                     <AlertDialogAction
+                      onClick={handleResetTimeLogs}
                       className="bg-destructive hover:bg-destructive/90"
                     >
                       Sí, eliminar registros
@@ -338,9 +350,9 @@ export default function SettingsPage() {
                 </AlertDialogContent>
               </AlertDialog>
 
-               <AlertDialog>
+               <AlertDialog open={modalState.type === 'resetMoods'} onOpenChange={(open) => !open && handleCloseModal('resetMoods')}>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left h-auto py-2">
+                  <Button variant="outline" className="w-full justify-start text-left h-auto py-2" onClick={() => handleOpenModal('resetMoods')}>
                     <div className="flex items-center gap-3">
                         <Trash2 className="size-5 text-destructive"/>
                         <div>
@@ -361,6 +373,7 @@ export default function SettingsPage() {
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
                     <AlertDialogAction
+                      onClick={handleResetMoods}
                       className="bg-destructive hover:bg-destructive/90"
                     >
                       Sí, eliminar historial
@@ -369,9 +382,9 @@ export default function SettingsPage() {
                 </AlertDialogContent>
               </AlertDialog>
 
-               <AlertDialog>
+               <AlertDialog open={modalState.type === 'restoreDefaults'} onOpenChange={(open) => !open && handleCloseModal('restoreDefaults')}>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left h-auto py-2">
+                  <Button variant="outline" className="w-full justify-start text-left h-auto py-2" onClick={() => handleOpenModal('restoreDefaults')}>
                     <div className="flex items-center gap-3">
                         <Library className="size-5 text-destructive"/>
                         <div>
@@ -391,6 +404,7 @@ export default function SettingsPage() {
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
                     <AlertDialogAction
+                      onClick={handleRestoreDefaults}
                       className="bg-destructive hover:bg-destructive/90"
                     >
                       Sí, restaurar
