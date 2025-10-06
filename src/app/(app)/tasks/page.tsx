@@ -76,13 +76,13 @@ const motivationalQuotes = [
 function getPriorityBadge(priority: string) {
   switch (priority) {
     case 'high':
-      return 'bg-red-200 text-red-800 hover:bg-red-200/80';
+      return 'destructive';
     case 'medium':
-      return 'bg-yellow-200 text-yellow-800 hover:bg-yellow-200/80';
+      return 'warning';
     case 'low':
-      return 'bg-green-200 text-green-800 hover:bg-green-200/80';
+      return 'outline';
     default:
-      return 'bg-gray-200 text-gray-800';
+      return 'secondary';
   }
 }
 
@@ -103,7 +103,7 @@ export default function TasksPage() {
   } = useTasks();
 
   const { activeSession, startSession, stopSession } = useSession();
-  const { modalState, handleOpenModal, handleCloseModal, formState, setFormState } = useUI();
+  const { modalState, handleOpenModal: openModal, handleCloseModal, formState, setFormState } = useUI();
   
   const [activeTab, setActiveTab] = useState('pending');
   const [motivation, setMotivation] = useState('');
@@ -111,6 +111,15 @@ export default function TasksPage() {
   useEffect(() => {
     setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, []);
+
+  const handleOpenModal = (type: string, data: any = {}) => {
+    let modalData = data;
+    if (type === 'task' && data.dueDate) {
+        modalData = { ...data, dueDate: data.dueDate.toDate() };
+    }
+    openModal(type, modalData);
+  };
+
 
   const { groupedTasks, allTasksInView } = useMemo(() => {
     if (!tasks) return { groupedTasks: {}, allTasksInView: [] };
@@ -180,7 +189,7 @@ export default function TasksPage() {
                     </p>
                   </label>
                   {isOverdue && <AlertTriangle className="h-5 w-5 text-destructive ml-auto" />}
-                  <Badge className={cn(getPriorityBadge(task.priority))}>{task.priority}</Badge>
+                  <Badge variant={getPriorityBadge(task.priority)}>{task.priority}</Badge>
                   {!task.isCompleted && (
                     <Button variant="outline" size="icon" onClick={() => isSessionActive ? stopSession() : startSession(task.id, task.name, 'task')} disabled={!isSessionActive && !!activeSession} className={cn("h-9 w-9", isSessionActive && "bg-primary text-primary-foreground animate-pulse")}>
                       {isSessionActive ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}
@@ -368,5 +377,3 @@ export default function TasksPage() {
     </>
   );
 }
-
-    
