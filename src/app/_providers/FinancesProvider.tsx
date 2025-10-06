@@ -83,6 +83,7 @@ interface FinancesContextState {
     handleResetVariableData: () => Promise<void>;
     handleResetFixedData: () => Promise<void>;
     handleToggleShoppingList: (listId: string, currentStatus: boolean, name: string) => Promise<void>;
+    handleDeleteList: (listId: string, currentStatus: boolean) => Promise<void>;
 }
 
 const FinancesContext = createContext<FinancesContextState | undefined>(undefined);
@@ -228,9 +229,21 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         const upcomingPayments = allRecurringExpensesData.filter((e: any) => {
             const dueDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), e.dayOfMonth);
             const isOverdue = dueDate < startOfToday && !new Date(dueDate).toDateString() === startOfToday.toDateString();
-            const lastInstanceDate = e.lastInstanceCreated ? new Date(e.lastInstanceCreated.split('-')[0], parseInt(e.lastInstanceCreated.split('-')[1])) : null;
-            const isPaidThisMonth = lastInstanceDate && lastInstanceDate.getFullYear() === currentMonth.getFullYear() && lastInstanceDate.getMonth() === currentMonth.getMonth();
-            return isOverdue && !isPaidThisMonth;
+            
+            const lastInstanceDate = e.lastInstanceCreated ? new Date(
+                parseInt(e.lastInstanceCreated.split('-')[0]),
+                parseInt(e.lastInstanceCreated.split('-')[1])
+            ) : null;
+            
+            const isPaidThisMonth = lastInstanceDate && 
+                lastInstanceDate.getFullYear() === currentMonth.getFullYear() && 
+                lastInstanceDate.getMonth() === currentMonth.getMonth();
+
+            // Include if it's for the current month and not paid, or if it's overdue from a past month
+            if (isPaidThisMonth) return false;
+            
+            return isOverdue || (e.activeMonths?.includes(currentMonth.getMonth()));
+            
         }).sort((a: any, b: any) => a.dayOfMonth - b.dayOfMonth);
 
         const incomeCategories = [...new Set(["Salario", "Bonificación", "Otro", ...allRecurringIncomesData.map((i: any) => i.category), ...allTransactionsData.filter((t: any) => t.type === 'income').map((t: any) => t.category)])].filter(Boolean).sort();
@@ -281,7 +294,8 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         const annualProjectedSavings = annualProjectedIncome - annualProjectedExpense;
         const annualProjectedSavingsRate = annualProjectedIncome > 0 ? (annualProjectedSavings / annualProjectedIncome) * 100 : 0;
         
-        const activeShoppingLists = (allShoppingListsData || []).filter(list => list.isActive);
+        const activeShoppingLists = (allShoppingListsData || []).filter(list => list.isActive && (!list.activeMonths || list.activeMonths.includes(currentMonth.getMonth())));
+
 
         return { monthlyIncome, monthlyExpenses, monthlyBalance, monthlySavingsRate, projectedMonthlyIncome, projectedMonthlyExpense, projectedMonthlyBalance, projectedMonthlySavingsRate, budget503020, upcomingPayments, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, pendingIncomesTotal, expenseCategories, incomeCategories, categoriesWithoutBudget, annualFlowData, annualCategorySpending, monthlySummaryData, annualTotalIncome, annualTotalExpense, annualNetSavings, annualSavingsRate, annualProjectedIncome, annualProjectedExpense, annualProjectedSavings, annualProjectedSavingsRate, annualIncomeCategorySpending, activeShoppingLists };
     }, [transactions, annualTransactions, budgets, shoppingLists, shoppingListItems, recurringExpenses, recurringIncomes, currentMonth, taskCategories]);
@@ -529,7 +543,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             budgetFocus: itemToPurchase.budgetFocus,
         };
     
-        setFormState(transactionData);
+        setFormState(prev => ({...prev, ...transactionData}));
         await handleSaveTransaction();
     
         const batch = writeBatch(firestore);
@@ -632,23 +646,32 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
     }, [user, firestore, handleCloseModal, toast]);
     
     const handleToggleShoppingList = useCallback(async (listId: string, currentStatus: boolean, name: string) => {
-        if (!user || !firestore || !listId) return;
-        const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
+        if (!user || !firestore) return;
         
+        const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
         const listDoc = await getDoc(listRef);
+
         if (!listDoc.exists()) {
-            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'shoppingLists'), { 
-                name: name,
+             await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'shoppingLists'), { 
+                name,
                 isActive: true, 
                 userId: user.uid,
                 createdAt: serverTimestamp(),
-                order: 99, // default order
+                order: 99,
                 budgetFocus: 'Necesidades',
             });
         } else {
-            await updateDocumentNonBlocking(listRef, { isActive: !currentStatus });
+             await updateDocumentNonBlocking(listRef, { isActive: !currentStatus });
         }
     }, [user, firestore]);
+    
+    const handleDeleteList = useCallback(async (listId: string, currentStatus: boolean) => {
+        if (!user || !firestore || !listId) return;
+        const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
+        await updateDocumentNonBlocking(listRef, { isActive: false });
+        toast({ title: 'Categoría Desactivada' });
+        handleCloseModal('deleteList');
+    }, [user, firestore, toast, handleCloseModal]);
 
     return (
         <FinancesContext.Provider value={{
@@ -688,6 +711,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             handleResetVariableData,
             handleResetFixedData,
             handleToggleShoppingList,
+            handleDeleteList,
         }}>
             {children}
         </FinancesContext.Provider>
