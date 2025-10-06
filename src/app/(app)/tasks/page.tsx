@@ -326,7 +326,7 @@ export default function TasksPage() {
                 <Label htmlFor="task-category">Categoría</Label>
                 <Select value={formState.category || ''} onValueChange={(value) => setFormState({ ...formState, category: value })}>
                   <SelectTrigger id="task-category"><SelectValue placeholder="Selecciona" /></SelectTrigger>
-                  <SelectContent>{taskCategories.map(cat => (<SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>))}</SelectContent>
+                  <SelectContent>{taskCategories && taskCategories.map(cat => (<SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>))}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
