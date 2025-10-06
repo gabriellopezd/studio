@@ -12,6 +12,7 @@ export interface Habit {
     currentStreak: number;
     longestStreak: number;
     lastCompletedAt: any;
+    createdAt: any;
     previousStreak?: number;
     previousLongestStreak?: number;
     previousLastCompletedAt?: any | null;
