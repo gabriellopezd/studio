@@ -334,8 +334,10 @@ export default function FinancialPlanningPage() {
                                         <CardTitle>Categorías de Compra</CardTitle>
                                         <CardDescription>Arrastra para reordenar.</CardDescription>
                                     </div>
-                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal('list')}>
-                                        <PlusCircle className="h-4 w-4" />
+                                    <Button asChild variant="outline" size="icon" className="h-8 w-8">
+                                        <Link href="/settings/finances">
+                                            <Settings className="h-4 w-4" />
+                                        </Link>
                                     </Button>
                                 </div>
                             </CardHeader>
