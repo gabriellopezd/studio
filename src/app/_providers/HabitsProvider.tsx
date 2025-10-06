@@ -380,5 +380,3 @@ export const HabitsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         </HabitsContext.Provider>
     );
 };
-
-    

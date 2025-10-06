@@ -5,7 +5,8 @@ const getStartOfWeek = (date: Date) => {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
   const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+  // Assuming Sunday is the first day of the week (0)
+  const diff = d.getDate() - day;
   return new Date(d.setDate(diff));
 };
 
@@ -16,6 +17,7 @@ const isSameDay = (d1: Date, d2: Date) => {
 };
 
 const isSameWeek = (d1: Date, d2: Date) => {
+  if (!d1 || !d2) return false;
   const startOfWeek1 = getStartOfWeek(d1);
   const startOfWeek2 = getStartOfWeek(d2);
   return startOfWeek1.getTime() === startOfWeek2.getTime();
@@ -40,7 +42,11 @@ const isPreviousWeek = (today: Date, otherDate: Date) => {
 
 export function isHabitCompletedToday(habit: any) {
     if (!habit || !habit.lastCompletedAt) return false;
-    const lastCompletedDate = (habit.lastCompletedAt as Timestamp).toDate();
+    
+    // Ensure lastCompletedAt is a valid Date object
+    const lastCompletedDate = habit.lastCompletedAt.toDate ? habit.lastCompletedAt.toDate() : new Date(habit.lastCompletedAt);
+    if (isNaN(lastCompletedDate.getTime())) return false;
+
     const today = new Date();
     
     switch (habit.frequency) {
@@ -124,5 +130,3 @@ export function resetStreak() {
     previousLastCompletedAt: null,
   };
 }
-
-    
