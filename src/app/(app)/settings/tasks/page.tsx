@@ -176,7 +176,7 @@ export default function TaskSettingsPage() {
                         <Input
                         id="categoryName"
                         value={formState.name || ''}
-                        onChange={(e) => setFormState(p => ({...p, name: e.target.value}))}
+                        onChange={(e) => setFormState((p: any) => ({...p, name: e.target.value}))}
                         placeholder="Ej: Universidad, Trabajo Secundario..."
                         />
                     </div>
