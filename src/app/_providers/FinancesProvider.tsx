@@ -83,7 +83,7 @@ interface FinancesContextState {
     handleResetVariableData: () => Promise<void>;
     handleResetFixedData: () => Promise<void>;
     handleToggleShoppingList: (listId: string, currentStatus: boolean, name: string) => Promise<void>;
-    handleDeleteList: (listId: string, currentStatus: boolean) => Promise<void>;
+    handleDeleteList: (listId: string) => Promise<void>;
 }
 
 const FinancesContext = createContext<FinancesContextState | undefined>(undefined);
@@ -100,7 +100,6 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
     const { firestore, user } = useFirebase();
     const { toast } = useToast();
     const { formState, setFormState, handleCloseModal } = useUI();
-    const { taskCategories } = useTasks();
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const monthIdentifier = useMemo(() => `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`, [currentMonth]);
 
@@ -178,7 +177,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         const expenseCategoriesFromBudgets = allBudgetsData.map((b:any) => b.categoryName);
         const expenseCategoriesFromShoppingLists = allShoppingListsData.map((l:any) => l.name);
         const expenseCategoriesFromRecurring = allRecurringExpensesData.map((e:any) => e.category);
-        const expenseCategories = [...new Set([...expenseCategoriesFromBudgets, ...expenseCategoriesFromShoppingLists, ...expenseCategoriesFromRecurring, ...PRESET_EXPENSE_CATEGORIES, ...(taskCategories?.map((c: any) => c.name) || [])])].filter(Boolean).sort();
+        const expenseCategories = [...new Set([...expenseCategoriesFromBudgets, ...expenseCategoriesFromShoppingLists, ...expenseCategoriesFromRecurring, ...PRESET_EXPENSE_CATEGORIES])].filter(Boolean).sort();
 
         const currentMonthFBIdentifier = `${currentMonth.getFullYear()}-${currentMonth.getMonth()}`;
         const today = new Date();
@@ -227,23 +226,8 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
         
         const upcomingPayments = allRecurringExpensesData.filter((e: any) => {
-            const dueDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), e.dayOfMonth);
-            const isOverdue = dueDate < startOfToday && !new Date(dueDate).toDateString() === startOfToday.toDateString();
-            
-            const lastInstanceDate = e.lastInstanceCreated ? new Date(
-                parseInt(e.lastInstanceCreated.split('-')[0]),
-                parseInt(e.lastInstanceCreated.split('-')[1])
-            ) : null;
-            
-            const isPaidThisMonth = lastInstanceDate && 
-                lastInstanceDate.getFullYear() === currentMonth.getFullYear() && 
-                lastInstanceDate.getMonth() === currentMonth.getMonth();
-
-            // Include if it's for the current month and not paid, or if it's overdue from a past month
-            if (isPaidThisMonth) return false;
-            
-            return isOverdue || (e.activeMonths?.includes(currentMonth.getMonth()));
-            
+            const isPaidThisMonth = e.lastInstanceCreated === `${currentMonth.getFullYear()}-${currentMonth.getMonth()}`;
+            return !isPaidThisMonth && (e.activeMonths?.includes(currentMonth.getMonth()) ?? true) && !e.overriddenMonths?.includes(`${currentMonth.getFullYear()}-${currentMonth.getMonth()}`);
         }).sort((a: any, b: any) => a.dayOfMonth - b.dayOfMonth);
 
         const incomeCategories = [...new Set(["Salario", "Bonificación", "Otro", ...allRecurringIncomesData.map((i: any) => i.category), ...allTransactionsData.filter((t: any) => t.type === 'income').map((t: any) => t.category)])].filter(Boolean).sort();
@@ -298,7 +282,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
 
 
         return { monthlyIncome, monthlyExpenses, monthlyBalance, monthlySavingsRate, projectedMonthlyIncome, projectedMonthlyExpense, projectedMonthlyBalance, projectedMonthlySavingsRate, budget503020, upcomingPayments, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, pendingIncomesTotal, expenseCategories, incomeCategories, categoriesWithoutBudget, annualFlowData, annualCategorySpending, monthlySummaryData, annualTotalIncome, annualTotalExpense, annualNetSavings, annualSavingsRate, annualProjectedIncome, annualProjectedExpense, annualProjectedSavings, annualProjectedSavingsRate, annualIncomeCategorySpending, activeShoppingLists };
-    }, [transactions, annualTransactions, budgets, shoppingLists, shoppingListItems, recurringExpenses, recurringIncomes, currentMonth, taskCategories]);
+    }, [transactions, annualTransactions, budgets, shoppingLists, shoppingListItems, recurringExpenses, recurringIncomes, currentMonth]);
 
     // --- Actions ---
 
@@ -543,21 +527,25 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             budgetFocus: itemToPurchase.budgetFocus,
         };
     
-        setFormState(prev => ({...prev, ...transactionData}));
+        const transactionId = formState.id; // Assuming formState has the id of the shopping list item
+        setFormState(prev => ({...prev, ...transactionData, id: undefined})); // Reset id for new transaction
+        
         await handleSaveTransaction();
-    
-        const batch = writeBatch(firestore);
-        const itemRef = doc(firestore, 'users', user.uid, 'shoppingListItems', itemToPurchase.id);
+        
+        // After transaction is saved, find it to link it. This is not ideal but works.
         const newTransactionQuery = query(
             collection(firestore, 'users', user.uid, 'transactions'),
             where('description', '==', itemToPurchase.name),
             where('amount', '==', price),
             orderBy('createdAt', 'desc'),
             limit(1)
-        );
+            );
         const newTransactionSnap = await getDocs(newTransactionQuery);
         const newTransactionId = newTransactionSnap.empty ? null : newTransactionSnap.docs[0].id;
-    
+        
+        const batch = writeBatch(firestore);
+        const itemRef = doc(firestore, 'users', user.uid, 'shoppingListItems', itemToPurchase.id);
+        
         batch.update(itemRef, { isPurchased: true, finalPrice: price, transactionId: newTransactionId });
         
         await batch.commit();
@@ -645,15 +633,15 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
     }, [user, firestore, handleCloseModal, toast]);
     
-    const handleToggleShoppingList = useCallback(async (listId: string, currentStatus: boolean, name: string) => {
+    const handleToggleShoppingList = useCallback(async (listName: string, currentStatus: boolean) => {
         if (!user || !firestore) return;
         
-        const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
-        const listDoc = await getDoc(listRef);
-
-        if (!listDoc.exists()) {
+        const q = query(collection(firestore, 'users', user.uid, 'shoppingLists'), where('name', '==', listName));
+        const listSnap = await getDocs(q);
+        
+        if (listSnap.empty) {
              await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'shoppingLists'), { 
-                name,
+                name: listName,
                 isActive: true, 
                 userId: user.uid,
                 createdAt: serverTimestamp(),
@@ -661,11 +649,12 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
                 budgetFocus: 'Necesidades',
             });
         } else {
+             const listRef = listSnap.docs[0].ref;
              await updateDocumentNonBlocking(listRef, { isActive: !currentStatus });
         }
     }, [user, firestore]);
     
-    const handleDeleteList = useCallback(async (listId: string, currentStatus: boolean) => {
+    const handleDeleteList = useCallback(async (listId: string) => {
         if (!user || !firestore || !listId) return;
         const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
         await updateDocumentNonBlocking(listRef, { isActive: false });
