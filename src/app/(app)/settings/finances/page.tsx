@@ -106,7 +106,7 @@ export default function FinanceSettingsPage() {
                     <Pencil className="h-4 w-4" />
                 </Button>
                 {cat.isDeletable && (
-                  <AlertDialog open={modalState.type === 'deleteList' && modalState.data?.id === cat.id} onOpenChange={(open) => !open && handleCloseModal('deleteList')}>
+                  <AlertDialog>
                       <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleOpenModal('deleteList', cat)}>
                           <Trash2 className="h-4 w-4" />
                       </Button>

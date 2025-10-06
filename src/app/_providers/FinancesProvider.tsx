@@ -219,14 +219,12 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
         
         const upcomingPayments = allRecurringExpensesData.filter((e: any) => {
-             const lastInstanceDate = e.lastInstanceCreated ? new Date(e.lastInstanceCreated.split('-')[0], e.lastInstanceCreated.split('-')[1]) : null;
-             const isPaidThisMonth = lastInstanceDate && lastInstanceDate.getFullYear() === currentMonth.getFullYear() && lastInstanceDate.getMonth() === currentMonth.getMonth();
-             return !isPaidThisMonth;
-        }).sort((a: any, b: any) => {
-             const dateA = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), a.dayOfMonth);
-             const dateB = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), b.dayOfMonth);
-             return dateA.getTime() - dateB.getTime();
-        });
+            const dueDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), e.dayOfMonth);
+            const isOverdue = dueDate < startOfToday && !new Date(dueDate).toDateString() === startOfToday.toDateString();
+            const lastInstanceDate = e.lastInstanceCreated ? new Date(e.lastInstanceCreated.split('-')[0], parseInt(e.lastInstanceCreated.split('-')[1])) : null;
+            const isPaidThisMonth = lastInstanceDate && lastInstanceDate.getFullYear() === currentMonth.getFullYear() && lastInstanceDate.getMonth() === currentMonth.getMonth();
+            return isOverdue && !isPaidThisMonth;
+        }).sort((a: any, b: any) => a.dayOfMonth - b.dayOfMonth);
 
         const incomeCategories = [...new Set(["Salario", "Bonificación", "Otro", ...allRecurringIncomesData.map((i: any) => i.category), ...allTransactionsData.filter((t: any) => t.type === 'income').map((t: any) => t.category)])].filter(Boolean).sort();
         const categoriesWithoutBudget = expenseCategories.filter(cat => !allBudgetsData.some((b: any) => b.categoryName === cat));
@@ -664,7 +662,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             recurringExpensesLoading,
             recurringIncomes,
             recurringIncomesLoading,
-            financesLoading: recurringExpensesLoading || recurringIncomesLoading || shoppingListsLoading,
+            financesLoading: recurringExpensesLoading || recurringIncomesLoading || shoppingListsLoading || budgetsLoading || transactionsLoading,
             currentMonth,
             setCurrentMonth,
             ...derivedState,
