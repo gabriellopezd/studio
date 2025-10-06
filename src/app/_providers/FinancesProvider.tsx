@@ -20,6 +20,7 @@ interface FinancesContextState {
     budgetsLoading: boolean;
     shoppingLists: any[] | null;
     shoppingListsLoading: boolean;
+    activeShoppingLists: any[];
     recurringExpenses: any[] | null;
     recurringExpensesLoading: boolean;
     recurringIncomes: any[] | null;
@@ -275,7 +276,12 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         const annualProjectedSavings = annualProjectedIncome - annualProjectedExpense;
         const annualProjectedSavingsRate = annualProjectedIncome > 0 ? (annualProjectedSavings / annualProjectedIncome) * 100 : 0;
         
-        return { monthlyIncome, monthlyExpenses, monthlyBalance, monthlySavingsRate, projectedMonthlyIncome, projectedMonthlyExpense, projectedMonthlyBalance, projectedMonthlySavingsRate, budget503020, upcomingPayments, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, pendingIncomesTotal, expenseCategories, incomeCategories, categoriesWithoutBudget, annualFlowData, annualCategorySpending, monthlySummaryData, annualTotalIncome, annualTotalExpense, annualNetSavings, annualSavingsRate, annualProjectedIncome, annualProjectedExpense, annualProjectedSavings, annualProjectedSavingsRate, annualIncomeCategorySpending };
+        const activeShoppingLists = (allShoppingListsData || []).filter(list => 
+            list.isActive && 
+            (!list.activeMonths || list.activeMonths.length === 0 || list.activeMonths.includes(activeMonthIndex))
+        );
+
+        return { monthlyIncome, monthlyExpenses, monthlyBalance, monthlySavingsRate, projectedMonthlyIncome, projectedMonthlyExpense, projectedMonthlyBalance, projectedMonthlySavingsRate, budget503020, upcomingPayments, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, pendingIncomesTotal, expenseCategories, incomeCategories, categoriesWithoutBudget, annualFlowData, annualCategorySpending, monthlySummaryData, annualTotalIncome, annualTotalExpense, annualNetSavings, annualSavingsRate, annualProjectedIncome, annualProjectedExpense, annualProjectedSavings, annualProjectedSavingsRate, annualIncomeCategorySpending, activeShoppingLists };
     }, [transactions, annualTransactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, currentMonth, taskCategories]);
 
     // --- Actions ---

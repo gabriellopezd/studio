@@ -146,6 +146,7 @@ export default function FinancialPlanningPage() {
     setCurrentMonth,
     shoppingLists,
     shoppingListsLoading,
+    activeShoppingLists,
     recurringExpenses,
     recurringExpensesLoading,
     recurringIncomes,
@@ -187,14 +188,6 @@ export default function FinancialPlanningPage() {
   useEffect(() => {
     setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, []);
-
-  const activeShoppingLists = useMemo(() => {
-    const activeMonth = currentMonth.getMonth();
-    return shoppingLists?.filter(list => 
-        list.isActive && 
-        (!list.activeMonths || list.activeMonths.length === 0 || list.activeMonths.includes(activeMonth))
-    ) || [];
-  }, [shoppingLists, currentMonth]);
 
   const sortedLists = useMemo(() => {
     if (!activeShoppingLists) return [];
