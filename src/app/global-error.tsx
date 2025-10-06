@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,10 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const handleReload = () => {
+    window.location.reload();
+  };
+
   return (
     <html>
       <body>
@@ -30,7 +35,7 @@ export default function GlobalError({
                         Puedes intentar recargar la página o volver al inicio.
                     </p>
                     <div className="mt-6 flex justify-center gap-4">
-                        <Button onClick={() => reset()}>
+                        <Button onClick={handleReload}>
                             Recargar Página
                         </Button>
                         <Button variant="outline" asChild>
