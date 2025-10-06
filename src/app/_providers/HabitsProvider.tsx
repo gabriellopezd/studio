@@ -239,8 +239,8 @@ export const HabitsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
         const dailyHabits = activeHabits.filter((h: any) => h.frequency === 'Diario');
         const weeklyHabits = activeHabits.filter((h: any) => h.frequency === 'Semanal');
-        const completedDaily = dailyHabits.filter((h: any) => isHabitCompletedToday(h)).length;
-        const completedWeekly = weeklyHabits.filter((h: any) => isHabitCompletedToday(h)).length;
+        const completedDaily = dailyHabits.filter(isHabitCompletedToday).length;
+        const completedWeekly = weeklyHabits.filter(isHabitCompletedToday).length;
         
         const longestStreak = activeHabits.reduce((max: number, h: any) => Math.max(max, h.longestStreak || 0), 0);
         const topLongestStreakHabits = longestStreak > 0 ? activeHabits.filter((h: any) => (h.longestStreak || 0) === longestStreak).map((h: any) => h.name) : [];
@@ -380,3 +380,5 @@ export const HabitsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         </HabitsContext.Provider>
     );
 };
+
+    

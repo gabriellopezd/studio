@@ -58,42 +58,39 @@ export function checkHabitStreak(habit: any) {
     const today = new Date();
     const lastCompletedDate = habit.lastCompletedAt ? (habit.lastCompletedAt as Timestamp).toDate() : null;
 
-    // If the habit was already completed today, no need to check/update streak.
-    if (lastCompletedDate && isHabitCompletedToday(habit)) {
-        return null;
+    // If the habit was already completed in the current period, no need to check/update streak.
+    if (lastCompletedDate) {
+        if (habit.frequency === 'Semanal' && isSameWeek(today, lastCompletedDate)) {
+            return null;
+        }
+        if (habit.frequency === 'Diario' && isSameDay(today, lastCompletedDate)) {
+            return null;
+        }
     }
-
+    
     let shouldReset = false;
-    let isConsecutive = false;
 
     if (lastCompletedDate) {
         if (habit.frequency === 'Semanal') {
-            const sameWeek = isSameWeek(today, lastCompletedDate);
-            const prevWeek = isPreviousWeek(today, lastCompletedDate);
-            isConsecutive = prevWeek;
-            if (!sameWeek && !prevWeek) {
+            if (!isPreviousWeek(today, lastCompletedDate)) {
                 shouldReset = true;
             }
         } else { // 'Diario'
-            const sameDay = isSameDay(today, lastCompletedDate);
-            const prevDay = isPreviousDay(today, lastCompletedDate);
-            isConsecutive = prevDay;
-            if (!sameDay && !prevDay) {
+            if (!isPreviousDay(today, lastCompletedDate)) {
                 shouldReset = true;
             }
         }
     } else {
-        // If it has never been completed, it shouldn't have a streak.
-        shouldReset = true;
+        // If it has never been completed, it shouldn't have a streak. But let's not reset if it's 0.
+        if (habit.currentStreak > 0) {
+            shouldReset = true;
+        }
     }
 
     if (shouldReset && habit.currentStreak > 0) {
         return { currentStreak: 0 };
     }
     
-    // Note: The logic to increment the streak is now handled when a habit is marked complete.
-    // This function's primary role is to RESET a broken streak.
-    // We return null if no reset is needed.
     return null;
 }
 
@@ -127,3 +124,5 @@ export function resetStreak() {
     previousLastCompletedAt: null,
   };
 }
+
+    
