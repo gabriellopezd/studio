@@ -117,6 +117,7 @@ export default function FinancialPlanningPage() {
     handleDeleteShoppingListItem,
     handleRevertPurchase,
     handleSaveTransaction,
+    handleUpdateList,
   } = useFinances();
 
   const {

@@ -100,7 +100,6 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
     const { firestore, user } = useFirebase();
     const { toast } = useToast();
     const { formState, setFormState, handleCloseModal } = useUI();
-    const { taskCategories } = useTasks();
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const monthIdentifier = useMemo(() => `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`, [currentMonth]);
 
@@ -283,7 +282,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
 
 
         return { monthlyIncome, monthlyExpenses, monthlyBalance, monthlySavingsRate, projectedMonthlyIncome, projectedMonthlyExpense, projectedMonthlyBalance, projectedMonthlySavingsRate, budget503020, upcomingPayments, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, pendingIncomesTotal, expenseCategories, incomeCategories, categoriesWithoutBudget, annualFlowData, annualCategorySpending, monthlySummaryData, annualTotalIncome, annualTotalExpense, annualNetSavings, annualSavingsRate, annualProjectedIncome, annualProjectedExpense, annualProjectedSavings, annualProjectedSavingsRate, annualIncomeCategorySpending, activeShoppingLists };
-    }, [transactions, annualTransactions, budgets, shoppingLists, shoppingListItems, recurringExpenses, recurringIncomes, currentMonth, taskCategories]);
+    }, [transactions, annualTransactions, budgets, shoppingLists, shoppingListItems, recurringExpenses, recurringIncomes, currentMonth]);
 
     // --- Actions ---
 
@@ -527,26 +526,12 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             date: new Date().toISOString(),
             budgetFocus: itemToPurchase.budgetFocus,
         };
-    
-        const transactionRef = doc(collection(firestore, 'users', user.uid, 'transactions'));
         
-        const batch = writeBatch(firestore);
+        await handleSaveTransaction();
         
-        batch.set(transactionRef, { ...transactionData, createdAt: serverTimestamp(), userId: user.uid });
-        
-        const itemRef = doc(firestore, 'users', user.uid, 'shoppingListItems', itemToPurchase.id);
-        batch.update(itemRef, { isPurchased: true, finalPrice: price, transactionId: transactionRef.id });
-
-        const budget = budgets?.find(b => b.categoryName === itemToPurchase.categoryName);
-        if (budget) {
-            const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
-            batch.update(budgetRef, { currentSpend: increment(price) });
-        }
-        
-        await batch.commit();
         handleCloseModal('purchaseItem');
     
-    }, [user, firestore, formState, shoppingListItems, budgets, handleCloseModal]);
+    }, [user, firestore, formState, shoppingListItems, budgets, handleCloseModal, handleSaveTransaction]);
 
     const handleDeleteShoppingListItem = useCallback(async (itemId: string) => {
         if (!itemId || !user || !firestore) return;
