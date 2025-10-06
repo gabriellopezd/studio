@@ -40,6 +40,8 @@ import { useHabits } from '@/app/_providers/HabitsProvider';
 import { useTasks } from '@/app/_providers/TasksProvider';
 import { useFinances } from '@/app/_providers/FinancesProvider';
 import { useSession } from '@/app/_providers/SessionProvider';
+import { format, isToday, isBefore, startOfToday } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const orderedCategories = ["Productividad", "Conocimiento", "Social", "Salud", "Espiritual", "Hogar", "Profesional", "Relaciones Personales"];
 
@@ -104,7 +106,7 @@ export default function TodayPage() {
 
   const { allHabits, habitsLoading, handleToggleHabit } = useHabits();
   const { overdueTasks, todayTasks, tasksLoading, handleToggleTask } = useTasks();
-  const { pendingRecurringExpenses, handlePayRecurringItem } = useFinances();
+  const { pendingRecurringExpenses, handlePayRecurringItem, financesLoading } = useFinances();
   const { activeSession, startSession, stopSession } = useSession();
   
   useEffect(() => {
@@ -255,20 +257,30 @@ export default function TodayPage() {
                     <CardDescription>Gastos fijos de este mes que aún no has registrado.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {tasksLoading && <p>Cargando pagos...</p>}
-                    {!tasksLoading && pendingRecurringExpenses.length === 0 ? (
+                    {financesLoading && <p>Cargando pagos...</p>}
+                    {!financesLoading && pendingRecurringExpenses.length === 0 ? (
                         <p className="text-sm text-muted-foreground text-center py-4">No tienes pagos fijos pendientes este mes.</p>
                     ) : (
                         <ul className="space-y-3">
-                        {pendingRecurringExpenses.map(payment => (
+                        {pendingRecurringExpenses.map(payment => {
+                            const dueDate = new Date(new Date().getFullYear(), new Date().getMonth(), payment.dayOfMonth);
+                            const isOverdue = dueDate < startOfToday() && !isToday(dueDate);
+                            return (
                             <li key={payment.id} className="flex justify-between items-center rounded-lg border p-3">
-                                <div>
-                                    <p className="font-medium">{payment.name}</p>
-                                    <p className="text-sm text-muted-foreground">{formatCurrency(payment.amount)}</p>
+                                <div className="flex items-center gap-2">
+                                     {isOverdue && <div className="h-2 w-2 shrink-0 rounded-full bg-destructive" title="Vencido"></div>}
+                                     <div>
+                                        <p className="font-medium">{payment.name}</p>
+                                        <p className={cn("text-sm", isOverdue ? "text-destructive" : "text-muted-foreground")}>
+                                            {isOverdue ? 'Vencido' : 'Vence'}: {format(dueDate, 'd MMM', { locale: es })}
+                                        </p>
+                                        <p className="text-sm font-semibold">{formatCurrency(payment.amount)}</p>
+                                     </div>
                                 </div>
                                 <Button size="sm" onClick={() => handlePayRecurringItem(payment, 'expense')}><CheckCircle className="mr-2 h-4 w-4"/>Pagar</Button>
                             </li>
-                        ))}
+                            )
+                        })}
                         </ul>
                     )}
                 </CardContent>
@@ -308,5 +320,3 @@ export default function TodayPage() {
     </>
   );
 }
-
-    
