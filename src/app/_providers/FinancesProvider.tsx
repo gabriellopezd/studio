@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useMemo, useState, ReactNode, useCallback } from 'react';
-import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc, arrayUnion, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc, arrayUnion, collectionGroup, limit } from 'firebase/firestore';
 import { useFirebase, useCollectionData, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useUI } from './UIProvider';
@@ -81,7 +81,7 @@ interface FinancesContextState {
     handleRevertPurchase: (listId: string, itemToRevert: any) => Promise<void>;
     handleResetVariableData: () => Promise<void>;
     handleResetFixedData: () => Promise<void>;
-    handleToggleShoppingList: (listId: string, currentStatus: boolean) => Promise<void>;
+    handleToggleShoppingList: (categoryName: string, currentStatus: boolean) => Promise<void>;
 }
 
 const FinancesContext = createContext<FinancesContextState | undefined>(undefined);
@@ -500,9 +500,8 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const handleDeleteList = useCallback(async (listId: string) => {
         if (!listId || !user || !firestore) return;
-        const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
-        await updateDocumentNonBlocking(listRef, { isActive: false });
-        toast({ title: 'Categoría Desactivada' });
+        await deleteDocumentNonBlocking(doc(firestore, 'users', user.uid, 'shoppingLists', listId));
+        toast({ title: 'Categoría Eliminada' });
         handleCloseModal('deleteList');
     }, [user, firestore, handleCloseModal, toast]);
 
@@ -623,11 +622,28 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
     }, [user, firestore, handleCloseModal, toast]);
     
-    const handleToggleShoppingList = useCallback(async (listId: string, currentStatus: boolean) => {
+    const handleToggleShoppingList = useCallback(async (categoryName: string, currentStatus: boolean) => {
         if (!user || !firestore) return;
-        const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
-        await updateDocumentNonBlocking(listRef, { isActive: !currentStatus });
-    }, [user, firestore]);
+        
+        const q = query(collection(firestore, 'users', user.uid, 'shoppingLists'), where('name', '==', categoryName), limit(1));
+        const snapshot = await getDocs(q);
+        
+        if (!snapshot.empty) {
+            const docRef = snapshot.docs[0].ref;
+            await updateDocumentNonBlocking(docRef, { isActive: !currentStatus });
+        } else if (!currentStatus) {
+            // If we are activating a category and it doesn't exist as a list, create it.
+            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'shoppingLists'), {
+                name: categoryName,
+                budgetFocus: 'Necesidades',
+                items: [],
+                order: shoppingLists?.length || 0,
+                isActive: true,
+                createdAt: serverTimestamp(),
+                userId: user.uid,
+            });
+        }
+    }, [user, firestore, shoppingLists]);
 
     return (
         <FinancesContext.Provider value={{
@@ -672,4 +688,3 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         </FinancesContext.Provider>
     );
 };
-

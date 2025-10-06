@@ -68,10 +68,10 @@ async function initializeDefaultShoppingLists(user: User, firestore: any, batch:
 
     if (listsSnapshot.empty) {
         const defaultShoppingLists = [
-            { name: 'Comida', budgetFocus: 'Necesidades' },
-            { name: 'Hogar', budgetFocus: 'Necesidades' },
-            { name: 'Transporte', budgetFocus: 'Necesidades' },
-            { name: 'Deseos', budgetFocus: 'Deseos' },
+            { name: 'Comida', budgetFocus: 'Necesidades', isActive: true },
+            { name: 'Hogar', budgetFocus: 'Necesidades', isActive: true },
+            { name: 'Transporte', budgetFocus: 'Necesidades', isActive: true },
+            { name: 'Deseos', budgetFocus: 'Deseos', isActive: false },
         ];
 
         defaultShoppingLists.forEach((list, index) => {
@@ -81,7 +81,7 @@ async function initializeDefaultShoppingLists(user: User, firestore: any, batch:
                 budgetFocus: list.budgetFocus,
                 items: [],
                 order: index,
-                isActive: true,
+                isActive: list.isActive,
                 createdAt: serverTimestamp(),
                 userId: user.uid,
             });
