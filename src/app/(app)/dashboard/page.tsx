@@ -32,7 +32,7 @@ import { useTasks } from '@/app/_providers/TasksProvider';
 import { useMood } from '@/app/_providers/MoodProvider';
 import { useFinances } from '@/app/_providers/FinancesProvider';
 import { formatCurrency, cn } from '@/lib/utils';
-import { format, isToday } from 'date-fns';
+import { format, isToday, isBefore, startOfToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const motivationalQuotes = [
@@ -291,23 +291,32 @@ export default function DashboardPage() {
                            <CreditCard className="size-5"/>
                             Próximos Pagos
                         </CardTitle>
-                        <CardDescription>Gastos recurrentes en los próximos 7 días.</CardDescription>
+                        <CardDescription>Pagos pendientes y próximos.</CardDescription>
                     </CardHeader>
                     <CardContent>
                        {financesLoading && <p>Cargando pagos...</p>}
                         {!financesLoading && upcomingPayments.length === 0 ? (
-                           <p className="text-sm text-center text-muted-foreground pt-4">No tienes pagos programados para los próximos 7 días.</p>
+                           <p className="text-sm text-center text-muted-foreground pt-4">No tienes pagos pendientes o próximos.</p>
                        ) : (
                            <ul className="space-y-3">
-                               {upcomingPayments.map(p => (
+                               {upcomingPayments.map(p => {
+                                   const dueDate = new Date(new Date().getFullYear(), new Date().getMonth(), p.dayOfMonth);
+                                   const isOverdue = dueDate < startOfToday() && !isToday(dueDate);
+                                   return (
                                    <li key={p.id} className="flex justify-between items-center text-sm">
-                                       <div>
-                                           <p className="font-medium">{p.name}</p>
-                                           <p className="text-xs text-muted-foreground">Vence: {format(new Date(new Date().getFullYear(), new Date().getMonth(), p.dayOfMonth), 'd MMM', { locale: es })}</p>
+                                       <div className='flex items-center gap-2'>
+                                            {isOverdue && <div className="h-2 w-2 rounded-full bg-destructive" title="Vencido"></div>}
+                                           <div>
+                                               <p className="font-medium">{p.name}</p>
+                                               <p className={cn("text-xs", isOverdue ? "text-destructive" : "text-muted-foreground")}>
+                                                   {isOverdue ? 'Vencido' : 'Vence'}: {format(dueDate, 'd MMM', { locale: es })}
+                                               </p>
+                                           </div>
                                        </div>
                                        <div className="font-semibold">{formatCurrency(p.amount)}</div>
                                    </li>
-                               ))}
+                                   )
+                                })}
                            </ul>
                        )}
                     </CardContent>

@@ -165,6 +165,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
 
         const currentMonthIdentifier = `${currentMonth.getFullYear()}-${currentMonth.getMonth()}`;
         const today = new Date();
+        const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
         const monthlyIncome = allTransactionsData.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + t.amount, 0);
         const monthlyExpenses = allTransactionsData.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + t.amount, 0);
@@ -212,20 +213,18 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
         
         const upcomingPayments = allRecurringExpensesData.filter((e: any) => {
-            if (e.lastInstanceCreated !== currentMonthIdentifier && (!e.activeMonths || e.activeMonths.includes(activeMonthIndex)) && !e.overriddenMonths?.includes(currentMonthIdentifier)) {
-                const dayOfMonth = e.dayOfMonth;
-                const currentDay = today.getDate();
-                const nextSevenDays = new Date();
-                nextSevenDays.setDate(today.getDate() + 7);
-                if (today.getMonth() === currentMonth.getMonth() && today.getFullYear() === currentMonth.getFullYear()) {
-                    if (nextSevenDays.getMonth() !== today.getMonth()) {
-                        return (dayOfMonth >= currentDay) || (dayOfMonth <= nextSevenDays.getDate());
-                    } else {
-                        return dayOfMonth >= currentDay && dayOfMonth <= nextSevenDays.getDate();
-                    }
-                }
-            }
-            return false;
+            const dueDate = new Date(today.getFullYear(), today.getMonth(), e.dayOfMonth);
+            const isOverdue = dueDate < startOfToday && e.lastInstanceCreated !== currentMonthIdentifier;
+            
+            const nextSevenDays = new Date(startOfToday);
+            nextSevenDays.setDate(startOfToday.getDate() + 7);
+            const isUpcoming = dueDate >= startOfToday && dueDate <= nextSevenDays;
+
+            return e.lastInstanceCreated !== currentMonthIdentifier && (isOverdue || isUpcoming);
+        }).sort((a: any, b: any) => {
+             const dateA = new Date(today.getFullYear(), today.getMonth(), a.dayOfMonth);
+             const dateB = new Date(today.getFullYear(), today.getMonth(), b.dayOfMonth);
+             return dateA.getTime() - dateB.getTime();
         });
 
         const expenseCategories = [...new Set(allTaskCategories.map((c:any) => c.name))];
