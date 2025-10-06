@@ -23,7 +23,7 @@ export default function PageHeader({
   const image = imageId ? PlaceHolderImages.find(img => img.id === imageId) : undefined;
 
   return (
-    <Card className={cn('group relative overflow-hidden border-0 shadow-none', image && 'min-h-[200px] flex items-center justify-center')}>
+    <Card className={cn('group relative overflow-hidden border-0 shadow-none', image && 'min-h-[200px] flex items-center justify-center p-0')}>
       {image?.imageUrl && (
         <>
         <Image
@@ -43,14 +43,13 @@ export default function PageHeader({
             <div className="flex-1 space-y-1.5">
               <h1 className={cn(
                 "text-2xl font-bold tracking-tight uppercase sm:text-3xl",
-                image?.imageUrl && 'text-white'
               )}>
                 {title}
               </h1>
               {description && (
                 <p
                   className={cn(
-                    image?.imageUrl ? 'text-white/80' : 'text-muted-foreground'
+                    'text-muted-foreground'
                   )}
                 >
                   {description}
@@ -59,8 +58,8 @@ export default function PageHeader({
               {motivation && (
                 <p
                   className={cn(
-                    'text-sm',
-                    image?.imageUrl ? 'text-white/70 italic' : 'text-muted-foreground'
+                    'text-sm italic',
+                    'text-muted-foreground'
                   )}
                 >
                   {motivation}
