@@ -48,7 +48,7 @@ function getPriorityBadge(priority: string) {
     case 'high':
       return 'destructive';
     case 'medium':
-      return 'secondary';
+      return 'warning';
     case 'low':
       return 'outline';
     default:
