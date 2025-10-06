@@ -25,6 +25,7 @@ export default function PageHeader({
   return (
     <Card className={cn('group relative overflow-hidden border-0 shadow-none', image && 'min-h-[200px] flex items-center justify-center')}>
       {image?.imageUrl && (
+        <>
         <Image
           src={image.imageUrl}
           alt={image.description || `Fondo para ${title}`}
@@ -33,8 +34,9 @@ export default function PageHeader({
           className="object-cover"
           priority
         />
+        <div className={cn('absolute inset-0', image?.imageUrl && 'bg-black/50')} />
+        </>
       )}
-      <div className={cn('absolute inset-0', image?.imageUrl && 'bg-black/50')} />
       <div className={cn('relative w-full page-header-container')} data-has-image={!!image}>
         <CardHeader>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">

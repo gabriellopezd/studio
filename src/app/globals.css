@@ -101,6 +101,9 @@
   body {
     @apply bg-background text-foreground font-sans;
   }
+  .page-header-container[data-has-image='true'] {
+    color: hsl(var(--primary-foreground));
+  }
   .page-header-container[data-has-image='true'] [data-variant='outline'] {
     @apply bg-black/20 border-primary-foreground/50 text-primary-foreground hover:bg-black/40 hover:text-primary-foreground;
   }
