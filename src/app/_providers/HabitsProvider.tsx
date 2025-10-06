@@ -237,7 +237,7 @@ export const HabitsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             return acc;
         }, {});
 
-        const dailyHabits = activeHabits.filter((h: any) => h.frequency === 'Diario');
+        const dailyHabits = activeHabits.filter((h: any) => h.frequency === 'Diario' || !h.frequency);
         const weeklyHabits = activeHabits.filter((h: any) => h.frequency === 'Semanal');
         const completedDaily = dailyHabits.filter(isHabitCompletedToday).length;
         const completedWeekly = weeklyHabits.filter(isHabitCompletedToday).length;
