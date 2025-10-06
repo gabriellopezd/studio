@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useMemo, ReactNode } from 'react';
@@ -154,7 +153,7 @@ export const TasksProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
         const overdueTasks = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() < startOfTodayDate);
         const todayTasks = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= startOfTodayDate && t.dueDate.toDate() < tomorrow);
-        const upcomingTasks = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= tomorrow && t.dueDate.toDate() <= endOfWeekDate);
+        const upcomingTasks = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= tomorrow);
 
         const completed = allTasksData.filter((t: any) => t.isCompleted).length;
         const total = allTasksData.length;

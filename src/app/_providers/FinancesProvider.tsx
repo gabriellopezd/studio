@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useMemo, useState, ReactNode, useCallback } from 'react';
@@ -211,7 +210,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
         
         const upcomingPayments = allRecurringExpensesData.filter((e: any) => {
-            if ((!e.activeMonths || e.activeMonths.includes(activeMonthIndex)) && !e.overriddenMonths?.includes(currentMonthIdentifier)) {
+            if (e.lastInstanceCreated !== currentMonthIdentifier && (!e.activeMonths || e.activeMonths.includes(activeMonthIndex)) && !e.overriddenMonths?.includes(currentMonthIdentifier)) {
                 const dayOfMonth = e.dayOfMonth;
                 const currentDay = today.getDate();
                 const nextSevenDays = new Date();

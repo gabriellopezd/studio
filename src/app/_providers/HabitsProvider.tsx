@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useMemo, useState, ReactNode, useEffect } from 'react';
@@ -276,7 +275,7 @@ export const HabitsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         const completionByDay: Record<number, {completed: number, total: number}> = {};
         if (dailyHabitsForMonth.length > 0) {
             activeHabits.forEach(habit => {
-                if (habit.lastCompletedAt) {
+                if (habit.lastCompletedAt?.toDate) {
                     const completedDate = habit.lastCompletedAt.toDate();
                     if (completedDate.getFullYear() === year && completedDate.getMonth() === month) {
                         const dayOfMonth = completedDate.getDate();
