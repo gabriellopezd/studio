@@ -93,7 +93,7 @@ export default function FinancialPlanningPage() {
     user,
     currentMonth,
     setCurrentMonth,
-    shoppingLists,
+    activeShoppingLists,
     shoppingListsLoading,
     shoppingListItems,
     shoppingListItemsLoading,
@@ -116,7 +116,6 @@ export default function FinancialPlanningPage() {
     handleConfirmPurchase,
     handleDeleteShoppingListItem,
     handleRevertPurchase,
-    handleSaveTransaction,
   } = useFinances();
 
   const {
@@ -135,29 +134,24 @@ export default function FinancialPlanningPage() {
     setMotivation(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, []);
 
-  const activeShoppingCategories = useMemo(() => {
-    if (!shoppingLists) return [];
-    return [...shoppingLists].filter(list => list.isActive).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
-  }, [shoppingLists]);
 
   useEffect(() => {
-    if (!shoppingListsLoading && !selectedListCategory && activeShoppingCategories.length > 0) {
-      setSelectedListCategory(activeShoppingCategories[0].name);
+    if (!shoppingListsLoading && !selectedListCategory && activeShoppingLists.length > 0) {
+      setSelectedListCategory(activeShoppingLists[0].name);
     }
-     // If selected list becomes inactive, switch to the first active one
-    if (selectedListCategory && !activeShoppingCategories.some(l => l.name === selectedListCategory)) {
-      setSelectedListCategory(activeShoppingCategories?.[0]?.name ?? null);
+     if (selectedListCategory && !activeShoppingLists.some(l => l.name === selectedListCategory)) {
+      setSelectedListCategory(activeShoppingLists?.[0]?.name ?? null);
     }
-  }, [shoppingLists, shoppingListsLoading, selectedListCategory, activeShoppingCategories]);
+  }, [shoppingListsLoading, selectedListCategory, activeShoppingLists]);
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
 
     if (active.id !== over?.id && user && over && firestore) {
-      const oldIndex = activeShoppingCategories.findIndex((list) => list.id === active.id);
-      const newIndex = activeShoppingCategories.findIndex((list) => list.id === over.id);
+      const oldIndex = activeShoppingLists.findIndex((list) => list.id === active.id);
+      const newIndex = activeShoppingLists.findIndex((list) => list.id === over.id);
 
-      const newOrder = arrayMove(activeShoppingCategories, oldIndex, newIndex);
+      const newOrder = arrayMove(activeShoppingLists, oldIndex, newIndex);
 
       const batch = writeBatch(firestore);
       newOrder.forEach((list, index) => {
@@ -208,6 +202,9 @@ export default function FinancialPlanningPage() {
             <Button onClick={() => handleOpenModal('transaction', { date: new Date() })}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Añadir Transacción
             </Button>
+            <Button variant="outline" size="icon" asChild>
+                <Link href="/settings/finances"><Settings className="h-4 w-4" /></Link>
+            </Button>
         </div>
       </PageHeader>
         
@@ -227,7 +224,7 @@ export default function FinancialPlanningPage() {
                     <div className="md:hidden">
                         <Select value={String(selectedListCategory)} onValueChange={(val) => setSelectedListCategory(val)}>
                         <SelectTrigger className="w-full mb-4"><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
-                        <SelectContent>{activeShoppingCategories?.map((list) => (<SelectItem key={list.id} value={list.name}>{list.name}</SelectItem>))}</SelectContent>
+                        <SelectContent>{activeShoppingLists?.map((list) => (<SelectItem key={list.id} value={list.name}>{list.name}</SelectItem>))}</SelectContent>
                         </Select>
                     </div>
                     
@@ -235,7 +232,7 @@ export default function FinancialPlanningPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-4 mt-6 md:mt-0 gap-6">
                         <div className="hidden md:block md:col-span-1">
-                            { !shoppingListsLoading && activeShoppingCategories.length > 0 && (
+                            { !shoppingListsLoading && activeShoppingLists.length > 0 && (
                             <Card>
                             <CardHeader>
                                 <div className='flex items-center justify-between'>
@@ -250,9 +247,9 @@ export default function FinancialPlanningPage() {
                             </CardHeader>
                             <CardContent className="p-2">
                                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                                <SortableContext items={activeShoppingCategories.map((list) => list.id)} strategy={verticalListSortingStrategy}>
+                                <SortableContext items={activeShoppingLists.map((list) => list.id)} strategy={verticalListSortingStrategy}>
                                     <ul className="space-y-1">
-                                    {activeShoppingCategories.map((list) => (
+                                    {activeShoppingLists.map((list) => (
                                         <li key={list.id} className="flex items-center group">
                                             <Button variant={list.name === selectedListCategory ? 'secondary' : 'ghost'} className="w-full justify-start h-auto py-2" onClick={() => setSelectedListCategory(list.name)}>
                                                 <div className="flex items-center gap-2">
@@ -512,7 +509,7 @@ export default function FinancialPlanningPage() {
             <AlertDialogFooter><AlertDialogCancel onClick={() => handleCloseModal('deleteRecurring')}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDeleteRecurringItem} className="bg-destructive hover:bg-destructive/90">Eliminar</AlertDialogAction></AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
-       <Dialog open={modalState.type === 'transaction'} onOpenChange={() => handleCloseModal('transaction')}>
+       <Dialog open={modalState.type === 'transaction'} onOpenChange={(open) => !open && handleCloseModal('transaction')}>
             <DialogContent>
             <DialogHeader><DialogTitle>{formState.id ? 'Editar' : 'Añadir'} Transacción</DialogTitle></DialogHeader>
                 <div className="grid gap-4 py-4">
@@ -539,11 +536,9 @@ export default function FinancialPlanningPage() {
                     {formState.type === 'expense' && (<div className="space-y-2"><Label htmlFor="budget-focus">Enfoque Presupuesto</Label><Select value={formState.budgetFocus || ''} onValueChange={(value) => setFormState((prev: any) => ({...prev, budgetFocus: value}))}><SelectTrigger id="budget-focus"><SelectValue placeholder="Selecciona" /></SelectTrigger><SelectContent><SelectItem value="Necesidades">Necesidades</SelectItem><SelectItem value="Deseos">Deseos</SelectItem><SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem></SelectContent></Select></div>)}
                     </div>
                 </div>
-            <DialogFooter><Button type="button" variant="outline" onClick={() => handleCloseModal('transaction')}>Cancelar</Button><Button type="submit" onClick={handleSaveTransaction}>Guardar Cambios</Button></DialogFooter>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => handleCloseModal('transaction')}>Cancelar</Button><Button type="submit" onClick={() => { handleOpenModal('transaction', { ...formState, type: 'expense' }); handleConfirmPurchase(); }}>Guardar Cambios</Button></DialogFooter>
             </DialogContent>
         </Dialog>
     </div>
   );
 }
-
-    

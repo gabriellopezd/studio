@@ -496,82 +496,38 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ShoppingList",
       "type": "object",
-      "description": "Represents a shopping list which is a category of expenses.",
+      "description": "Represents a category for variable expenses, not a list of items itself.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the shopping list."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N ShoppingList)"
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the shopping list, which corresponds to an expense category."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the shopping list was created.",
-          "format": "date-time"
-        },
-        "budgetFocus": {
-            "type": "string",
-            "description": "The budget focus of the shopping list.",
-            "enum": ["Necesidades", "Deseos", "Ahorros y Deudas"]
-        },
-        "items": {
-          "type": "array",
-          "description": "List of items in the shopping list.",
-          "items": {
-            "type": "object",
-            "properties": {
-              "itemId": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "amount": {
-                "type": "number"
-              },
-              "isPurchased": {
-                "type": "boolean"
-              },
-              "price": {
-                "type": ["number", "null"]
-              },
-              "transactionId": {
-                "type": ["string", "null"]
-              }
-            }
-          }
-        },
-        "order": {
-          "type": "number",
-          "description": "The order of the shopping list in the user's list."
-        },
-        "isActive": {
-          "type": "boolean",
-          "description": "Indicates if the shopping list category is active for the user."
-        },
-        "activeMonths": {
-            "type": "array",
-            "description": "The months of the year this list is active (0=Jan, 11=Dec). If not present, it's active for all months.",
-            "items": {
-                "type": "number"
-            }
-        }
+        "id": { "type": "string", "description": "Unique identifier for the shopping list category." },
+        "userId": { "type": "string", "description": "Reference to User." },
+        "name": { "type": "string", "description": "Name of the expense category." },
+        "createdAt": { "type": "string", "description": "Timestamp indicating when the category was created.", "format": "date-time" },
+        "budgetFocus": { "type": "string", "description": "The budget focus of this category.", "enum": ["Necesidades", "Deseos", "Ahorros y Deudas"] },
+        "order": { "type": "number", "description": "The display order of the category." },
+        "isActive": { "type": "boolean", "description": "Indicates if the category is currently active." },
+        "activeMonths": { "type": "array", "description": "Months when this category is active (0-11).", "items": { "type": "number" } }
       },
-      "required": [
-        "id",
-        "userId",
-        "name",
-        "createdAt",
-        "order",
-        "budgetFocus",
-        "isActive"
-      ]
+      "required": [ "id", "userId", "name", "createdAt", "order", "budgetFocus", "isActive" ]
+    },
+    "ShoppingListItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ShoppingListItem",
+      "type": "object",
+      "description": "Represents a single item in a monthly shopping plan.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the item." },
+        "userId": { "type": "string", "description": "Reference to User." },
+        "month": { "type": "string", "description": "The month this item belongs to, in YYYY-MM format." },
+        "categoryName": { "type": "string", "description": "The name of the shopping category this item belongs to." },
+        "budgetFocus": { "type": "string", "description": "The budget focus inherited from the category.", "enum": ["Necesidades", "Deseos", "Ahorros y Deudas"] },
+        "name": { "type": "string", "description": "Name of the item." },
+        "estimatedPrice": { "type": "number", "description": "The estimated price of the item." },
+        "finalPrice": { "type": ["number", "null"], "description": "The final price after purchase." },
+        "isPurchased": { "type": "boolean", "description": "Indicates if the item has been purchased." },
+        "transactionId": { "type": ["string", "null"], "description": "Reference to the associated transaction upon purchase." },
+        "createdAt": { "type": "string", "description": "Timestamp indicating when the item was created.", "format": "date-time" }
+      },
+      "required": [ "id", "userId", "month", "categoryName", "name", "estimatedPrice", "isPurchased", "createdAt" ]
     },
     "RecurringExpense": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -772,107 +728,59 @@
     "structure": [
       {
         "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": { "$ref": "#/backend/entities/User" },
-          "description": "Stores user profile information. All user-owned data is stored under this document to simplify security rules and ensure data isolation."
-        }
+        "definition": { "entityName": "User", "schema": { "$ref": "#/backend/entities/User" }, "description": "Stores user profile information." }
       },
       {
         "path": "/users/{userId}/habits/{habitId}",
-        "definition": {
-          "entityName": "Habit",
-          "schema": { "$ref": "#/backend/entities/Habit" },
-          "description": "A single habit document owned by a user. To access a single document, the client MUST use a direct reference."
-        }
+        "definition": { "entityName": "Habit", "schema": { "$ref": "#/backend/entities/Habit" }, "description": "A single habit document." }
       },
       {
         "path": "/users/{userId}/routines/{routineId}",
-        "definition": {
-          "entityName": "Routine",
-          "schema": { "$ref": "#/backend/entities/Routine" },
-          "description": "A single routine document owned by a user. To access a single document, the client MUST use a direct reference."
-        }
+        "definition": { "entityName": "Routine", "schema": { "$ref": "#/backend/entities/Routine" }, "description": "A single routine document." }
       },
       {
         "path": "/users/{userId}/tasks/{taskId}",
-        "definition": {
-          "entityName": "Task",
-          "schema": { "$ref": "#/backend/entities/Task" },
-          "description": "A single task document owned by a user. To access a single document, the client MUST use a direct reference."
-        }
+        "definition": { "entityName": "Task", "schema": { "$ref": "#/backend/entities/Task" }, "description": "A single task document." }
       },
       {
         "path": "/users/{userId}/taskCategories/{taskCategoryId}",
-        "definition": {
-          "entityName": "TaskCategory",
-          "schema": { "$ref": "#/backend/entities/TaskCategory" },
-          "description": "A single task category document owned by a user."
-        }
+        "definition": { "entityName": "TaskCategory", "schema": { "$ref": "#/backend/entities/TaskCategory" }, "description": "A single task category document." }
       },
       {
         "path": "/users/{userId}/goals/{goalId}",
-        "definition": {
-          "entityName": "Goal",
-          "schema": { "$ref": "#/backend/entities/Goal" },
-          "description": "A single goal document owned by a user. To access a single document, the client MUST use a direct reference."
-        }
+        "definition": { "entityName": "Goal", "schema": { "$ref": "#/backend/entities/Goal" }, "description": "A single goal document." }
       },
       {
         "path": "/users/{userId}/moods/{moodId}",
-        "definition": {
-          "entityName": "Mood",
-          "schema": { "$ref": "#/backend/entities/Mood" },
-          "description": "A single mood entry owned by a user. To access a single document, the client MUST use a direct reference."
-        }
+        "definition": { "entityName": "Mood", "schema": { "$ref": "#/backend/entities/Mood" }, "description": "A single mood entry." }
       },
       {
         "path": "/users/{userId}/transactions/{transactionId}",
-        "definition": {
-          "entityName": "Transaction",
-          "schema": { "$ref": "#/backend/entities/Transaction" },
-          "description": "A single transaction document owned by a user. To access a single document, the client MUST use a direct reference."
-        }
+        "definition": { "entityName": "Transaction", "schema": { "$ref": "#/backend/entities/Transaction" }, "description": "A single transaction document." }
       },
       {
         "path": "/users/{userId}/budgets/{budgetId}",
-        "definition": {
-          "entityName": "Budget",
-          "schema": { "$ref": "#/backend/entities/Budget" },
-          "description": "A single budget document owned by a user. To access a single document, the client MUST use a direct reference."
-        }
+        "definition": { "entityName": "Budget", "schema": { "$ref": "#/backend/entities/Budget" }, "description": "A single budget document." }
       },
       {
         "path": "/users/{userId}/shoppingLists/{shoppingListId}",
-        "definition": {
-          "entityName": "ShoppingList",
-          "schema": { "$ref": "#/backend/entities/ShoppingList" },
-          "description": "A single shopping list document owned by a user. To access a single document, the client MUST use a direct reference."
-        }
+        "definition": { "entityName": "ShoppingList", "schema": { "$ref": "#/backend/entities/ShoppingList" }, "description": "A category for variable expenses." }
+      },
+      {
+        "path": "/users/{userId}/shoppingListItems/{shoppingListItemId}",
+        "definition": { "entityName": "ShoppingListItem", "schema": { "$ref": "#/backend/entities/ShoppingListItem" }, "description": "A single item in a monthly shopping plan." }
       },
       {
         "path": "/users/{userId}/recurringExpenses/{recurringExpenseId}",
-        "definition": {
-          "entityName": "RecurringExpense",
-          "schema": { "$ref": "#/backend/entities/RecurringExpense" },
-          "description": "A single recurring expense document. To access a single document, the client MUST use a direct reference."
-        }
+        "definition": { "entityName": "RecurringExpense", "schema": { "$ref": "#/backend/entities/RecurringExpense" }, "description": "A single recurring expense document." }
       },
       {
         "path": "/users/{userId}/recurringIncomes/{recurringIncomeId}",
-        "definition": {
-          "entityName": "RecurringIncome",
-          "schema": { "$ref": "#/backend/entities/RecurringIncome" },
-          "description": "A single recurring income document. To access a single document, the client MUST use a direct reference."
-        }
+        "definition": { "entityName": "RecurringIncome", "schema": { "$ref": "#/backend/entities/RecurringIncome" }, "description": "A single recurring income document." }
       },
       {
         "path": "/users/{userId}/timeLogs/{timeLogId}",
-        "definition": {
-            "entityName": "TimeLog",
-            "schema": { "$ref": "#/backend/entities/TimeLog" },
-            "description": "A single time log document. To access a single document, the client MUST use a direct reference."
-        }
+        "definition": { "entityName": "TimeLog", "schema": { "$ref": "#/backend/entities/TimeLog" }, "description": "A single time log document." }
       }
     ]
   },

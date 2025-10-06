@@ -82,7 +82,7 @@ interface FinancesContextState {
     handleRevertPurchase: (itemToRevert: any) => Promise<void>;
     handleResetVariableData: () => Promise<void>;
     handleResetFixedData: () => Promise<void>;
-    handleToggleShoppingList: (listId: string, currentStatus: boolean) => Promise<void>;
+    handleToggleShoppingList: (listId: string, currentStatus: boolean, name: string) => Promise<void>;
 }
 
 const FinancesContext = createContext<FinancesContextState | undefined>(undefined);
@@ -513,32 +513,43 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const handleConfirmPurchase = useCallback(async () => {
         if (!user || !firestore || !formState.id || !formState.purchasePrice) return;
-
+    
         const itemToPurchase = shoppingListItems?.find(i => i.id === formState.id);
         if (!itemToPurchase) return;
-
+    
         const price = parseFloat(formState.purchasePrice);
         if (isNaN(price)) return;
-
+    
+        const transactionData = {
+            type: 'expense' as const,
+            description: itemToPurchase.name,
+            category: itemToPurchase.categoryName,
+            amount: price,
+            date: new Date().toISOString(),
+            budgetFocus: itemToPurchase.budgetFocus,
+        };
+    
+        setFormState(transactionData);
+        await handleSaveTransaction();
+    
         const batch = writeBatch(firestore);
-        
-        // Create transaction
-        const newTransactionRef = doc(collection(firestore, 'users', user.uid, 'transactions'));
-        batch.set(newTransactionRef, { type: 'expense', description: itemToPurchase.name, category: itemToPurchase.categoryName, amount: price, date: new Date().toISOString(), budgetFocus: itemToPurchase.budgetFocus, createdAt: serverTimestamp(), userId: user.uid });
-        
-        // Update shopping list item
         const itemRef = doc(firestore, 'users', user.uid, 'shoppingListItems', itemToPurchase.id);
-        batch.update(itemRef, { isPurchased: true, finalPrice: price, transactionId: newTransactionRef.id });
-        
-        // Update budget
-        const budget = budgets?.find(b => b.categoryName === itemToPurchase.categoryName);
-        if (budget) {
-            batch.update(doc(firestore, 'users', user.uid, 'budgets', budget.id), { currentSpend: increment(price) });
-        }
+        const newTransactionQuery = query(
+            collection(firestore, 'users', user.uid, 'transactions'),
+            where('description', '==', itemToPurchase.name),
+            where('amount', '==', price),
+            orderBy('createdAt', 'desc'),
+            limit(1)
+        );
+        const newTransactionSnap = await getDocs(newTransactionQuery);
+        const newTransactionId = newTransactionSnap.empty ? null : newTransactionSnap.docs[0].id;
+    
+        batch.update(itemRef, { isPurchased: true, finalPrice: price, transactionId: newTransactionId });
         
         await batch.commit();
         handleCloseModal('purchaseItem');
-    }, [user, firestore, formState, shoppingListItems, budgets, handleCloseModal]);
+    
+    }, [user, firestore, formState, shoppingListItems, budgets, handleCloseModal, handleSaveTransaction, setFormState]);
 
     const handleDeleteShoppingListItem = useCallback(async (itemId: string) => {
         if (!itemId || !user || !firestore) return;
@@ -563,11 +574,9 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         
         const batch = writeBatch(firestore);
         
-        // Update shopping item
         const itemRef = doc(firestore, 'users', user.uid, 'shoppingListItems', itemToRevert.id);
         batch.update(itemRef, { isPurchased: false, finalPrice: null, transactionId: null });
 
-        // Delete transaction and update budget
         if (itemToRevert.transactionId) {
             batch.delete(doc(firestore, 'users', user.uid, 'transactions', itemToRevert.transactionId));
             const budget = budgets?.find(b => b.categoryName === itemToRevert.categoryName);
@@ -590,8 +599,6 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
                 const snapshot = await getDocs(collection(firestore, 'users', user.uid, col));
                 snapshot.forEach(doc => batch.delete(doc.ref));
             }
-            
-            // We don't re-create budgets here, as they are based on categories which are now managed differently
             
             await batch.commit();
 
@@ -624,10 +631,23 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
     }, [user, firestore, handleCloseModal, toast]);
     
-    const handleToggleShoppingList = useCallback(async (listId: string, currentStatus: boolean) => {
+    const handleToggleShoppingList = useCallback(async (listId: string, currentStatus: boolean, name: string) => {
         if (!user || !firestore || !listId) return;
         const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
-        await updateDocumentNonBlocking(listRef, { isActive: !currentStatus });
+        
+        const listDoc = await getDoc(listRef);
+        if (!listDoc.exists()) {
+            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'shoppingLists'), { 
+                name: name,
+                isActive: true, 
+                userId: user.uid,
+                createdAt: serverTimestamp(),
+                order: 99, // default order
+                budgetFocus: 'Necesidades',
+            });
+        } else {
+            await updateDocumentNonBlocking(listRef, { isActive: !currentStatus });
+        }
     }, [user, firestore]);
 
     return (
@@ -673,5 +693,3 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         </FinancesContext.Provider>
     );
 };
-
-    
