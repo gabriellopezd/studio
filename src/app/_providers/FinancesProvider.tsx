@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useMemo, useState, ReactNode, useCallback } from 'react';
@@ -23,6 +24,7 @@ interface FinancesContextState {
     recurringExpensesLoading: boolean;
     recurringIncomes: any[] | null;
     recurringIncomesLoading: boolean;
+    financesLoading: boolean;
 
     currentMonth: Date;
     setCurrentMonth: (date: Date | ((prev: Date) => Date)) => void;
@@ -629,6 +631,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             recurringExpensesLoading,
             recurringIncomes,
             recurringIncomesLoading,
+            financesLoading: recurringExpensesLoading || recurringIncomesLoading,
             currentMonth,
             setCurrentMonth,
             ...derivedState,
