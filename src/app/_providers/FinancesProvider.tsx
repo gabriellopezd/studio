@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useMemo, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useMemo, useState, ReactNode, useCallback, useEffect } from 'react';
 import { collection, query, where, orderBy, doc, Timestamp, serverTimestamp, getDocs, writeBatch, increment, getDoc, arrayUnion, collectionGroup, limit } from 'firebase/firestore';
 import { useFirebase, useCollectionData, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +20,8 @@ interface FinancesContextState {
     budgetsLoading: boolean;
     shoppingLists: any[] | null;
     shoppingListsLoading: boolean;
+    shoppingListItems: any[] | null;
+    shoppingListItemsLoading: boolean;
     activeShoppingLists: any[];
     recurringExpenses: any[] | null;
     recurringExpensesLoading: boolean;
@@ -73,16 +75,14 @@ interface FinancesContextState {
     handlePayRecurringItem: (item: any, type: 'income' | 'expense') => Promise<void>;
     handleRevertRecurringItem: (item: any, type: 'income' | 'expense') => Promise<void>;
     handleOmitRecurringItem: (item: any, type: 'income' | 'expense') => Promise<void>;
-    handleCreateList: () => Promise<void>;
     handleUpdateList: () => Promise<void>;
-    handleDeleteList: (listId: string, soft?: boolean) => Promise<void>;
-    handleAddItem: (listId: string | null) => Promise<void>;
-    handleConfirmPurchase: (listId: string | null) => Promise<void>;
-    handleDeleteItem: (listId: string, itemId: string) => Promise<void>;
-    handleRevertPurchase: (listId: string, itemToRevert: any) => Promise<void>;
+    handleSaveShoppingListItem: (categoryName: string) => Promise<void>;
+    handleConfirmPurchase: () => Promise<void>;
+    handleDeleteShoppingListItem: (itemId: string) => Promise<void>;
+    handleRevertPurchase: (itemToRevert: any) => Promise<void>;
     handleResetVariableData: () => Promise<void>;
     handleResetFixedData: () => Promise<void>;
-    handleToggleShoppingList: (categoryName: string, currentStatus: boolean) => Promise<void>;
+    handleToggleShoppingList: (listId: string, currentStatus: boolean) => Promise<void>;
 }
 
 const FinancesContext = createContext<FinancesContextState | undefined>(undefined);
@@ -98,9 +98,10 @@ export const useFinances = () => {
 export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { firestore, user } = useFirebase();
     const { toast } = useToast();
-    const { formState, handleCloseModal } = useUI();
+    const { formState, setFormState, handleCloseModal } = useUI();
     const { taskCategories } = useTasks();
     const [currentMonth, setCurrentMonth] = useState(new Date());
+    const monthIdentifier = useMemo(() => `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`, [currentMonth]);
 
     // --- Data Fetching ---
     const transactionsQuery = useMemo(() => {
@@ -141,6 +142,15 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         return query(collection(firestore, `users/${user.uid}/shoppingLists`));
     }, [user, firestore]);
     const { data: shoppingLists, isLoading: shoppingListsLoading } = useCollectionData(shoppingListsQuery);
+    
+    const shoppingListItemsQuery = useMemo(() => {
+        if (!user || !firestore) return null;
+        return query(
+            collection(firestore, `users/${user.uid}/shoppingListItems`),
+            where('month', '==', monthIdentifier)
+        );
+    }, [user, firestore, monthIdentifier]);
+    const { data: shoppingListItems, isLoading: shoppingListItemsLoading } = useCollectionData(shoppingListItemsQuery);
 
     const recurringExpensesQuery = useMemo(() => {
         if (!user || !firestore) return null;
@@ -169,7 +179,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         const expenseCategoriesFromRecurring = allRecurringExpensesData.map((e:any) => e.category);
         const expenseCategories = [...new Set([...expenseCategoriesFromBudgets, ...expenseCategoriesFromShoppingLists, ...expenseCategoriesFromRecurring, ...PRESET_EXPENSE_CATEGORIES, ...(taskCategories?.map((c: any) => c.name) || [])])].filter(Boolean).sort();
 
-        const currentMonthIdentifier = `${currentMonth.getFullYear()}-${currentMonth.getMonth()}`;
+        const currentMonthFBIdentifier = `${currentMonth.getFullYear()}-${currentMonth.getMonth()}`;
         const today = new Date();
         const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
@@ -181,24 +191,21 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         const activeMonthIndex = currentMonth.getMonth();
         
         const pendingRecurringExpenses = allRecurringExpensesData.filter((e: any) => 
-            e.lastInstanceCreated !== currentMonthIdentifier &&
+            e.lastInstanceCreated !== currentMonthFBIdentifier &&
             (!e.activeMonths || e.activeMonths.includes(activeMonthIndex)) &&
-            !e.overriddenMonths?.includes(currentMonthIdentifier)
+            !e.overriddenMonths?.includes(currentMonthFBIdentifier)
         );
-        const paidRecurringExpenses = allRecurringExpensesData.filter((e: any) => e.lastInstanceCreated === currentMonthIdentifier);
+        const paidRecurringExpenses = allRecurringExpensesData.filter((e: any) => e.lastInstanceCreated === currentMonthFBIdentifier);
         const pendingRecurringIncomes = allRecurringIncomesData.filter((i: any) => 
-            i.lastInstanceCreated !== currentMonthIdentifier &&
+            i.lastInstanceCreated !== currentMonthFBIdentifier &&
             (!i.activeMonths || i.activeMonths.includes(activeMonthIndex)) &&
-            !i.overriddenMonths?.includes(currentMonthIdentifier)
+            !i.overriddenMonths?.includes(currentMonthFBIdentifier)
         );
-        const receivedRecurringIncomes = allRecurringIncomesData.filter((i: any) => i.lastInstanceCreated === currentMonthIdentifier);
+        const receivedRecurringIncomes = allRecurringIncomesData.filter((i: any) => i.lastInstanceCreated === currentMonthFBIdentifier);
         
         const pendingIncomesTotal = pendingRecurringIncomes.reduce((s: number, i: any) => s + i.amount, 0);
         const pendingExpensesFromRecurring = pendingRecurringExpenses.reduce((s: number, e: any) => s + e.amount, 0);
-        const pendingShoppingListExpenses = allShoppingListsData.reduce((total: number, list: any) => {
-            const listTotal = (list.items || []).filter((item: any) => !item.isPurchased).reduce((sum: number, item: any) => sum + (item.amount || 0), 0);
-            return total + listTotal;
-        }, 0);
+        const pendingShoppingListExpenses = (shoppingListItems || []).filter((item: any) => !item.isPurchased).reduce((sum: number, item: any) => sum + (item.estimatedPrice || 0), 0);
         const pendingExpensesTotal = pendingExpensesFromRecurring + pendingShoppingListExpenses;
         
         const projectedMonthlyIncome = monthlyIncome + pendingIncomesTotal;
@@ -274,13 +281,10 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         const annualProjectedSavings = annualProjectedIncome - annualProjectedExpense;
         const annualProjectedSavingsRate = annualProjectedIncome > 0 ? (annualProjectedSavings / annualProjectedIncome) * 100 : 0;
         
-        const activeShoppingLists = (allShoppingListsData || []).filter(list => 
-            list.isActive && 
-            (!list.activeMonths || list.activeMonths.length === 0 || list.activeMonths.includes(activeMonthIndex))
-        );
+        const activeShoppingLists = (allShoppingListsData || []).filter(list => list.isActive);
 
         return { monthlyIncome, monthlyExpenses, monthlyBalance, monthlySavingsRate, projectedMonthlyIncome, projectedMonthlyExpense, projectedMonthlyBalance, projectedMonthlySavingsRate, budget503020, upcomingPayments, pendingRecurringExpenses, paidRecurringExpenses, pendingRecurringIncomes, receivedRecurringIncomes, pendingExpensesTotal, pendingIncomesTotal, expenseCategories, incomeCategories, categoriesWithoutBudget, annualFlowData, annualCategorySpending, monthlySummaryData, annualTotalIncome, annualTotalExpense, annualNetSavings, annualSavingsRate, annualProjectedIncome, annualProjectedExpense, annualProjectedSavings, annualProjectedSavingsRate, annualIncomeCategorySpending, activeShoppingLists };
-    }, [transactions, annualTransactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, currentMonth, taskCategories]);
+    }, [transactions, annualTransactions, budgets, shoppingLists, shoppingListItems, recurringExpenses, recurringIncomes, currentMonth, taskCategories]);
 
     // --- Actions ---
 
@@ -347,10 +351,13 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
           const budget = budgets?.find(b => b.categoryName === transactionToDelete.category);
           if (budget) batch.update(doc(firestore, 'users', user.uid, 'budgets', budget.id), { currentSpend: increment(-transactionToDelete.amount) });
       
-          const listWithItem = shoppingLists?.find(list => list.items.some((item: any) => item.transactionId === transactionToDelete.id));
-          if (listWithItem) {
-            const updatedItems = listWithItem.items.map((item: any) => item.transactionId === transactionToDelete.id ? { ...item, isPurchased: false, price: null, transactionId: null } : item);
-            batch.update(doc(firestore, 'users', user.uid, 'shoppingLists', listWithItem.id), { items: updatedItems });
+          const shoppingListItem = shoppingListItems?.find(item => item.transactionId === transactionToDelete.id);
+          if(shoppingListItem) {
+            batch.update(doc(firestore, 'users', user.uid, 'shoppingListItems', shoppingListItem.id), {
+                isPurchased: false,
+                finalPrice: null,
+                transactionId: null,
+            });
           }
       
           const recurringExpense = recurringExpenses?.find(re => re.lastTransactionId === transactionToDelete.id);
@@ -364,7 +371,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         await batch.commit();
         toast({ title: 'Transacción eliminada' });
         handleCloseModal('deleteTransaction');
-    }, [user, firestore, formState, transactions, budgets, shoppingLists, recurringExpenses, recurringIncomes, handleCloseModal, toast]);
+    }, [user, firestore, formState, transactions, budgets, shoppingListItems, recurringExpenses, recurringIncomes, handleCloseModal, toast]);
 
     const handleSaveBudget = useCallback(async () => {
         if (!user || !firestore || !formState.categoryName || !formState.monthlyLimit) return;
@@ -475,16 +482,6 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
 
         toast({ title: 'Item Omitido', description: `${item.name} ha sido omitido para este mes.` });
     }, [user, firestore, currentMonth, toast]);
-
-    const handleCreateList = useCallback(async () => {
-        if (!user || !firestore || !formState.name) return;
-        if (shoppingLists?.some(l => l.name.toLowerCase() === formState.name.toLowerCase())) {
-            toast({ variant: "destructive", title: "Categoría Duplicada", description: `La categoría de gasto "${formState.name}" ya existe.` });
-            return;
-        }
-        await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'shoppingLists'), { name: formState.name, budgetFocus: formState.budgetFocus || 'Deseos', items: [], order: shoppingLists?.length || 0, isActive: true, createdAt: serverTimestamp(), userId: user.uid, activeMonths: [0,1,2,3,4,5,6,7,8,9,10,11] });
-        handleCloseModal('list');
-    }, [user, firestore, formState, shoppingLists, handleCloseModal, toast]);
     
     const handleUpdateList = useCallback(async () => {
         if (!user || !firestore || !formState.id || !formState.name) return;
@@ -493,80 +490,93 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         handleCloseModal('editList');
     }, [user, firestore, formState, handleCloseModal]);
 
-    const handleDeleteList = useCallback(async (listId: string, soft: boolean = false) => {
-        if (!listId || !user || !firestore) return;
-        if (soft) {
-            await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'shoppingLists', listId), { isActive: false });
-            toast({ title: 'Categoría Desactivada' });
-        } else {
-            await deleteDocumentNonBlocking(doc(firestore, 'users', user.uid, 'shoppingLists', listId));
-            toast({ title: 'Categoría Eliminada' });
-        }
-        handleCloseModal('deleteList');
-    }, [user, firestore, handleCloseModal, toast]);
-
-
-    const handleAddItem = useCallback(async (listId: string | null) => {
-        if (!listId || !user || !firestore || !formState.itemName || !formState.itemAmount) return;
-        const list = shoppingLists?.find(l => l.id === listId);
+    const handleSaveShoppingListItem = useCallback(async (categoryName: string) => {
+        if (!categoryName || !user || !firestore || !formState.itemName || !formState.itemAmount) return;
+        const list = shoppingLists?.find(l => l.name === categoryName);
         if (!list) return;
-        const newItem = { itemId: doc(collection(firestore, 'dummy')).id, name: formState.itemName, amount: parseFloat(formState.itemAmount), isPurchased: false, price: null, transactionId: null };
-        await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'shoppingLists', listId), { items: [...(list.items || []), newItem] });
-        handleCloseModal('item');
-    }, [user, firestore, formState, shoppingLists, handleCloseModal]);
 
-    const handleConfirmPurchase = useCallback(async (listId: string | null) => {
-        if (!listId || !user || !firestore || !formState.itemId || !formState.purchasePrice) return;
-        const list = shoppingLists?.find(l => l.id === listId);
-        if (!list) return;
+        const newItem = {
+            month: monthIdentifier,
+            categoryName: categoryName,
+            budgetFocus: list.budgetFocus,
+            name: formState.itemName,
+            estimatedPrice: parseFloat(formState.itemAmount),
+            finalPrice: null,
+            isPurchased: false,
+            transactionId: null,
+            createdAt: serverTimestamp(),
+            userId: user.uid,
+        };
+        await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'shoppingListItems'), newItem);
+        setFormState({});
+    }, [user, firestore, formState, monthIdentifier, shoppingLists, setFormState]);
+
+    const handleConfirmPurchase = useCallback(async () => {
+        if (!user || !firestore || !formState.id || !formState.purchasePrice) return;
+
+        const itemToPurchase = shoppingListItems?.find(i => i.id === formState.id);
+        if (!itemToPurchase) return;
+
         const price = parseFloat(formState.purchasePrice);
         if (isNaN(price)) return;
 
         const batch = writeBatch(firestore);
-        const newTransactionRef = doc(collection(firestore, 'users', user.uid, 'transactions'));
-        batch.set(newTransactionRef, { type: 'expense', description: formState.name, category: list.name, amount: price, date: new Date().toISOString(), budgetFocus: list.budgetFocus, createdAt: serverTimestamp(), userId: user.uid });
-        const updatedItems = list.items.map((item: any) => item.itemId === formState.itemId ? { ...item, isPurchased: true, price: price, transactionId: newTransactionRef.id } : item);
-        batch.update(doc(firestore, 'users', user.uid, 'shoppingLists', listId), { items: updatedItems });
         
-        const budget = budgets?.find(b => b.categoryName === list.name);
-        if (budget) batch.update(doc(firestore, 'users', user.uid, 'budgets', budget.id), { currentSpend: increment(price) });
+        // Create transaction
+        const newTransactionRef = doc(collection(firestore, 'users', user.uid, 'transactions'));
+        batch.set(newTransactionRef, { type: 'expense', description: itemToPurchase.name, category: itemToPurchase.categoryName, amount: price, date: new Date().toISOString(), budgetFocus: itemToPurchase.budgetFocus, createdAt: serverTimestamp(), userId: user.uid });
+        
+        // Update shopping list item
+        const itemRef = doc(firestore, 'users', user.uid, 'shoppingListItems', itemToPurchase.id);
+        batch.update(itemRef, { isPurchased: true, finalPrice: price, transactionId: newTransactionRef.id });
+        
+        // Update budget
+        const budget = budgets?.find(b => b.categoryName === itemToPurchase.categoryName);
+        if (budget) {
+            batch.update(doc(firestore, 'users', user.uid, 'budgets', budget.id), { currentSpend: increment(price) });
+        }
         
         await batch.commit();
         handleCloseModal('purchaseItem');
-    }, [user, firestore, formState, shoppingLists, budgets, handleCloseModal]);
+    }, [user, firestore, formState, shoppingListItems, budgets, handleCloseModal]);
 
-    const handleDeleteItem = useCallback(async (listId: string, itemId: string) => {
-        if (!listId || !itemId || !user || !firestore) return;
-        const list = shoppingLists?.find(l => l.id === listId);
-        if (!list) return;
-        const itemToDelete = list.items.find((i: any) => i.itemId === itemId);
+    const handleDeleteShoppingListItem = useCallback(async (itemId: string) => {
+        if (!itemId || !user || !firestore) return;
+        const itemToDelete = shoppingListItems?.find((i: any) => i.id === itemId);
         if (!itemToDelete) return;
 
         const batch = writeBatch(firestore);
-        batch.update(doc(firestore, 'users', user.uid, 'shoppingLists', listId), { items: list.items.filter((item: any) => item.itemId !== itemId) });
+        batch.delete(doc(firestore, 'users', user.uid, 'shoppingListItems', itemId));
+        
         if (itemToDelete.isPurchased && itemToDelete.transactionId) {
             batch.delete(doc(firestore, 'users', user.uid, 'transactions', itemToDelete.transactionId));
-            const budget = budgets?.find(b => b.categoryName === list.name);
-            if (budget && itemToDelete.price) batch.update(doc(firestore, 'users', user.uid, 'budgets', budget.id), { currentSpend: increment(-itemToDelete.price) });
+            const budget = budgets?.find(b => b.categoryName === itemToDelete.categoryName);
+            if (budget && itemToDelete.finalPrice) {
+                batch.update(doc(firestore, 'users', user.uid, 'budgets', budget.id), { currentSpend: increment(-itemToDelete.finalPrice) });
+            }
         }
         await batch.commit();
-    }, [user, firestore, shoppingLists, budgets]);
+    }, [user, firestore, shoppingListItems, budgets]);
 
-    const handleRevertPurchase = useCallback(async (listId: string, itemToRevert: any) => {
-        if (!listId || !itemToRevert || !user || !firestore) return;
-        const list = shoppingLists?.find(l => l.id === listId);
-        if (!list) return;
-
+    const handleRevertPurchase = useCallback(async (itemToRevert: any) => {
+        if (!itemToRevert || !user || !firestore) return;
+        
         const batch = writeBatch(firestore);
-        const updatedItems = list.items.map((item: any) => item.itemId === itemToRevert.itemId ? { ...item, isPurchased: false, price: null, transactionId: null } : item);
-        batch.update(doc(firestore, 'users', user.uid, 'shoppingLists', listId), { items: updatedItems });
+        
+        // Update shopping item
+        const itemRef = doc(firestore, 'users', user.uid, 'shoppingListItems', itemToRevert.id);
+        batch.update(itemRef, { isPurchased: false, finalPrice: null, transactionId: null });
+
+        // Delete transaction and update budget
         if (itemToRevert.transactionId) {
             batch.delete(doc(firestore, 'users', user.uid, 'transactions', itemToRevert.transactionId));
-            const budget = budgets?.find(b => b.categoryName === list.name);
-            if (budget && itemToRevert.price) batch.update(doc(firestore, 'users', user.uid, 'budgets', budget.id), { currentSpend: increment(-itemToRevert.price) });
+            const budget = budgets?.find(b => b.categoryName === itemToRevert.categoryName);
+            if (budget && itemToRevert.finalPrice) {
+                batch.update(doc(firestore, 'users', user.uid, 'budgets', budget.id), { currentSpend: increment(-itemToRevert.finalPrice) });
+            }
         }
         await batch.commit();
-    }, [user, firestore, shoppingLists, budgets]);
+    }, [user, firestore, budgets]);
     
     const handleResetVariableData = useCallback(async () => {
         if (!user || !firestore) return;
@@ -575,22 +585,14 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         try {
             const batch = writeBatch(firestore);
             
-            const collectionsToDelete = ['shoppingLists', 'budgets'];
+            const collectionsToDelete = ['shoppingListItems', 'budgets'];
             for (const col of collectionsToDelete) {
                 const snapshot = await getDocs(collection(firestore, 'users', user.uid, col));
                 snapshot.forEach(doc => batch.delete(doc.ref));
             }
             
-            PRESET_EXPENSE_CATEGORIES.forEach(categoryName => {
-                const newBudgetRef = doc(collection(firestore, 'users', user.uid, 'budgets'));
-                batch.set(newBudgetRef, {
-                    categoryName: categoryName,
-                    monthlyLimit: 0,
-                    currentSpend: 0,
-                    userId: user.uid,
-                });
-            });
-
+            // We don't re-create budgets here, as they are based on categories which are now managed differently
+            
             await batch.commit();
 
             toast({ title: 'Planificación Variable Reiniciada', description: 'Tus listas de compra y presupuestos han sido reiniciados.' });
@@ -622,29 +624,11 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
     }, [user, firestore, handleCloseModal, toast]);
     
-    const handleToggleShoppingList = useCallback(async (categoryName: string, currentStatus: boolean) => {
-        if (!user || !firestore) return;
-        
-        const q = query(collection(firestore, 'users', user.uid, 'shoppingLists'), where('name', '==', categoryName), limit(1));
-        const snapshot = await getDocs(q);
-        
-        if (!snapshot.empty) {
-            const docRef = snapshot.docs[0].ref;
-            await updateDocumentNonBlocking(docRef, { isActive: !currentStatus });
-        } else if (!currentStatus) {
-            // If we are activating a category and it doesn't exist as a list, create it.
-            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'shoppingLists'), {
-                name: categoryName,
-                budgetFocus: 'Necesidades',
-                items: [],
-                order: shoppingLists?.length || 0,
-                isActive: true,
-                createdAt: serverTimestamp(),
-                userId: user.uid,
-                activeMonths: [0,1,2,3,4,5,6,7,8,9,10,11], // Active for all months by default
-            });
-        }
-    }, [user, firestore, shoppingLists]);
+    const handleToggleShoppingList = useCallback(async (listId: string, currentStatus: boolean) => {
+        if (!user || !firestore || !listId) return;
+        const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
+        await updateDocumentNonBlocking(listRef, { isActive: !currentStatus });
+    }, [user, firestore]);
 
     return (
         <FinancesContext.Provider value={{
@@ -658,6 +642,8 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             budgetsLoading,
             shoppingLists,
             shoppingListsLoading,
+            shoppingListItems,
+            shoppingListItemsLoading,
             recurringExpenses,
             recurringExpensesLoading,
             recurringIncomes,
@@ -674,12 +660,10 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             handlePayRecurringItem,
             handleRevertRecurringItem,
             handleOmitRecurringItem,
-            handleCreateList,
             handleUpdateList,
-            handleDeleteList,
-            handleAddItem,
+            handleSaveShoppingListItem,
             handleConfirmPurchase,
-            handleDeleteItem,
+            handleDeleteShoppingListItem,
             handleRevertPurchase,
             handleResetVariableData,
             handleResetFixedData,
@@ -689,3 +673,5 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         </FinancesContext.Provider>
     );
 };
+
+    
