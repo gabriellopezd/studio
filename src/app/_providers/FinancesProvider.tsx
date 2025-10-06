@@ -81,6 +81,7 @@ interface FinancesContextState {
     handleRevertPurchase: (listId: string, itemToRevert: any) => Promise<void>;
     handleResetVariableData: () => Promise<void>;
     handleResetFixedData: () => Promise<void>;
+    handleToggleShoppingList: (listId: string, currentStatus: boolean) => Promise<void>;
 }
 
 const FinancesContext = createContext<FinancesContextState | undefined>(undefined);
@@ -165,7 +166,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         const expenseCategoriesFromBudgets = allBudgetsData.map((b:any) => b.categoryName);
         const expenseCategoriesFromShoppingLists = allShoppingListsData.map((l:any) => l.name);
         const expenseCategoriesFromRecurring = allRecurringExpensesData.map((e:any) => e.category);
-        const expenseCategories = [...new Set([...expenseCategoriesFromBudgets, ...expenseCategoriesFromShoppingLists, ...expenseCategoriesFromRecurring])].sort();
+        const expenseCategories = [...new Set([...expenseCategoriesFromBudgets, ...expenseCategoriesFromShoppingLists, ...expenseCategoriesFromRecurring, ...PRESET_EXPENSE_CATEGORIES])].filter(Boolean).sort();
 
         const currentMonthIdentifier = `${currentMonth.getFullYear()}-${currentMonth.getMonth()}`;
         const today = new Date();
@@ -476,18 +477,18 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const handleCreateList = useCallback(async () => {
         if (!user || !firestore || !formState.name) return;
-        if (shoppingLists?.some(l => l.name.toLowerCase() === formState.name.toLowerCase()) || budgets?.some(b => b.categoryName.toLowerCase() === formState.name.toLowerCase())) {
-            toast({ variant: "destructive", title: "Categoría Duplicada", description: `La categoría "${formState.name}" ya existe.` });
+        if (shoppingLists?.some(l => l.name.toLowerCase() === formState.name.toLowerCase())) {
+            toast({ variant: "destructive", title: "Categoría Duplicada", description: `La categoría de gasto "${formState.name}" ya existe.` });
             return;
         }
         await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'shoppingLists'), { name: formState.name, budgetFocus: formState.budgetFocus || 'Deseos', items: [], order: shoppingLists?.length || 0, isActive: true, createdAt: serverTimestamp(), userId: user.uid });
         handleCloseModal('list');
-    }, [user, firestore, formState, shoppingLists, budgets, handleCloseModal, toast]);
+    }, [user, firestore, formState, shoppingLists, handleCloseModal, toast]);
     
     const handleUpdateList = useCallback(async () => {
         if (!user || !firestore || !formState.id || !formState.name) return;
         const { id, name, budgetFocus } = formState;
-        await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'shoppingLists', id), { name, budgetFocus });
+        await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'shoppingLists', id), { budgetFocus });
         handleCloseModal('list');
     }, [user, firestore, formState, handleCloseModal]);
 
@@ -615,6 +616,12 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
     }, [user, firestore, handleCloseModal, toast]);
     
+    const handleToggleShoppingList = useCallback(async (listId: string, currentStatus: boolean) => {
+        if (!user || !firestore) return;
+        const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
+        await updateDocumentNonBlocking(listRef, { isActive: !currentStatus });
+    }, [user, firestore]);
+
     return (
         <FinancesContext.Provider value={{
             firestore,
@@ -652,8 +659,11 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             handleRevertPurchase,
             handleResetVariableData,
             handleResetFixedData,
+            handleToggleShoppingList,
         }}>
             {children}
         </FinancesContext.Provider>
     );
 };
+
+    
