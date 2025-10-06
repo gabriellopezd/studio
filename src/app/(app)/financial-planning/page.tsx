@@ -630,7 +630,16 @@ export default function FinancialPlanningPage() {
                 <div className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="listName">Nombre de la categoría</Label>
-                        <Input id="listName" value={formState.name || ''} onChange={(e) => setFormState((p: any) => ({...p, name: e.target.value}))} placeholder="Ej: Supermercado, Farmacia..." />
+                        <Select value={formState.name || ''} onValueChange={(value) => setFormState((p: any) => ({...p, name: value}))} disabled={!!formState.id}>
+                            <SelectTrigger id="listName">
+                                <SelectValue placeholder="Selecciona una categoría de gasto" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {expenseCategories.map((cat) => (
+                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="list-budget-focus">Enfoque Presupuesto</Label>
@@ -864,4 +873,3 @@ export default function FinancialPlanningPage() {
     </div>
   );
 }
-
