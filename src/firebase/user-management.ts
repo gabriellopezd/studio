@@ -62,6 +62,33 @@ export async function initializeDefaultBudgets(user: User, firestore: any, batch
     }
 }
 
+async function initializeDefaultShoppingLists(user: User, firestore: any, batch: any) {
+    const shoppingListsRef = collection(firestore, 'users', user.uid, 'shoppingLists');
+    const listsSnapshot = await getDocs(query(shoppingListsRef, limit(1)));
+
+    if (listsSnapshot.empty) {
+        const defaultShoppingLists = [
+            { name: 'Comida', budgetFocus: 'Necesidades' },
+            { name: 'Hogar', budgetFocus: 'Necesidades' },
+            { name: 'Transporte', budgetFocus: 'Necesidades' },
+            { name: 'Deseos', budgetFocus: 'Deseos' },
+        ];
+
+        defaultShoppingLists.forEach((list, index) => {
+            const newListRef = doc(shoppingListsRef);
+            batch.set(newListRef, {
+                name: list.name,
+                budgetFocus: list.budgetFocus,
+                items: [],
+                order: index,
+                isActive: true,
+                createdAt: serverTimestamp(),
+                userId: user.uid,
+            });
+        });
+    }
+}
+
 
 export const handleUserLogin = async (user: User, firestore: any, displayName?: string) => {
     if (!user) return;
@@ -84,6 +111,7 @@ export const handleUserLogin = async (user: User, firestore: any, displayName?: 
         await initializeDefaultTaskCategories(user, firestore, batch);
         await initializeDefaultMoodOptions(user, firestore, batch);
         await initializeDefaultBudgets(user, firestore, batch);
+        await initializeDefaultShoppingLists(user, firestore, batch);
 
     } else {
         batch.update(userRef, { lastLoginAt: serverTimestamp() });
@@ -91,6 +119,7 @@ export const handleUserLogin = async (user: User, firestore: any, displayName?: 
         await initializeDefaultTaskCategories(user, firestore, batch);
         await initializeDefaultMoodOptions(user, firestore, batch);
         await initializeDefaultBudgets(user, firestore, batch);
+        await initializeDefaultShoppingLists(user, firestore, batch);
     }
 
     await batch.commit();

@@ -218,12 +218,18 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
         
         const upcomingPayments = allRecurringExpensesData.filter((e: any) => {
-            const monthIdentifier = `${today.getFullYear()}-${today.getMonth()}`;
-            const isDueThisMonth = e.lastInstanceCreated !== monthIdentifier && (!e.activeMonths || e.activeMonths.includes(today.getMonth()));
-            if (!isDueThisMonth) return false;
+            const lastInstanceMonth = e.lastInstanceCreated ? parseInt(e.lastInstanceCreated.split('-')[1], 10) : -1;
+            const currentMonthIndex = today.getMonth();
+            const dueThisMonth = (!e.activeMonths || e.activeMonths.includes(currentMonthIndex)) && lastInstanceMonth !== currentMonthIndex;
+            
+            // Check if it's from a previous month and still unpaid
+            if (!dueThisMonth) {
+                // If it's an old month and was never paid
+                const isPastDue = e.dayOfMonth < today.getDate() && currentMonthIndex > (e.lastInstanceCreated ? parseInt(e.lastInstanceCreated.split('-')[1], 10) : -1);
+                return isPastDue;
+            }
 
-            const dueDate = new Date(today.getFullYear(), today.getMonth(), e.dayOfMonth);
-            return dueDate <= today; // Vencido o vence hoy
+            return dueThisMonth;
         }).sort((a: any, b: any) => {
              const dateA = new Date(today.getFullYear(), today.getMonth(), a.dayOfMonth);
              const dateB = new Date(today.getFullYear(), today.getMonth(), b.dayOfMonth);
@@ -494,8 +500,9 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const handleDeleteList = useCallback(async (listId: string) => {
         if (!listId || !user || !firestore) return;
-        await deleteDocumentNonBlocking(doc(firestore, 'users', user.uid, 'shoppingLists', listId));
-        toast({ title: 'Categoría Eliminada' });
+        const listRef = doc(firestore, 'users', user.uid, 'shoppingLists', listId);
+        await updateDocumentNonBlocking(listRef, { isActive: false });
+        toast({ title: 'Categoría Desactivada' });
         handleCloseModal('deleteList');
     }, [user, firestore, handleCloseModal, toast]);
 
@@ -666,4 +673,3 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
     );
 };
 
-    

@@ -639,7 +639,7 @@ export default function FinancialPlanningPage() {
                             value={formState.name || ''} 
                             onChange={(e) => setFormState((p: any) => ({...p, name: e.target.value}))}
                             placeholder="Ej: Mercado, Antojos..."
-                            disabled={!!formState.id}
+                            disabled={!!formState.id && !expenseCategories.includes(formState.name)}
                         />
                     </div>
                     <div className="space-y-2">
@@ -668,7 +668,7 @@ export default function FinancialPlanningPage() {
                 <AlertDialogHeader>
                     <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Esta acción no se puede deshacer. Se eliminará la categoría "{formState.name}" permanentemente, pero las transacciones asociadas no se borrarán.
+                        Esta acción no se puede deshacer. Se desactivará la categoría "{formState.name}" y no será visible en la página de planificación.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -677,7 +677,7 @@ export default function FinancialPlanningPage() {
                         onClick={onListDelete}
                         className="bg-destructive hover:bg-destructive/90"
                     >
-                        Eliminar
+                        Desactivar
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
@@ -875,4 +875,3 @@ export default function FinancialPlanningPage() {
   );
 }
 
-    
