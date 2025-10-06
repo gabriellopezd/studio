@@ -161,7 +161,11 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         const allShoppingListsData = shoppingLists || [];
         const allRecurringExpensesData = recurringExpenses || [];
         const allRecurringIncomesData = recurringIncomes || [];
-        const allTaskCategories = taskCategories || [];
+        
+        const expenseCategoriesFromBudgets = allBudgetsData.map((b:any) => b.categoryName);
+        const expenseCategoriesFromShoppingLists = allShoppingListsData.map((l:any) => l.name);
+        const expenseCategoriesFromRecurring = allRecurringExpensesData.map((e:any) => e.category);
+        const expenseCategories = [...new Set([...expenseCategoriesFromBudgets, ...expenseCategoriesFromShoppingLists, ...expenseCategoriesFromRecurring])].sort();
 
         const currentMonthIdentifier = `${currentMonth.getFullYear()}-${currentMonth.getMonth()}`;
         const today = new Date();
@@ -213,22 +217,19 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
         
         const upcomingPayments = allRecurringExpensesData.filter((e: any) => {
-            const dueDate = new Date(today.getFullYear(), today.getMonth(), e.dayOfMonth);
-            const isOverdue = dueDate < startOfToday && e.lastInstanceCreated !== currentMonthIdentifier;
-            
-            const nextSevenDays = new Date(startOfToday);
-            nextSevenDays.setDate(startOfToday.getDate() + 7);
-            const isUpcoming = dueDate >= startOfToday && dueDate <= nextSevenDays;
+            const monthIdentifier = `${today.getFullYear()}-${today.getMonth()}`;
+            const isDueThisMonth = e.lastInstanceCreated !== monthIdentifier && (!e.activeMonths || e.activeMonths.includes(today.getMonth()));
+            if (!isDueThisMonth) return false;
 
-            return e.lastInstanceCreated !== currentMonthIdentifier && (isOverdue || isUpcoming);
+            const dueDate = new Date(today.getFullYear(), today.getMonth(), e.dayOfMonth);
+            return dueDate <= today; // Vencido o vence hoy
         }).sort((a: any, b: any) => {
              const dateA = new Date(today.getFullYear(), today.getMonth(), a.dayOfMonth);
              const dateB = new Date(today.getFullYear(), today.getMonth(), b.dayOfMonth);
              return dateA.getTime() - dateB.getTime();
         });
 
-        const expenseCategories = [...new Set(allTaskCategories.map((c:any) => c.name))];
-        const incomeCategories = [...new Set(["Salario", "Bonificación", "Otro", ...allTransactionsData.filter((t: any) => t.type === 'income').map((t: any) => t.category)])].filter(Boolean);
+        const incomeCategories = [...new Set(["Salario", "Bonificación", "Otro", ...allRecurringIncomesData.map((i: any) => i.category), ...allTransactionsData.filter((t: any) => t.type === 'income').map((t: any) => t.category)])].filter(Boolean).sort();
         const categoriesWithoutBudget = expenseCategories.filter(cat => !allBudgetsData.some((b: any) => b.categoryName === cat));
 
         // Annual Analytics
