@@ -46,7 +46,7 @@ export default function FinanceSettingsPage() {
   
   const onListDelete = () => {
     if (!modalState.data?.id) return;
-    handleDeleteList(modalState.data.id, true);
+    handleDeleteList(modalState.data.id);
   };
 
   const categoryStates = useMemo(() => {
@@ -106,34 +106,35 @@ export default function FinanceSettingsPage() {
                     <Pencil className="h-4 w-4" />
                 </Button>
                 {cat.isDeletable && (
-                  <AlertDialog>
-                      <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleOpenModal('deleteList', cat)}>
-                          <Trash2 className="h-4 w-4" />
-                      </Button>
-                      <AlertDialogContent>
-                      <AlertDialogHeader>
-                          <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                              Esta acción no se puede deshacer. Se desactivará la categoría "{cat.name}" y no será visible en la página de planificación.
-                          </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction
-                          onClick={onListDelete}
-                          className="bg-destructive hover:bg-destructive/90"
-                          >
-                          Desactivar
-                          </AlertDialogAction>
-                      </AlertDialogFooter>
-                      </AlertDialogContent>
-                  </AlertDialog>
+                   <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleOpenModal('deleteList', cat)}>
+                      <Trash2 className="h-4 w-4" />
+                  </Button>
                 )}
               </div>
             </CardHeader>
           </Card>
         ))}
       </div>
+      
+      <AlertDialog open={modalState.type === 'deleteList'} onOpenChange={() => handleCloseModal('deleteList')}>
+        <AlertDialogContent>
+        <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+                Esta acción no se puede deshacer. Se desactivará la categoría "{formState.name}" y no será visible en la página de planificación.
+            </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+            onClick={onListDelete}
+            className="bg-destructive hover:bg-destructive/90"
+            >
+            Desactivar
+            </AlertDialogAction>
+        </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
        <Dialog open={modalState.type === 'editList'} onOpenChange={() => handleCloseModal('editList')}>
         <DialogContent>

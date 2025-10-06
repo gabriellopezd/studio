@@ -199,7 +199,7 @@ export default function FinancialPlanningPage() {
                 <SelectTrigger className="w-[150px]"><SelectValue placeholder="Mes" /></SelectTrigger>
                 <SelectContent>{months.map(month => <SelectItem key={month.value} value={String(month.value)}>{month.label}</SelectItem>)}</SelectContent>
             </Select>
-            <Button onClick={() => handleOpenModal('transaction', { date: new Date() })}>
+            <Button onClick={() => handleOpenModal('transaction', { date: currentMonth })}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Añadir Transacción
             </Button>
             <Button variant="outline" size="icon" asChild>
@@ -536,7 +536,7 @@ export default function FinancialPlanningPage() {
                     {formState.type === 'expense' && (<div className="space-y-2"><Label htmlFor="budget-focus">Enfoque Presupuesto</Label><Select value={formState.budgetFocus || ''} onValueChange={(value) => setFormState((prev: any) => ({...prev, budgetFocus: value}))}><SelectTrigger id="budget-focus"><SelectValue placeholder="Selecciona" /></SelectTrigger><SelectContent><SelectItem value="Necesidades">Necesidades</SelectItem><SelectItem value="Deseos">Deseos</SelectItem><SelectItem value="Ahorros y Deudas">Ahorros y Deudas</SelectItem></SelectContent></Select></div>)}
                     </div>
                 </div>
-            <DialogFooter><Button type="button" variant="outline" onClick={() => handleCloseModal('transaction')}>Cancelar</Button><Button type="submit" onClick={() => { handleOpenModal('transaction', { ...formState, type: 'expense' }); handleConfirmPurchase(); }}>Guardar Cambios</Button></DialogFooter>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => handleCloseModal('transaction')}>Cancelar</Button><Button type="submit" onClick={() => handleConfirmPurchase()}>Guardar Cambios</Button></DialogFooter>
             </DialogContent>
         </Dialog>
     </div>
