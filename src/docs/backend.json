@@ -554,6 +554,13 @@
         "isActive": {
           "type": "boolean",
           "description": "Indicates if the shopping list category is active for the user."
+        },
+        "activeMonths": {
+            "type": "array",
+            "description": "The months of the year this list is active (0=Jan, 11=Dec). If not present, it's active for all months.",
+            "items": {
+                "type": "number"
+            }
         }
       },
       "required": [

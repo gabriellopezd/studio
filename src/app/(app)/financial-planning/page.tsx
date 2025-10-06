@@ -22,6 +22,7 @@ import {
   MoreHorizontal,
   Pencil,
   XCircle,
+  Settings,
 } from 'lucide-react';
 import {
   Dialog,
@@ -74,6 +75,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { writeBatch, doc } from 'firebase/firestore';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ResponsiveCalendar } from '@/app/(app)/tasks/_components/ResponsiveCalendar';
+import Link from 'next/link';
 
 
 function SortableListItem({
@@ -187,8 +189,12 @@ export default function FinancialPlanningPage() {
   }, []);
 
   const activeShoppingLists = useMemo(() => {
-    return shoppingLists?.filter(list => list.isActive) || [];
-  }, [shoppingLists]);
+    const activeMonth = currentMonth.getMonth();
+    return shoppingLists?.filter(list => 
+        list.isActive && 
+        (!list.activeMonths || list.activeMonths.length === 0 || list.activeMonths.includes(activeMonth))
+    ) || [];
+  }, [shoppingLists, currentMonth]);
 
   const sortedLists = useMemo(() => {
     if (!activeShoppingLists) return [];
@@ -245,6 +251,10 @@ export default function FinancialPlanningPage() {
   useEffect(() => {
     if (!shoppingListsLoading && !selectedListId && sortedLists && sortedLists.length > 0) {
       setSelectedListId(sortedLists[0].id);
+    }
+     // If selected list becomes inactive, switch to the first active one
+    if (selectedListId && !sortedLists.some(l => l.id === selectedListId)) {
+      setSelectedListId(sortedLists?.[0]?.id ?? null);
     }
   }, [shoppingLists, shoppingListsLoading, selectedListId, sortedLists]);
   
@@ -347,7 +357,7 @@ export default function FinancialPlanningPage() {
                                         selectedListId={selectedListId}
                                         setSelectedListId={setSelectedListId}
                                         handleOpenDeleteDialog={(l: any) => handleOpenModal('deleteList', l)}
-                                        handleOpenListDialog={(l: any) => handleOpenModal('list', l)}
+                                        handleOpenListDialog={(l: any) => handleOpenModal('editList', l)}
                                         >
                                             <div className="flex items-center gap-2">
                                                 <ShoppingCart className="mr-2 h-4 w-4" />
@@ -461,7 +471,7 @@ export default function FinancialPlanningPage() {
                                 </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                     <Button onClick={() => handleOpenModal('list')}><PlusCircle className="mr-2 h-4 w-4" />Crear Categoría</Button>
+                                     <Button asChild><Link href="/settings/finances"><Settings className="mr-2 h-4 w-4" />Gestionar Categorías</Link></Button>
                                 </CardContent>
                             </Card>
                             )
@@ -629,7 +639,7 @@ export default function FinancialPlanningPage() {
         <Dialog open={modalState.type === 'list'} onOpenChange={(open) => !open && handleCloseModal('list')}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{formState.id ? "Editar Categoría" : "Crear Nueva Categoría de Gasto"}</DialogTitle>
+                    <DialogTitle>Crear Nueva Categoría de Gasto</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                     <div className="space-y-2">
@@ -639,7 +649,6 @@ export default function FinancialPlanningPage() {
                             value={formState.name || ''} 
                             onChange={(e) => setFormState((p: any) => ({...p, name: e.target.value}))}
                             placeholder="Ej: Mercado, Antojos..."
-                            disabled={!!formState.id && !expenseCategories.includes(formState.name)}
                         />
                     </div>
                     <div className="space-y-2">
@@ -656,8 +665,8 @@ export default function FinancialPlanningPage() {
                 </div>
                 <DialogFooter>
                     <DialogClose asChild><Button variant="outline" onClick={() => handleCloseModal('list')}>Cancelar</Button></DialogClose>
-                    <Button type="button" onClick={formState.id ? handleUpdateList : handleCreateList} disabled={!formState.name}>
-                        {formState.id ? "Guardar Cambios" : "Crear Categoría"}
+                    <Button type="button" onClick={handleCreateList} disabled={!formState.name}>
+                        Crear Categoría
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -874,4 +883,3 @@ export default function FinancialPlanningPage() {
     </div>
   );
 }
-

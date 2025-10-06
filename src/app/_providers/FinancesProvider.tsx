@@ -74,7 +74,7 @@ interface FinancesContextState {
     handleOmitRecurringItem: (item: any, type: 'income' | 'expense') => Promise<void>;
     handleCreateList: () => Promise<void>;
     handleUpdateList: () => Promise<void>;
-    handleDeleteList: (listId: string) => Promise<void>;
+    handleDeleteList: (listId: string, soft?: boolean) => Promise<void>;
     handleAddItem: (listId: string | null) => Promise<void>;
     handleConfirmPurchase: (listId: string | null) => Promise<void>;
     handleDeleteItem: (listId: string, itemId: string) => Promise<void>;
@@ -166,7 +166,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         const expenseCategoriesFromBudgets = allBudgetsData.map((b:any) => b.categoryName);
         const expenseCategoriesFromShoppingLists = allShoppingListsData.map((l:any) => l.name);
         const expenseCategoriesFromRecurring = allRecurringExpensesData.map((e:any) => e.category);
-        const expenseCategories = [...new Set([...expenseCategoriesFromBudgets, ...expenseCategoriesFromShoppingLists, ...expenseCategoriesFromRecurring, ...PRESET_EXPENSE_CATEGORIES])].filter(Boolean).sort();
+        const expenseCategories = [...new Set([...expenseCategoriesFromBudgets, ...expenseCategoriesFromShoppingLists, ...expenseCategoriesFromRecurring, ...PRESET_EXPENSE_CATEGORIES, ...(taskCategories?.map((c: any) => c.name) || [])])].filter(Boolean).sort();
 
         const currentMonthIdentifier = `${currentMonth.getFullYear()}-${currentMonth.getMonth()}`;
         const today = new Date();
@@ -218,21 +218,12 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
         
         const upcomingPayments = allRecurringExpensesData.filter((e: any) => {
-            const lastInstanceMonth = e.lastInstanceCreated ? parseInt(e.lastInstanceCreated.split('-')[1], 10) : -1;
-            const currentMonthIndex = today.getMonth();
-            const dueThisMonth = (!e.activeMonths || e.activeMonths.includes(currentMonthIndex)) && lastInstanceMonth !== currentMonthIndex;
-            
-            // Check if it's from a previous month and still unpaid
-            if (!dueThisMonth) {
-                // If it's an old month and was never paid
-                const isPastDue = e.dayOfMonth < today.getDate() && currentMonthIndex > (e.lastInstanceCreated ? parseInt(e.lastInstanceCreated.split('-')[1], 10) : -1);
-                return isPastDue;
-            }
-
-            return dueThisMonth;
+             const lastInstanceDate = e.lastInstanceCreated ? new Date(e.lastInstanceCreated.split('-')[0], e.lastInstanceCreated.split('-')[1]) : null;
+             const isPaidThisMonth = lastInstanceDate && lastInstanceDate.getFullYear() === currentMonth.getFullYear() && lastInstanceDate.getMonth() === currentMonth.getMonth();
+             return !isPaidThisMonth;
         }).sort((a: any, b: any) => {
-             const dateA = new Date(today.getFullYear(), today.getMonth(), a.dayOfMonth);
-             const dateB = new Date(today.getFullYear(), today.getMonth(), b.dayOfMonth);
+             const dateA = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), a.dayOfMonth);
+             const dateB = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), b.dayOfMonth);
              return dateA.getTime() - dateB.getTime();
         });
 
@@ -487,21 +478,26 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             toast({ variant: "destructive", title: "Categoría Duplicada", description: `La categoría de gasto "${formState.name}" ya existe.` });
             return;
         }
-        await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'shoppingLists'), { name: formState.name, budgetFocus: formState.budgetFocus || 'Deseos', items: [], order: shoppingLists?.length || 0, isActive: true, createdAt: serverTimestamp(), userId: user.uid });
+        await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'shoppingLists'), { name: formState.name, budgetFocus: formState.budgetFocus || 'Deseos', items: [], order: shoppingLists?.length || 0, isActive: true, createdAt: serverTimestamp(), userId: user.uid, activeMonths: [0,1,2,3,4,5,6,7,8,9,10,11] });
         handleCloseModal('list');
     }, [user, firestore, formState, shoppingLists, handleCloseModal, toast]);
     
     const handleUpdateList = useCallback(async () => {
         if (!user || !firestore || !formState.id || !formState.name) return;
-        const { id, name, budgetFocus } = formState;
-        await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'shoppingLists', id), { budgetFocus });
-        handleCloseModal('list');
+        const { id, name, activeMonths } = formState;
+        await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'shoppingLists', id), { name, activeMonths });
+        handleCloseModal('editList');
     }, [user, firestore, formState, handleCloseModal]);
 
-    const handleDeleteList = useCallback(async (listId: string) => {
+    const handleDeleteList = useCallback(async (listId: string, soft: boolean = false) => {
         if (!listId || !user || !firestore) return;
-        await deleteDocumentNonBlocking(doc(firestore, 'users', user.uid, 'shoppingLists', listId));
-        toast({ title: 'Categoría Eliminada' });
+        if (soft) {
+            await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'shoppingLists', listId), { isActive: false });
+            toast({ title: 'Categoría Desactivada' });
+        } else {
+            await deleteDocumentNonBlocking(doc(firestore, 'users', user.uid, 'shoppingLists', listId));
+            toast({ title: 'Categoría Eliminada' });
+        }
         handleCloseModal('deleteList');
     }, [user, firestore, handleCloseModal, toast]);
 
@@ -641,6 +637,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
                 isActive: true,
                 createdAt: serverTimestamp(),
                 userId: user.uid,
+                activeMonths: [0,1,2,3,4,5,6,7,8,9,10,11], // Active for all months by default
             });
         }
     }, [user, firestore, shoppingLists]);
@@ -661,7 +658,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             recurringExpensesLoading,
             recurringIncomes,
             recurringIncomesLoading,
-            financesLoading: recurringExpensesLoading || recurringIncomesLoading,
+            financesLoading: recurringExpensesLoading || recurringIncomesLoading || shoppingListsLoading,
             currentMonth,
             setCurrentMonth,
             ...derivedState,

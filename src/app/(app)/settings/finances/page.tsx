@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,9 +22,15 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { ArrowLeft, Trash2, Pencil } from 'lucide-react';
 import { useFinances } from '@/app/_providers/FinancesProvider';
 import { useUI } from '@/app/_providers/UIProvider';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+
+const months = Array.from({ length: 12 }, (_, i) => ({ value: i, label: new Date(0, i).toLocaleString('es-ES', { month: 'long' }) }));
 
 export default function FinanceSettingsPage() {
   const { 
@@ -32,14 +38,15 @@ export default function FinanceSettingsPage() {
     shoppingListsLoading, 
     expenseCategories,
     handleToggleShoppingList,
+    handleUpdateList,
     handleDeleteList,
   } = useFinances();
 
-  const { modalState, handleOpenModal, handleCloseModal } = useUI();
+  const { modalState, handleOpenModal, handleCloseModal, formState, setFormState } = useUI();
   
-  const onDelete = () => {
+  const onListDelete = () => {
     if (!modalState.data?.id) return;
-    handleDeleteList(modalState.data.id);
+    handleDeleteList(modalState.data.id, true);
   };
 
   const categoryStates = useMemo(() => {
@@ -51,15 +58,21 @@ export default function FinanceSettingsPage() {
             name: name,
             isActive: list ? list.isActive : false, // Default to inactive if no list exists
             isDeletable: !!list, // Can only delete if it exists as a shoppingList doc
+            activeMonths: list?.activeMonths,
         };
     }).sort((a,b) => a.name.localeCompare(b.name));
   }, [expenseCategories, shoppingLists]);
+  
+  const handleSaveChanges = () => {
+    handleUpdateList();
+    handleCloseModal('editList');
+  }
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Categorías de Gastos Variables"
-        description="Activa o desactiva las categorías que usas para tus listas de compra."
+        description="Gestiona tus categorías de gastos y define en qué meses estarán activas para una mejor planificación."
         imageId="settings-sub-header"
       >
         <Button variant="outline" asChild>
@@ -89,13 +102,9 @@ export default function FinanceSettingsPage() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">{cat.name}</CardTitle>
               <div className="flex items-center gap-2">
-                <Switch
-                  checked={!!cat.isActive}
-                  onCheckedChange={() =>
-                    handleToggleShoppingList(cat.name, !!cat.isActive)
-                  }
-                  aria-label={`Activar categoría ${cat.name}`}
-                />
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleOpenModal('editList', cat)}>
+                    <Pencil className="h-4 w-4" />
+                </Button>
                 {cat.isDeletable && (
                   <AlertDialog open={modalState.type === 'deleteList' && modalState.data?.id === cat.id} onOpenChange={(open) => !open && handleCloseModal('deleteList')}>
                       <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleOpenModal('deleteList', cat)}>
@@ -105,16 +114,16 @@ export default function FinanceSettingsPage() {
                       <AlertDialogHeader>
                           <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                           <AlertDialogDescription>
-                              Esta acción no se puede deshacer. Se eliminará la categoría "{cat.name}" permanentemente. Las transacciones asociadas no se borrarán.
+                              Esta acción no se puede deshacer. Se desactivará la categoría "{cat.name}" y no será visible en la página de planificación.
                           </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
                           <AlertDialogAction
-                          onClick={onDelete}
+                          onClick={onListDelete}
                           className="bg-destructive hover:bg-destructive/90"
                           >
-                          Eliminar
+                          Desactivar
                           </AlertDialogAction>
                       </AlertDialogFooter>
                       </AlertDialogContent>
@@ -125,6 +134,53 @@ export default function FinanceSettingsPage() {
           </Card>
         ))}
       </div>
+
+       <Dialog open={modalState.type === 'editList'} onOpenChange={() => handleCloseModal('editList')}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Editar Categoría: {formState.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                    <Label htmlFor="category-name">Nombre</Label>
+                    <Input id="category-name" value={formState.name || ''} onChange={(e) => setFormState((p:any) => ({ ...p, name: e.target.value }))} />
+                </div>
+                 <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <Label>Meses Activos</Label>
+                        <Switch
+                            checked={formState.isActive}
+                            onCheckedChange={(checked) => handleToggleShoppingList(formState.name, !checked)}
+                        />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 rounded-md border p-4">
+                        {months.map(month => (
+                            <div key={month.value} className="flex items-center space-x-2">
+                                <Checkbox
+                                    id={`month-${month.value}`}
+                                    checked={(formState.activeMonths || []).includes(month.value)}
+                                    onCheckedChange={(checked) => {
+                                        const currentMonths = formState.activeMonths || [];
+                                        const newMonths = checked
+                                            ? [...currentMonths, month.value]
+                                            : currentMonths.filter((m: number) => m !== month.value);
+                                        setFormState((prev: any) => ({ ...prev, activeMonths: newMonths.sort((a:number,b:number) => a-b) }));
+                                    }}
+                                />
+                                <label htmlFor={`month-${month.value}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    {month.label}
+                                </label>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                <Button onClick={handleSaveChanges}>Guardar Cambios</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
