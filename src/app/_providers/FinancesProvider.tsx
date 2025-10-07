@@ -511,27 +511,49 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const handleConfirmPurchase = useCallback(async () => {
         if (!user || !firestore || !formState.id || !formState.purchasePrice) return;
-    
+      
         const itemToPurchase = shoppingListItems?.find(i => i.id === formState.id);
         if (!itemToPurchase) return;
-    
+      
         const price = parseFloat(formState.purchasePrice);
         if (isNaN(price)) return;
-    
+      
+        const batch = writeBatch(firestore);
+      
+        // 1. Create the new transaction
+        const newTransactionRef = doc(collection(firestore, 'users', user.uid, 'transactions'));
         const transactionData = {
-            type: 'expense' as const,
-            description: itemToPurchase.name,
-            category: itemToPurchase.categoryName,
-            amount: price,
-            date: new Date().toISOString(),
-            budgetFocus: itemToPurchase.budgetFocus,
+          type: 'expense' as const,
+          description: itemToPurchase.name,
+          category: itemToPurchase.categoryName,
+          amount: price,
+          date: new Date().toISOString(),
+          budgetFocus: itemToPurchase.budgetFocus,
+          userId: user.uid,
+          createdAt: serverTimestamp(),
         };
-        
-        await handleSaveTransaction();
-        
+        batch.set(newTransactionRef, transactionData);
+      
+        // 2. Update the shopping list item
+        const itemRef = doc(firestore, 'users', user.uid, 'shoppingListItems', itemToPurchase.id);
+        batch.update(itemRef, {
+          isPurchased: true,
+          finalPrice: price,
+          transactionId: newTransactionRef.id,
+        });
+      
+        // 3. Update the corresponding budget
+        const budget = budgets?.find(b => b.categoryName === itemToPurchase.categoryName);
+        if (budget) {
+          const budgetRef = doc(firestore, 'users', user.uid, 'budgets', budget.id);
+          batch.update(budgetRef, { currentSpend: increment(price) });
+        }
+      
+        await batch.commit();
         handleCloseModal('purchaseItem');
-    
-    }, [user, firestore, formState, shoppingListItems, budgets, handleCloseModal, handleSaveTransaction]);
+        toast({ title: 'Compra registrada', description: `${itemToPurchase.name} se ha marcado como comprado.` });
+      
+    }, [user, firestore, formState, shoppingListItems, budgets, handleCloseModal, toast]);
 
     const handleDeleteShoppingListItem = useCallback(async (itemId: string) => {
         if (!itemId || !user || !firestore) return;
