@@ -152,7 +152,7 @@ export default function GoalsPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleOpenModal('goal', { ...goal, dueDate: goal.dueDate?.toDate() })}>
+                    <DropdownMenuItem onClick={() => handleOpenModal('goal', { ...goal, dueDate: goal.dueDate?.toDate(), type: goal.type || 'generic' })}>
                       <Pencil className="mr-2 h-4 w-4" />
                       Editar
                     </DropdownMenuItem>
@@ -217,7 +217,7 @@ export default function GoalsPage() {
           motivation={motivation}
           imageId="goals-header"
         >
-          <Button onClick={() => handleOpenModal('goal')}>
+          <Button onClick={() => handleOpenModal('goal', { type: 'generic' })}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Crear Meta
           </Button>

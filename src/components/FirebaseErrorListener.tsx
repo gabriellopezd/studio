@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -13,27 +14,27 @@ export function FirebaseErrorListener() {
   const [error, setError] = useState<FirestorePermissionError | null>(null);
 
   useEffect(() => {
-    // The callback now expects a strongly-typed error, matching the event payload.
     const handleError = (error: FirestorePermissionError) => {
-      // Set error in state to trigger a re-render.
       setError(error);
+      // As a fallback, reload the page to prevent the app from being stuck in a broken state.
+      // This is a simple UX improvement for the end-user.
+      setTimeout(() => {
+        if (process.env.NODE_ENV === 'production') {
+            window.location.reload();
+        }
+      }, 1000);
     };
 
-    // The typed emitter will enforce that the callback for 'permission-error'
-    // matches the expected payload type (FirestorePermissionError).
     errorEmitter.on('permission-error', handleError);
 
-    // Unsubscribe on unmount to prevent memory leaks.
     return () => {
       errorEmitter.off('permission-error', handleError);
     };
   }, []);
 
-  // On re-render, if an error exists in state, throw it.
   if (error) {
     throw error;
   }
 
-  // This component renders nothing.
   return null;
 }
