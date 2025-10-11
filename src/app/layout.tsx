@@ -12,7 +12,7 @@ const fontSans = FontSans({
 });
 
 export const metadata: Metadata = {
-  title: 'Inngenia',
+  title: 'intellecto',
   description: 'Construye rutinas positivas y alcanza tus metas.',
 };
 
@@ -39,5 +39,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    

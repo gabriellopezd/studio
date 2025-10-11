@@ -1,4 +1,4 @@
-# Arquitectura de la Aplicación Inngenia
+# Arquitectura de la Aplicación intellecto
 
 Este documento describe la arquitectura de la aplicación, diseñada para ser modular, escalable y fácil de mantener. El principio fundamental es la **separación de responsabilidades** a través de contextos especializados de React.
 

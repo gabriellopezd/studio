@@ -115,7 +115,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-2">
             <Logo className="size-8 text-orange-500" />
             <span className="text-lg font-semibold text-sidebar-foreground">
-              Inngenia
+              intellecto
             </span>
           </div>
         </SidebarHeader>

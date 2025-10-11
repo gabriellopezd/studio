@@ -73,7 +73,7 @@ export default function LoginPage() {
               <div className="mb-4 flex justify-center">
                 <Logo className="h-12 w-12 text-orange-500" />
               </div>
-              <CardTitle className="text-3xl font-bold">Bienvenido a Inngenia</CardTitle>
+              <CardTitle className="text-3xl font-bold">Bienvenido a intellecto</CardTitle>
               <CardDescription>
                 Inicia sesión para continuar con tus metas.
               </CardDescription>
