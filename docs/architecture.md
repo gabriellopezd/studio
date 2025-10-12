@@ -18,6 +18,10 @@ src
 │   ├── (app)                   # Rutas protegidas de la aplicación principal
 │   │   ├── dashboard
 │   │   ├── finances
+│   │   ├── settings            # Páginas de configuración
+│   │   │   ├── finances
+│   │   │   ├── habits
+│   │   │   └── ...
 │   │   ├── ...
 │   │   └── layout.tsx            # Layout principal con la barra lateral
 │   ├── (auth)                    # Rutas públicas de autenticación (login, signup)
@@ -30,7 +34,9 @@ src
 ├── firebase
 │   ├── config.ts               # Configuración del proyecto Firebase
 │   ├── provider.tsx            # Proveedor principal de Firebase
-│   ├── use-collection.ts       # Hook para suscripciones a colecciones
+│   ├── firestore
+│   │   ├── use-collection.tsx  # Hook para colecciones
+│   │   └── use-doc.tsx         # Hook para documentos
 │   └── ...
 ├── lib
 │   ├── habits.ts               # Lógica de negocio para hábitos (rachas, etc.)

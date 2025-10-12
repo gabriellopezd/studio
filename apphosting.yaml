@@ -1,7 +1,9 @@
 # Settings to manage and configure a Firebase App Hosting backend.
+# This file controls server-side configurations for your Next.js application.
+# For more details, see the official documentation:
 # https://firebase.google.com/docs/app-hosting/configure
 
 runConfig:
-  # Increase this value if you'd like to automatically spin up
-  # more instances in response to increased traffic.
+  # The maximum number of server instances that can be running at the same time.
+  # Increase this value to handle more concurrent traffic.
   maxInstances: 1
