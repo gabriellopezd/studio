@@ -46,13 +46,15 @@ export const GoalsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             currentValue: data.currentValue ? parseFloat(data.currentValue) : 0,
             monthlyContribution: data.monthlyContribution ? parseFloat(data.monthlyContribution) : null,
             dueDate: dueDate ? new Date(dueDate).toISOString() : null,
-            userId: user.uid
+            userId: user.uid,
+            isCompleted: false,
         };
         
         if (id) {
+            delete serializableData.isCompleted; // Do not reset completion status on edit
             await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'goals', id), serializableData);
         } else {
-            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'goals'), { ...serializableData, isCompleted: false, createdAt: serverTimestamp() });
+            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'goals'), { ...serializableData, createdAt: serverTimestamp() });
         }
         handleCloseModal('goal');
     };
@@ -64,7 +66,7 @@ export const GoalsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     const handleUpdateGoalProgress = async () => {
-        if (!user || !firestore || !formState.id || !formState.progressValue) return;
+        if (!user || !firestore || !formState.id || formState.progressValue === undefined) return;
 
         const newValue = parseFloat(formState.progressValue);
         if (isNaN(newValue)) return;
@@ -76,7 +78,7 @@ export const GoalsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         await updateDocumentNonBlocking(goalRef, { currentValue: newValue, isCompleted });
         
         handleCloseModal('progressGoal');
-        if (isCompleted) {
+        if (isCompleted && !goalData.isCompleted) { // Only toast if it just became completed
             toast({ title: '¡Meta Alcanzada!', description: `Felicidades por completar tu meta "${goalData.name}".`});
         }
     };

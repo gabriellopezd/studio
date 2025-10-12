@@ -106,13 +106,12 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
     // --- Data Fetching ---
     const transactionsQuery = useMemo(() => {
         if (!user || !firestore) return null;
-        const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-        const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-        endOfMonth.setHours(23, 59, 59, 999);
+        const start = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+        const end = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0, 23, 59, 59);
         return query(
             collection(firestore, 'users', user.uid, 'transactions'),
-            where('date', '>=', startOfMonth.toISOString()),
-            where('date', '<=', endOfMonth.toISOString()),
+            where('date', '>=', start.toISOString()),
+            where('date', '<=', end.toISOString()),
             orderBy('date', 'desc')
         );
     }, [user, firestore, currentMonth]);
@@ -177,7 +176,8 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
         const expenseCategoriesFromBudgets = allBudgetsData.map((b:any) => b.categoryName);
         const expenseCategoriesFromShoppingLists = allShoppingListsData.map((l:any) => l.name);
         const expenseCategoriesFromRecurring = allRecurringExpensesData.map((e:any) => e.category);
-        const expenseCategories = [...new Set([...expenseCategoriesFromBudgets, ...expenseCategoriesFromShoppingLists, ...expenseCategoriesFromRecurring, ...PRESET_EXPENSE_CATEGORIES])].filter(Boolean).sort();
+        const expenseCategoriesFromTransactions = allTransactionsData.filter(t => t.type === 'expense').map((t:any) => t.category);
+        const expenseCategories = [...new Set([...expenseCategoriesFromBudgets, ...expenseCategoriesFromShoppingLists, ...expenseCategoriesFromRecurring, ...expenseCategoriesFromTransactions, ...PRESET_EXPENSE_CATEGORIES])].filter(Boolean).sort();
 
         const currentMonthFBIdentifier = `${currentMonth.getFullYear()}-${currentMonth.getMonth()}`;
         const today = new Date();

@@ -169,10 +169,10 @@ export default function GoalsPage() {
             <div>
               <div className="mb-2 flex justify-between text-sm">
                 <span className="font-medium text-foreground">
-                  {isFinancial ? formatCurrency(goal.currentValue) : `${goal.currentValue.toLocaleString()} ${goal.unit}`}
+                  {isFinancial ? formatCurrency(goal.currentValue) : `${(goal.currentValue || 0).toLocaleString()} ${goal.unit || ''}`}
                 </span>
                 <span className="text-muted-foreground">
-                  {isFinancial ? formatCurrency(goal.targetValue) : `${goal.targetValue.toLocaleString()} ${goal.unit}`}
+                  {isFinancial ? formatCurrency(goal.targetValue) : `${goal.targetValue.toLocaleString()} ${goal.unit || ''}`}
                 </span>
               </div>
               <Progress
@@ -223,7 +223,7 @@ export default function GoalsPage() {
           </Button>
         </PageHeader>
 
-        {goalsLoading && <p>Cargando metas...</p>}
+        {goalsLoading && <p className="text-sm text-muted-foreground">Cargando metas...</p>}
 
         <Tabs defaultValue="savings">
             <TabsList className="grid w-full grid-cols-3">
@@ -235,7 +235,7 @@ export default function GoalsPage() {
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {savingsGoals.map(renderGoalCard)}
                 </div>
-                 {!savingsGoals.length && !goalsLoading && (
+                 {!goalsLoading && savingsGoals.length === 0 && (
                     <Card className="mt-4 flex flex-col items-center justify-center p-10 text-center">
                         <CardHeader>
                         <PiggyBank className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -249,7 +249,7 @@ export default function GoalsPage() {
                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {debtGoals.map(renderGoalCard)}
                 </div>
-                {!debtGoals.length && !goalsLoading && (
+                {!goalsLoading && debtGoals.length === 0 && (
                     <Card className="mt-4 flex flex-col items-center justify-center p-10 text-center">
                         <CardHeader>
                         <Landmark className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -263,7 +263,7 @@ export default function GoalsPage() {
                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {genericGoals.map(renderGoalCard)}
                 </div>
-                {!genericGoals.length && !goalsLoading && (
+                {!goalsLoading && genericGoals.length === 0 && (
                     <Card className="mt-4 flex flex-col items-center justify-center p-10 text-center">
                         <CardHeader>
                         <Target className="mx-auto h-12 w-12 text-muted-foreground" />

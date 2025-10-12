@@ -102,8 +102,8 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // --- Derived State ---
     const derivedState = useMemo(() => {
         const allMoodsData = moods || [];
-        const feelingsCount = allMoodsData.flatMap((m: any) => m.feelings).reduce((acc: any, f: any) => { acc[f] = (acc[f] || 0) + 1; return acc; }, {} as Record<string, number>);
-        const influencesCount = allMoodsData.flatMap((m: any) => m.influences).reduce((acc: any, i: any) => { acc[i] = (acc[i] || 0) + 1; return acc; }, {} as Record<string, number>);
+        const feelingsCount = allMoodsData.flatMap((m: any) => m.feelings || []).reduce((acc: any, f: any) => { acc[f] = (acc[f] || 0) + 1; return acc; }, {} as Record<string, number>);
+        const influencesCount = allMoodsData.flatMap((m: any) => m.influences || []).reduce((acc: any, i: any) => { acc[i] = (acc[i] || 0) + 1; return acc; }, {} as Record<string, number>);
 
         return {
             todayMood: todayMoodData?.[0] || null,

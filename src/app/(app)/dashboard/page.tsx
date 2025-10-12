@@ -129,10 +129,16 @@ export default function DashboardPage() {
                 <CardDescription>Tu mejor racha activa.</CardDescription>
             </CardHeader>
             <CardContent>
-                <p className="text-3xl font-bold">{longestCurrentStreak} días</p>
-                <div className="mt-2 flex flex-wrap gap-1">
-                    {topCurrentStreakHabits.map(habit => <Badge key={habit} variant="secondary">{habit}</Badge>)}
-                </div>
+                {habitsLoading ? (
+                  <p className="text-sm text-muted-foreground">Cargando rachas...</p>
+                ) : (
+                  <>
+                    <p className="text-3xl font-bold">{longestCurrentStreak} días</p>
+                    <div className="mt-2 flex flex-wrap gap-1">
+                        {topCurrentStreakHabits.map(habit => <Badge key={habit} variant="secondary">{habit}</Badge>)}
+                    </div>
+                  </>
+                )}
             </CardContent>
         </Card>
         <Card>
@@ -144,10 +150,16 @@ export default function DashboardPage() {
                 <CardDescription>Tu récord histórico.</CardDescription>
             </CardHeader>
             <CardContent>
-                <p className="text-3xl font-bold">{longestStreak} días</p>
-                <div className="mt-2 flex flex-wrap gap-1">
-                    {topLongestStreakHabits.map(habit => <Badge key={habit} variant="secondary">{habit}</Badge>)}
-                </div>
+               {habitsLoading ? (
+                  <p className="text-sm text-muted-foreground">Cargando récords...</p>
+                ) : (
+                  <>
+                    <p className="text-3xl font-bold">{longestStreak} días</p>
+                    <div className="mt-2 flex flex-wrap gap-1">
+                        {topLongestStreakHabits.map(habit => <Badge key={habit} variant="secondary">{habit}</Badge>)}
+                    </div>
+                  </>
+                )}
             </CardContent>
         </Card>
       </div>
@@ -161,8 +173,12 @@ export default function DashboardPage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <Progress value={dailyHabits.length > 0 ? (completedDaily / dailyHabits.length) * 100 : 0} className="mb-2 h-2"/>
-                    <p className="text-xs text-muted-foreground">{completedDaily} de {dailyHabits.length} completados.</p>
+                    {habitsLoading ? <p className="text-xs text-muted-foreground">Cargando...</p> : (
+                        <>
+                            <Progress value={dailyHabits.length > 0 ? (completedDaily / dailyHabits.length) * 100 : 0} className="mb-2 h-2"/>
+                            <p className="text-xs text-muted-foreground">{completedDaily} de {dailyHabits.length} completados.</p>
+                        </>
+                    )}
                 </CardContent>
             </Card>
             <Card>
@@ -173,8 +189,12 @@ export default function DashboardPage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <Progress value={dailyTasksProgress} className="mb-2 h-2"/>
-                    <p className="text-xs text-muted-foreground">{completedDailyTasks} de {totalDailyTasks} completadas.</p>
+                    {tasksLoading ? <p className="text-xs text-muted-foreground">Cargando...</p> : (
+                        <>
+                            <Progress value={dailyTasksProgress} className="mb-2 h-2"/>
+                            <p className="text-xs text-muted-foreground">{completedDailyTasks} de {totalDailyTasks} completadas.</p>
+                        </>
+                    )}
                 </CardContent>
             </Card>
             <Card>
@@ -185,8 +205,12 @@ export default function DashboardPage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <Progress value={weeklyHabits.length > 0 ? (completedWeekly / weeklyHabits.length) * 100 : 0} className="mb-2 h-2"/>
-                    <p className="text-xs text-muted-foreground">{completedWeekly} de {weeklyHabits.length} completados.</p>
+                     {habitsLoading ? <p className="text-xs text-muted-foreground">Cargando...</p> : (
+                        <>
+                            <Progress value={weeklyHabits.length > 0 ? (completedWeekly / weeklyHabits.length) * 100 : 0} className="mb-2 h-2"/>
+                            <p className="text-xs text-muted-foreground">{completedWeekly} de {weeklyHabits.length} completados.</p>
+                        </>
+                    )}
                 </CardContent>
             </Card>
             <Card>
@@ -197,8 +221,12 @@ export default function DashboardPage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <Progress value={weeklyTasksProgress} className="mb-2 h-2"/>
-                    <p className="text-xs text-muted-foreground">{completedWeeklyTasks} de {totalWeeklyTasks} tareas completadas.</p>
+                    {tasksLoading ? <p className="text-xs text-muted-foreground">Cargando...</p> : (
+                        <>
+                            <Progress value={weeklyTasksProgress} className="mb-2 h-2"/>
+                            <p className="text-xs text-muted-foreground">{completedWeeklyTasks} de {totalWeeklyTasks} tareas completadas.</p>
+                        </>
+                     )}
                 </CardContent>
             </Card>
        </div>
@@ -213,8 +241,10 @@ export default function DashboardPage() {
                  <CardDescription>Tu plan de acción para los próximos días.</CardDescription>
             </CardHeader>
             <CardContent>
-                {tasksLoading && <p>Cargando tareas...</p>}
-                {overdueTasks.length === 0 && todayTasks.length === 0 && !tasksLoading && <p className="text-sm text-muted-foreground">No tienes tareas urgentes.</p>}
+                {tasksLoading && <p className="text-sm text-muted-foreground">Cargando tareas...</p>}
+                {!tasksLoading && overdueTasks.length === 0 && todayTasks.length === 0 && (
+                    <p className="text-sm text-center text-muted-foreground pt-4">¡Felicidades! No tienes tareas urgentes.</p>
+                )}
                 
                 <div className="space-y-4">
                   {overdueTasks.length > 0 && (
@@ -262,7 +292,7 @@ export default function DashboardPage() {
                         <CardDescription>Tu registro emocional del día.</CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-col items-center justify-center text-center">
-                        {moodsLoading && <p>Cargando ánimo...</p>}
+                        {moodsLoading && <p className="text-sm text-muted-foreground">Cargando ánimo...</p>}
                         {todayMood ? (
                             <>
                                 <p className="text-5xl">{todayMood.emoji}</p>
@@ -277,6 +307,9 @@ export default function DashboardPage() {
                                 <>
                                     <p className="text-5xl">⚪</p>
                                     <p className="text-muted-foreground mt-2">Sin registrar</p>
+                                    <Button variant="link" asChild className="mt-2 text-xs">
+                                        <Link href="/mood-tracker">Registrar mi día</Link>
+                                    </Button>
                                 </>
                             )
                         )}
@@ -294,7 +327,7 @@ export default function DashboardPage() {
                         <CardDescription>Pagos pendientes y próximos.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                       {financesLoading && <p>Cargando pagos...</p>}
+                       {financesLoading && <p className="text-sm text-muted-foreground">Cargando pagos...</p>}
                         {!financesLoading && upcomingPayments.length === 0 ? (
                            <p className="text-sm text-center text-muted-foreground pt-4">No tienes pagos pendientes o próximos.</p>
                        ) : (
@@ -326,5 +359,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
