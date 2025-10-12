@@ -315,7 +315,7 @@ export default function GoalsPage() {
               </div>
             </div>
 
-            {formState.type !== 'generic' && (
+            {(formState.type === 'savings' || formState.type === 'debt') && (
                  <div className="space-y-2">
                     <Label htmlFor="goal-contribution">Aportación Mensual</Label>
                     <Input id="goal-contribution" type="number" value={formState.monthlyContribution || ''} onChange={(e) => setFormState((p: any) => ({...p, monthlyContribution: e.target.value}))} placeholder="Ej: 50000"/>

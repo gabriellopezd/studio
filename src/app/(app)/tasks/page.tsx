@@ -113,12 +113,12 @@ export default function TasksPage() {
   }, []);
 
   const handleOpenModal = (type: string, data: any = {}) => {
-    let modalData = data;
-    if (type === 'task' && data.dueDate) {
-        modalData = { ...data, dueDate: data.dueDate.toDate() };
+    let modalData = { ...data };
+    if (type === 'task' && data.dueDate && typeof data.dueDate.toDate === 'function') {
+        modalData.dueDate = data.dueDate.toDate();
     }
     openModal(type, modalData);
-  };
+};
 
 
   const { groupedTasks, allTasksInView } = useMemo(() => {

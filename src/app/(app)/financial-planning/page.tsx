@@ -415,7 +415,7 @@ export default function FinancialPlanningPage() {
                 </div>
                 <div className="space-y-6">
                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Gastos Fijos</CardTitle><Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal('recurringItem', { type: 'expense', activeMonths: [0,1,2,3,4,5,6,7,8,9,10,11] })}><PlusCircle className="h-4 w-4" /></Button></CardHeader>
+                        <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Gastos Fijos</CardTitle><Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal('recurringItem', { type: 'expense', budgetFocus: 'Necesidades', activeMonths: [0,1,2,3,4,5,6,7,8,9,10,11] })}><PlusCircle className="h-4 w-4" /></Button></CardHeader>
                         <CardContent className="space-y-2">
                             {recurringExpenses?.map(expense => (
                                 <div key={expense.id} className="flex items-center justify-between rounded-lg border p-3">

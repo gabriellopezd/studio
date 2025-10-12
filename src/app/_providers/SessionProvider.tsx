@@ -120,7 +120,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
                     lastTimeLogId: timeLogRef.id,
                 });
             }
-        } else {
+        } else if (activeSession.type === 'task') {
              const taskRef = doc(firestore, 'users', user.uid, 'tasks', activeSession.id);
              batch.update(taskRef, { 
                 isCompleted: true,

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useMemo, ReactNode } from 'react';
@@ -51,14 +52,6 @@ export const useTasks = () => {
     return context;
 };
 
-const getStartOfWeek = (date: Date) => {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(d.setDate(diff));
-};
-
 export const TasksProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { firestore, user } = useFirebase();
     const { toast } = useToast();
@@ -90,7 +83,7 @@ export const TasksProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         if (id) {
             await updateDocumentNonBlocking(doc(firestore, 'users', user.uid, 'tasks', id), serializableData);
         } else {
-            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'tasks'), { ...serializableData, isCompleted: false, createdAt: serverTimestamp(), completionDate: null });
+            await addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'tasks'), { ...serializableData, isCompleted: false, createdAt: serverTimestamp(), completionDate: null, priority: serializableData.priority || 'medium' });
         }
         handleCloseModal('task');
     };
@@ -152,7 +145,8 @@ export const TasksProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         const endOfWeekDate = endOfWeek(today, { weekStartsOn: 1 });
 
         const overdueTasks = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() < startOfTodayDate);
-        const todayTasks = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= startOfTodayDate && t.dueDate.toDate() < tomorrow);
+        const todayTasks = allTasksData.filter((t: any) => t.dueDate && isWithinInterval(t.dueDate.toDate(), { start: startOfTodayDate, end: endOfTodayDate }));
+
         const upcomingTasks = allTasksData.filter((t: any) => !t.isCompleted && t.dueDate && t.dueDate.toDate() >= tomorrow);
 
         const completed = allTasksData.filter((t: any) => t.isCompleted).length;
@@ -172,7 +166,7 @@ export const TasksProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             return acc;
         }, {} as Record<string, any>);
         
-        const dailyTasks = allTasksData.filter((t: any) => t.dueDate && isWithinInterval(t.dueDate.toDate(), { start: startOfTodayDate, end: endOfTodayDate }));
+        const dailyTasks = todayTasks;
         const completedDailyTasks = dailyTasks.filter(t => t.isCompleted).length;
         const totalDailyTasks = dailyTasks.length;
         const dailyTasksProgress = totalDailyTasks > 0 ? (completedDailyTasks / totalDailyTasks) * 100 : 0;
@@ -204,7 +198,7 @@ export const TasksProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }, {});
         const taskTimeAnalytics = Object.entries(taskTimeTotals).map(([name, value]) => ({ name, minutos: Math.round(value as number / 60) })).filter(item => item.minutos > 0);
 
-        return { analyticsLoading, overdueTasks, todayTasks, upcomingTasks, totalStats, categoryStats, onTimeCompletionRate, dailyCompletionStats, completedTasksByCategory, taskTimeAnalytics, dailyTasksProgress, completedDailyTasks, totalDailyTasks, weeklyTasksProgress, completedWeeklyTasks, totalWeeklyTasks };
+        return { analyticsLoading, overdueTasks, todayTasks: todayTasks.filter(t => !t.isCompleted), upcomingTasks, totalStats, categoryStats, onTimeCompletionRate, dailyCompletionStats, completedTasksByCategory, taskTimeAnalytics, dailyTasksProgress, completedDailyTasks, totalDailyTasks, weeklyTasksProgress, completedWeeklyTasks, totalWeeklyTasks };
     }, [tasks, taskCategories, timeLogs, tasksLoading, taskCategoriesLoading, timeLogsLoading]);
 
     return (
