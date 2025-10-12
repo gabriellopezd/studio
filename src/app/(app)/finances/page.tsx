@@ -94,6 +94,7 @@ export default function FinancesPage() {
     transactionsLoading,
     annualTransactionsLoading,
     budgets,
+    budgetsLoading,
     monthlyIncome,
     monthlyExpenses,
     monthlyBalance,
@@ -118,6 +119,7 @@ export default function FinancesPage() {
     pendingExpensesTotal,
     pendingIncomesTotal,
     handleDeleteTransaction,
+    categoriesWithoutBudget
   } = useFinances();
   
   const {
@@ -241,8 +243,10 @@ export default function FinancesPage() {
                     <CardTitle>Transacciones del Mes</CardTitle>
                     </CardHeader>
                     <CardContent>
-                    {transactionsLoading && <p>Cargando transacciones...</p>}
-                    <div className="overflow-x-auto">
+                    {transactionsLoading && <p className="text-center p-4">Cargando transacciones...</p>}
+                    {!transactionsLoading && transactions?.length === 0 && <p className="text-center text-muted-foreground p-4">No hay transacciones este mes.</p>}
+                    {transactions && transactions.length > 0 && (
+                        <div className="overflow-x-auto">
                         <Table>
                         <TableHeader>
                             <TableRow>
@@ -308,48 +312,49 @@ export default function FinancesPage() {
                             ))}
                         </TableBody>
                         </Table>
-                    </div>
+                        </div>
+                    )}
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle>Presupuestos</CardTitle>
-                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal('budget')}>
+                        <CardTitle>Presupuestos Mensuales</CardTitle>
+                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenModal('budget', { categories: categoriesWithoutBudget })}>
                             <PlusCircle className="h-4 w-4" />
                         </Button>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-4">
-                            {budgets?.map((b) => {
-                                const currentSpend = b.currentSpend || 0;
-                                const progress = (currentSpend / b.monthlyLimit) * 100;
-
-                                return (
-                                <div key={b.id}>
-                                    <div className="flex justify-between items-center mb-1">
-                                    <span className="text-sm font-medium">
-                                        {b.categoryName}
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm text-muted-foreground">
-                                        {formatCurrency(currentSpend)} /{' '}
-                                        {formatCurrency(b.monthlyLimit)}
-                                        </span>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenModal('budget', b)}>
-                                        <Pencil className="h-3 w-3" />
-                                        </Button>
-                                    </div>
-                                    </div>
-                                    <Progress value={progress} className="h-2"/>
-                                </div>
-                                );
-                            })}
-                            {budgets?.length === 0 && (
-                                <p className="text-sm text-center text-muted-foreground pt-4">
-                                    No has creado ningún presupuesto para este mes.
-                                </p>
-                                )}
-                        </div>
+                        {budgetsLoading && <p className="text-center p-4">Cargando presupuestos...</p>}
+                        {!budgetsLoading && budgets && Object.keys(budgets.categories).length > 0 ? (
+                            <div className="space-y-4">
+                                {Object.entries(budgets.categories).map(([category, limit]) => {
+                                    const spend = budgets.spends[category] || 0;
+                                    const progress = (spend / (limit as number)) * 100;
+                                    return (
+                                        <div key={category}>
+                                            <div className="flex justify-between items-center mb-1">
+                                            <span className="text-sm font-medium">
+                                                {category}
+                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm text-muted-foreground">
+                                                {formatCurrency(spend)} / {formatCurrency(limit as number)}
+                                                </span>
+                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenModal('budget', { categoryName: category, monthlyLimit: limit, categories: [category] })}>
+                                                    <Pencil className="h-3 w-3" />
+                                                </Button>
+                                            </div>
+                                            </div>
+                                            <Progress value={progress} className="h-2"/>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        ) : !budgetsLoading && (
+                            <p className="text-sm text-center text-muted-foreground pt-4">
+                                No has creado ningún presupuesto para este mes.
+                            </p>
+                        )}
                     </CardContent>
                 </Card>
                 </div>
@@ -424,7 +429,7 @@ export default function FinancesPage() {
 
 
                 {annualTransactionsLoading ? (
-                    <p>Cargando análisis anual...</p>
+                    <p className="text-center p-4">Cargando análisis anual...</p>
                 ) : (
                     <>
                         <Card>

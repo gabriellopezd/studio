@@ -461,35 +461,28 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Budget",
       "type": "object",
-      "description": "Represents a budget for a specific category.",
+      "description": "Represents the budgets for a specific month. The document ID is in YYYY-MM format.",
       "properties": {
-        "id": {
+        "month": {
           "type": "string",
-          "description": "Unique identifier for the budget."
+          "description": "The month this budget applies to, in YYYY-MM format."
         },
         "userId": {
           "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Budget)"
+          "description": "Reference to User."
         },
-        "categoryName": {
-          "type": "string",
-          "description": "Name of the budget category."
-        },
-        "monthlyLimit": {
-          "type": "number",
-          "description": "Monthly limit for the budget."
-        },
-        "currentSpend": {
-          "type": "number",
-          "description": "Current amount spent in the budget category."
+        "categories": {
+          "type": "object",
+          "description": "A map where keys are category names and values are the budget limits for that category.",
+          "additionalProperties": {
+            "type": "number"
+          }
         }
       },
       "required": [
-        "id",
+        "month",
         "userId",
-        "categoryName",
-        "monthlyLimit",
-        "currentSpend"
+        "categories"
       ]
     },
     "ShoppingList": {
@@ -760,7 +753,7 @@
       },
       {
         "path": "/users/{userId}/budgets/{budgetId}",
-        "definition": { "entityName": "Budget", "schema": { "$ref": "#/backend/entities/Budget" }, "description": "A single budget document." }
+        "definition": { "entityName": "Budget", "schema": { "$ref": "#/backend/entities/Budget" }, "description": "A single budget document for a specific month (ID is YYYY-MM)." }
       },
       {
         "path": "/users/{userId}/shoppingLists/{shoppingListId}",
