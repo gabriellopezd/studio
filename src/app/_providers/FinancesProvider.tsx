@@ -190,7 +190,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
                 const lastBudgetRef = doc(firestore, 'users', user.uid, 'budgets', lastMonthId);
                 const lastBudgetSnap = await getDoc(lastBudgetRef);
                 
-                let categories = {};
+                let categories: { [key: string]: number } = {};
                 if (lastBudgetSnap.exists()) {
                     categories = lastBudgetSnap.data().categories;
                 } else {
@@ -592,7 +592,7 @@ export const FinancesProvider: React.FC<{ children: ReactNode }> = ({ children }
             
             // Re-initialize the budget for the current month
             const newBudgetRef = doc(firestore, 'users', user.uid, 'budgets', monthIdentifier);
-            const defaultCategories = PRESET_EXPENSE_CATEGORIES.reduce((acc, cat) => {
+            const defaultCategories = PRESET_EXPENSE_CATEGORIES.reduce((acc: {[key: string]: number}, cat) => {
                 acc[cat] = 100000;
                 return acc;
             }, {});
