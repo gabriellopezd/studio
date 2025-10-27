@@ -40,8 +40,15 @@ export const GoalsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         if (!user || !firestore || !formState.name || !formState.targetValue) return;
 
         const { id, dueDate, ...data } = formState;
+        
+        let unit = data.unit;
+        if (data.type === 'savings' || data.type === 'debt') {
+            unit = 'COP';
+        }
+
         const serializableData: any = { 
             ...data,
+            unit,
             targetValue: parseFloat(data.targetValue),
             currentValue: data.currentValue ? parseFloat(data.currentValue) : 0,
             monthlyContribution: data.monthlyContribution ? parseFloat(data.monthlyContribution) : null,

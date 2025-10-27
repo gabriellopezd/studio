@@ -134,9 +134,11 @@ export default function DashboardPage() {
                 ) : (
                   <>
                     <p className="text-3xl font-bold">{longestCurrentStreak} días</p>
-                    <div className="mt-2 flex flex-wrap gap-1">
-                        {topCurrentStreakHabits.map(habit => <Badge key={habit} variant="secondary">{habit}</Badge>)}
-                    </div>
+                    {topCurrentStreakHabits && topCurrentStreakHabits.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                            {topCurrentStreakHabits.map(habit => <Badge key={habit} variant="secondary">{habit}</Badge>)}
+                        </div>
+                    )}
                   </>
                 )}
             </CardContent>
@@ -155,9 +157,11 @@ export default function DashboardPage() {
                 ) : (
                   <>
                     <p className="text-3xl font-bold">{longestStreak} días</p>
-                    <div className="mt-2 flex flex-wrap gap-1">
-                        {topLongestStreakHabits.map(habit => <Badge key={habit} variant="secondary">{habit}</Badge>)}
-                    </div>
+                    {topLongestStreakHabits && topLongestStreakHabits.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                            {topLongestStreakHabits.map(habit => <Badge key={habit} variant="secondary">{habit}</Badge>)}
+                        </div>
+                    )}
                   </>
                 )}
             </CardContent>

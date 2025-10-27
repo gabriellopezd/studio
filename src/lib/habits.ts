@@ -43,9 +43,11 @@ const isPreviousWeek = (today: Date, otherDate: Date) => {
 export function isHabitCompletedToday(habit: any) {
     if (!habit || !habit.lastCompletedAt) return false;
     
-    // Ensure lastCompletedAt is a valid Date object
+    // Firestore Timestamps have a toDate() method.
+    // Standard JS Date objects do not.
+    // This handles both cases gracefully.
     const lastCompletedDate = habit.lastCompletedAt.toDate ? habit.lastCompletedAt.toDate() : new Date(habit.lastCompletedAt);
-    if (isNaN(lastCompletedDate.getTime())) return false;
+    if (isNaN(lastCompletedDate.getTime())) return false; // Invalid date
 
     const today = new Date();
     
