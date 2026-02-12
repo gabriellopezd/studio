@@ -1,10 +1,9 @@
 export const firebaseConfig = {
-  // PEGA AQUÍ LA CONFIGURACIÓN DE TU NUEVO PROYECTO DE FIREBASE
-  // La obtienes al registrar una nueva aplicación web en la consola de Firebase.
-  projectId: "tu-nuevo-proyecto-id",
-  appId: "tu-nuevo-app-id",
-  apiKey: "tu-nuevo-api-key",
-  authDomain: "tu-nuevo-proyecto.firebaseapp.com",
-  measurementId: "tu-nuevo-measurement-id",
-  messagingSenderId: "tu-nuevo-sender-id"
+  apiKey: "AIzaSyC8VFafOT81_MDD891XpyaLoJxA8rvZQyg",
+  authDomain: "inngenia-app.firebaseapp.com",
+  projectId: "inngenia-app",
+  storageBucket: "inngenia-app.firebasestorage.app",
+  messagingSenderId: "888581130040",
+  appId: "1:888581130040:web:f15790635e16e9fc29a3cd",
+  measurementId: "G-JHEQH3KL1H"
 };
