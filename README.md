@@ -74,6 +74,20 @@ src
     npm run start
     ```
 
+## 🌍 Despliegue y Producción
+
+La aplicación está desplegada y accesible en producción:
+
+- **URL Principal:** [https://app.intellecto.com.co](https://app.intellecto.com.co)
+- **Plataforma:** Firebase App Hosting
+- **Infraestructura:** Google Cloud (automáticamente gestionada por Firebase)
+
+### Ciclo de CI/CD
+El despliegue es continuo y automático:
+1.  Cualquier cambio empujado a la rama `main` en GitHub activa un nuevo build.
+2.  Firebase App Hosting detecta el cambio, construye la aplicación (Next.js) y la despliega.
+3.  El contenido estático se sirve desde el CDN global de Firebase.
+
 ## 🔑 Principios Clave
 
 - **Separación de Responsabilidades:** La lógica de cada funcionalidad principal (hábitos, tareas, finanzas, etc.) está encapsulada en su propio React Context Provider (`src/app/_providers`). Esto hace que el código sea modular, predecible y fácil de depurar.
