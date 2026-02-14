@@ -93,3 +93,6 @@ El despliegue es continuo y automático:
 - **Separación de Responsabilidades:** La lógica de cada funcionalidad principal (hábitos, tareas, finanzas, etc.) está encapsulada en su propio React Context Provider (`src/app/_providers`). Esto hace que el código sea modular, predecible y fácil de depurar.
 - **Operaciones No Bloqueantes:** Las escrituras en Firestore se realizan de forma no bloqueante para mantener la interfaz de usuario fluida y receptiva.
 - **Seguridad Primero:** Las reglas de seguridad de Firestore están diseñadas para garantizar que los usuarios solo puedan acceder a sus propios datos.
+
+---
+**Última actualización:** 14 de Febrero de 2026, 04:02 PM
